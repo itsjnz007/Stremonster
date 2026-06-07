@@ -2,9 +2,10 @@ import logging
 import os
 import sys
 from logging.handlers import RotatingFileHandler
+from app.config import CACHE_DIR
 
 class Logger:
-    def __init__(self, module_name: str, log_file: str = ".logs/app.log", level: int = logging.INFO):
+    def __init__(self, module_name: str, log_file: str = f"{CACHE_DIR}/logs/app.log", level: int = logging.INFO):
         """
         Initializes a module-specific logger instance.
         """
