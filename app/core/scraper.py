@@ -1,9 +1,9 @@
 import sys
-import time
 from pathlib import Path
-from typing import Optional
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+import time
+from typing import Optional
 from playwright.sync_api import Request, Response, sync_playwright
 from app.models.responses import *
 import re
@@ -51,7 +51,7 @@ class Scraper:
                     stream_request: Request = stream_event.value
                     stream_url = stream_request.url
                     self.logger.info(f"🎥 Stream: {stream_url}")
-            except Exception: self.logger.warning(f"Stream not found within {self.timeout}ms via strict wait")
+            except Exception: self.logger.warning(f"Timeout! No stream found within {self.timeout / 1000:.2f}s")
 
             # 2) After stream wait completes, listen for any subtitle requests that may come in within the next 3s
             try:
@@ -65,7 +65,7 @@ class Scraper:
                         subtitle_urls.append(subtitle_response.url)
                         self.logger.info(f"💬 Subtitles: {subtitle_response.url}")
             except Exception:
-                self.logger.warning(f"No subtitle found")
+                self.logger.warning(f"Timeout! No subtitle found within {self.subtitle_timeout:.2f}s after stream detection")
 
             # Finalize result: success if stream_url found, otherwise failed/partial handled below
             if stream_url:

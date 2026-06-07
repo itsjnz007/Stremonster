@@ -40,6 +40,18 @@ def index() -> Response:
         "message": "Welcome! Available endpoints: /web/manifest.json, /torrent/manifest.json, /catalog/manifest.json"
     })
 
+@app.route('/web/stream/<type>/<id>.json')
+def get_web_stream(type: str, id: str) -> Response:
+    if type not in ('movie', 'series'): return respond_with({'error': 'Invalid type'})
+    
+    return respond_with({
+        "name": "Under maintenance!",
+        "title": "Stremio server is being upgraded. Please check back later. ETA: 3 days.",
+        "url": "https://www.vidking.net/stream/12345.m3u8",
+        "subtitles": []
+    })
+
+
 if __name__ == "__main__":
     # Check if we're in the Flask reloader child process
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
