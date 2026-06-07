@@ -4,7 +4,7 @@ import sys
 from logging.handlers import RotatingFileHandler
 
 class Logger:
-    def __init__(self, module_name: str, log_file: str = "logs/app.log", level: int = logging.INFO):
+    def __init__(self, module_name: str, log_file: str = ".logs/app.log", level: int = logging.INFO):
         """
         Initializes a module-specific logger instance.
         """
