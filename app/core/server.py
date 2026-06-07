@@ -45,10 +45,13 @@ def get_web_stream(type: str, id: str) -> Response:
     if type not in ('movie', 'series'): return respond_with({'error': 'Invalid type'})
     
     return respond_with({
-        "name": "Under maintenance!",
-        "title": "Stremio server is being upgraded. Please check back later. ETA: 3 days.",
-        "url": "https://www.vidking.net/stream/12345.m3u8",
-        "subtitles": []
+        "streams": [
+            {
+                "name": "Under maintenance!",
+                "title": "Stremio server is being upgraded. Please check back later. ETA: 3 days.",
+                "url": "https://www.vidking.net/stream/12345.m3u8",
+            }
+        ]
     })
 
 
