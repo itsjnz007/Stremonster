@@ -1,0 +1,7 @@
+# libtorrent
+# libtorrent-windows-dll
+# tbb
+Flask
+flask_socketio
+requests
+playwright
