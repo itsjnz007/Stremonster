@@ -67,7 +67,7 @@ def get_web_stream(type: str, id: str) -> Response:
             return respond_with({'streams': []})
         
         result: Optional[StreamResponse] = thread_pool.get_first([
-            # lambda: vidking_scraper.get_movie(tmdb_id),
+            lambda: vidking_scraper.get_movie(tmdb_id),
             lambda: flicky_scraper.get_movie(tmdb_id)
         ])
 
@@ -80,10 +80,9 @@ def get_web_stream(type: str, id: str) -> Response:
         if not tmdb_id:
             logger.warning(f"No TMDB ID found for IMDB ID {imdb_id}")
             return respond_with({'streams': []})
-        tmdb_id = str(tmdb_id) + f':{season}:{episode}'
 
         result: Optional[StreamResponse] = thread_pool.get_first([
-            # lambda: vidking_scraper.get_series(tmdb_id, season, episode),
+            lambda: vidking_scraper.get_series(tmdb_id, season, episode),
             lambda: flicky_scraper.get_series(tmdb_id, season, episode)
         ])
 

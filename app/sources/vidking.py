@@ -9,7 +9,7 @@ from typing import Optional
 
 class VidkingScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="vidking", timeout=10000)
+        super().__init__(headless=True, source="vidking", timeout=30000)
         self.base_url = "https://vidking.net"
 
     def get_movie(self, tmdb_id: str) -> Optional[StreamResponse]:
