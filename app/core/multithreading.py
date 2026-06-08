@@ -25,16 +25,23 @@ class MultiThreading:
     
     def get_first(self, tasks: Iterable[Callable[[], Any]]) -> Any:
         futures: List[Future[Any]] = [self.executor.submit(task) for task in tasks]
+        completed_count = 0
         for completed in as_completed(futures):
+            completed_count += 1
             try:
                 result = completed.result()
-                # Cancel any remaining futures once we have a successful result
-                for pending in futures:
-                    if pending is not completed and not pending.done(): pending.cancel()
-                return result
+                # Ignore unsuccessful results and keep waiting for other tasks
+                if result is not None:
+                    for pending in futures:
+                        if pending is not completed and not pending.done():
+                            pending.cancel()
+                    return result
             except Exception as e:
                 self.logger.error(f"Task failed with error: {e}")
-        raise Exception("All tasks failed")
+
+        # No task returned a valid value
+        self.logger.warning("get_first: no task returned a valid result")
+        return None
     
 
 if __name__ == "__main__":
