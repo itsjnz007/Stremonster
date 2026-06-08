@@ -10,7 +10,7 @@ from typing import Optional
 
 class FlickyScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="flicky", timeout=10000)
+        super().__init__(headless=True, source="flicky", timeout=30000)
         self.base_url = "https://flickystream.su"
 
     def get_movie(self, tmdb_id: str) -> Optional[StreamResponse]:
@@ -28,7 +28,7 @@ class FlickyScraper(Scraper):
 
 if __name__ == "__main__":
     test_movie_id = "687163"  # John Wick: Chapter 4
-    test_series_id = "1399"    # Game of Thrones
+    test_series_id = "48891"    # Brooklyn nine nine
 
     scraper = FlickyScraper()
     
@@ -36,5 +36,5 @@ if __name__ == "__main__":
     movie_response = scraper.get_movie(test_movie_id)
     print(f"Movie response: {movie_response}")
 
-    series_response = scraper.get_series(test_series_id, "1", "1")
+    series_response = scraper.get_series(test_series_id, "1", "14")
     print(f"Series response: {series_response}")
