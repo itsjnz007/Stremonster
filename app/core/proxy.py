@@ -109,7 +109,7 @@ class Proxy:
                 # Fallback handler for raw stream configurations
                 absolute_url = urljoin(url, line)
                 encoded_url = quote(absolute_url, safe="%")
-                proxied_url = f"{TUNNEL_URL}/proxy?url={encoded_url}&origin={origin}"
+                proxied_url = f"{TUNNEL_URL}/stream.ts?url={encoded_url}&origin={origin}"
                 rewritten_lines.append(proxied_url)
                 
         else:
