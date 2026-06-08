@@ -108,8 +108,6 @@ class Scraper:
         self.logger.info(f"Closing browser and cleaning system processes...")
         if hasattr(self, 'browser') and self.browser:
             self.browser.close()
-        if hasattr(self, 'playwright') and self.playwright:
-            self.playwright_manager.stop() # type: ignore
         self.logger.info("🧹 Clean shutdown complete.")
 
 
