@@ -58,7 +58,7 @@ def get_web_stream(type: str, id: str) -> Response:
         url="https://www.google/com",
         subtitles=[]
     )
-    return respond_with({"stream": [tmp]})
+    return respond_with({"streams": [tmp]})
 
     if type == 'movie':
         tmdb_id = tmdb_client.imdb_to_tmdb(id)
