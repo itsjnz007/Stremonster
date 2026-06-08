@@ -53,6 +53,13 @@ def get_web_stream(type: str, id: str) -> Response:
     
     start_time = time.time()
 
+    tmp = StreamResponse(
+        title="Under manitenance!",
+        url="",
+        subtitles=[]
+    )
+    return respond_with({"stream": [tmp]})
+
     if type == 'movie':
         tmdb_id = tmdb_client.imdb_to_tmdb(id)
         if not tmdb_id: 
