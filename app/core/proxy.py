@@ -1,7 +1,8 @@
 from app.config import TUNNEL_URL
-from flask import Response, jsonify
+from flask import Response, request, jsonify
 from urllib.parse import quote, urljoin
-import requests, re
+import requests
+import re
 from app.core.logger import Logger
 
 logger = Logger("proxy")
@@ -14,9 +15,19 @@ def respond_with(data: dict[str, object]) -> Response:
 
 
 class Proxy:
+    """Collection of proxy-related helpers exposed as static methods.
+
+    Handles HLS (.m3u8) master playlist manipulation to strip lower qualities
+    while linking multi-audio demuxed tracks and streaming binary .ts segments.
+    """
+
     @staticmethod
     def get_proxy_url(stream_url: str, origin: str | None = None) -> str:
-        """Construct the initial proxy URL wrapper for Stremio to consume."""
+        """Constructs the initial proxy URL wrapper for Stremio to consume.
+        
+        Passes the original Master URL cleanly to let the proxy filter it 
+        on demand without losing audio track groupings.
+        """
         proxied_url = urljoin(TUNNEL_URL, f"/proxy?url={quote(stream_url, safe='%')}")
         if origin: 
             proxied_url += f"&origin={quote(origin, safe='%')}"
@@ -25,20 +36,34 @@ class Proxy:
         return proxied_url
 
     @staticmethod
-    def handle_m3u8(r: requests.Response, url: str, origin: str):
+    def proxy_m3u8() -> Response | tuple[dict[str, str], int]:
+        """Proxy endpoint for M3U8 playlists - routing alias for compatibility"""
+        return Proxy.proxy()
+
+    @staticmethod
+    def proxy_stream_ts() -> Response | tuple[dict[str, str], int]:
+        """Proxy endpoint for TS segments - routing alias for compatibility"""
+        return Proxy.proxy()
+    
+    @staticmethod
+    def handle_m3u8(r: requests.Response, url: str, origin: str) -> Response:
+        """Parses and rewrites HLS stream configurations.
+        
+        If it's a Master Playlist, it preserves critical audio groupings while 
+        filtering out lower video quality options to speed up playback buffers.
+        """
         playlist = r.text
         rewritten_lines: list[str] = []
         
-        # Check if this is a master playlist containing variant tracks
+        # Determine if this playlist contains multiple stream configurations
         is_master = "#EXT-X-STREAM-INF" in playlist
 
         if is_master:
-            logger.info("Optimizing Master HLS Playlist tracks...")
+            logger.info("Optimizing Master HLS Playlist tracks while protecting audio layers...")
             lines = playlist.splitlines()
             
-            # Step 1: Parse and find the single best video track bandwidth
+            # Step 1: Scan for the maximum available video bandwidth
             max_bandwidth = 0
-            
             for line in lines:
                 line = line.strip()
                 if line.startswith("#EXT-X-STREAM-INF:"):
@@ -48,7 +73,7 @@ class Proxy:
                         if bw > max_bandwidth:
                             max_bandwidth = bw
 
-            # Step 2: Rewrite playlist keeping audio tracks and ONLY the highest video track
+            # Step 2: Reconstruct playlist keeping audio attributes and top-tier video 
             skip_next_url_line = False
             
             for raw_line in lines:
@@ -60,8 +85,8 @@ class Proxy:
                     skip_next_url_line = False
                     continue
 
-                # Process media attributes (Like Audio groups)
                 if line.startswith("#"):
+                    # CRITICAL: Intercept separate audio/subtitle track streams
                     if 'URI=' in line:
                         parts = line.split('URI="')
                         if len(parts) > 1:
@@ -71,25 +96,24 @@ class Proxy:
                             proxied_audio = f"{TUNNEL_URL}/proxy?url={encoded_audio_url}&origin={origin}"
                             line = line.replace(f'URI="{sub_uri}"', f'URI="{proxied_audio}"')
                     
-                    # If it's a stream variant, see if it matches our best quality
+                    # Intercept video variants and discard entries scoring below peak bandwidth
                     if line.startswith("#EXT-X-STREAM-INF:"):
                         bw_match = re.search(r'BANDWIDTH=(\d+)', line)
                         if bw_match and int(bw_match.group(1)) < max_bandwidth:
-                            # Drop lower qualities by skipping this metadata block entirely
                             skip_next_url_line = True
                             continue
                     
                     rewritten_lines.append(line)
                     continue
 
-                # Standard variant URL conversion
+                # Fallback handler for raw stream configurations
                 absolute_url = urljoin(url, line)
                 encoded_url = quote(absolute_url, safe="%")
                 proxied_url = f"{TUNNEL_URL}/proxy?url={encoded_url}&origin={origin}"
                 rewritten_lines.append(proxied_url)
                 
         else:
-            # Direct Media Playlist (Video chunks or Audio chunks file)
+            # Direct Media Playlists (Pure segment mappings for independent Audio/Video files)
             for raw_line in playlist.splitlines():
                 line = raw_line.rstrip()
                 if not line:
@@ -118,3 +142,71 @@ class Proxy:
                 "Content-Length": str(len(playlist_output.encode("utf-8"))),
             },
         )
+
+    @staticmethod
+    def proxy() -> Response | tuple[dict[str, str], int]:
+        """Core gateway pipe routing data packages downstream to Stremio."""
+        try:
+            url = request.args.get("url")
+            origin = request.args.get("origin", "https://www.vidking.net")
+
+            if not url:
+                logger.error("Missing URL parameter")
+                return {"error": "Missing url"}, 400
+                
+            if not url.startswith(("http://", "https://")):
+                logger.error(f"Invalid URL structure blocked: {url}")
+                return {"error": "Invalid URL"}, 400
+
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Referer": origin + '/',
+                "Origin": origin,
+            }
+
+            r = requests.get(
+                url,
+                headers=headers,
+                stream=True,
+                timeout=30,
+                allow_redirects=True,
+            )
+
+            if r.status_code not in (200, 206):
+                upstream_body = r.text[:200]  # Grab a small sample snippet
+                logger.error(f"Upstream server flatlined: status={r.status_code}, snippet={upstream_body}")
+                return {"error": f"Upstream server returned status {r.status_code}"}, r.status_code
+
+            content_type = r.headers.get("Content-Type", "application/octet-stream")
+
+            # Route HLS file layouts through the text intercept parsing structures
+            if ".m3u8" in url.lower() or "mpegurl" in content_type.lower(): 
+                return Proxy.handle_m3u8(r, url, origin)
+
+            # Route Binary Video Segment Chunks (.ts / .mp4) as a real-time system stream pipe
+            def generate():
+                try:
+                    for chunk in r.iter_content(chunk_size=1024 * 256): # 256KB block tracking
+                        if chunk: 
+                            yield chunk
+                finally: 
+                    r.close()
+
+            response_headers = {
+                "Access-Control-Allow-Origin": "*", 
+                "Accept-Ranges": "bytes"
+            }
+            content_length = r.headers.get("Content-Length")
+            if content_length: 
+                response_headers["Content-Length"] = content_length
+
+            return Response(
+                generate(), 
+                status=r.status_code, 
+                content_type=content_type, 
+                headers=response_headers
+            )
+
+        except Exception as e:
+            logger.error(f"Exception triggered in Proxy Core: {str(e)}")
+            return {"error": str(e)}, 500
