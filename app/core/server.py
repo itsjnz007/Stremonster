@@ -55,7 +55,7 @@ def get_web_stream(type: str, id: str) -> Response:
 
     tmp = StreamResponse(
         title="Under manitenance!",
-        url="",
+        url="https://www.google/com",
         subtitles=[]
     )
     return respond_with({"stream": [tmp]})
