@@ -2,34 +2,43 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import time
-from typing import Optional
-from playwright.sync_api import Request, Response, sync_playwright
+from typing import Optional, Any
+from playwright.sync_api import Browser, Request, Response, sync_playwright
 from app.models.responses import *
-import re
-from logger import Logger
+import re, time
+from app.core.logger import Logger
 
 STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
 
 class Scraper:
-    def __init__(self, headless: bool = True, source: str = "scraper", timeout: int = 30000, subtitle_timeout: float = 0.1):
+    def __init__(self, headless: bool = True, source: str = "scraper", timeout: int = 30000, subtitle_timeout: float = 0):
         self.logger = Logger(f"scraper.{source}")
         self.source = source.upper()
         self.timeout = timeout
         self.subtitle_timeout = subtitle_timeout
+        self.headless = headless
 
-        # 1. Manually start the Playwright core
+        self.playwright_manager: Optional[Any] = None
+        self.playwright: Any = None
+        self.browser: Optional[Browser] = None
+
+    def _ensure_browser(self):
+        if self.browser is not None:
+            return
+
+        # Lazily start Playwright only when the first request is made
         self.playwright_manager = sync_playwright()
         self.playwright = self.playwright_manager.start()
-        
-        # 2. Launch the global browser instance and store it on the object
-        self.browser = self.playwright.chromium.launch(headless=headless)
+        assert self.playwright is not None
+        self.browser = self.playwright.chromium.launch(headless=self.headless)
         self.logger.info("Browser instance successfully launched in background")
 
 
     def get_stream(self, url: str) -> Optional[StreamResponse]:
         """Spins up a lightweight isolated tab session, runs fast, and cleans up."""
+        self._ensure_browser()
+        assert self.browser is not None
         context = self.browser.new_context()
         page = context.new_page()
 
@@ -54,18 +63,19 @@ class Scraper:
             except Exception: self.logger.warning(f"Timeout! No stream found within {self.timeout / 1000:.2f}s")
 
             # 2) After stream wait completes, listen for any subtitle requests that may come in within the next 3s
-            try:
-                with page.expect_event(
-                    "response",
-                    predicate=lambda resp: bool(re.search(SUBTITLE_PATTERN, resp.url, re.I)),
-                    timeout=self.subtitle_timeout,
-                ) as sub_event:
-                    subtitle_response: Response = sub_event.value
-                    if subtitle_response.url not in subtitle_urls:
-                        subtitle_urls.append(subtitle_response.url)
-                        self.logger.info(f"💬 Subtitles: {subtitle_response.url}")
-            except Exception:
-                self.logger.warning(f"Timeout! No subtitle found within {self.subtitle_timeout:.2f}s after stream detection")
+            if stream_url and self.subtitle_timeout > 0:
+                try:
+                    with page.expect_event(
+                        "response",
+                        predicate=lambda resp: bool(re.search(SUBTITLE_PATTERN, resp.url, re.I)),
+                        timeout=self.subtitle_timeout,
+                    ) as sub_event:
+                        subtitle_response: Response = sub_event.value
+                        if subtitle_response.url not in subtitle_urls:
+                            subtitle_urls.append(subtitle_response.url)
+                            self.logger.info(f"💬 Subtitles: {subtitle_response.url}")
+                except Exception:
+                    self.logger.warning(f"Timeout! No subtitle found within {self.subtitle_timeout:.2f}s after stream detection")
 
             # Finalize result: success if stream_url found, otherwise failed/partial handled below
             if stream_url:

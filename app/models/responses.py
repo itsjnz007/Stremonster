@@ -6,4 +6,3 @@ class StreamResponse(TypedDict):
     title: str
     url: str
     subtitles: list[str]
-

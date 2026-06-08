@@ -1,4 +1,11 @@
-TUNNEL_URL = "https://stremonster.dpdns.org"
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+
+TUNNEL_URL = "https://something.dpdns.org"
 # TUNNEL_URL = "http://localhost:5000"
 # TUNNEL_URL = "https://fraction-essex-pee-jones.trycloudflare.com"
 
