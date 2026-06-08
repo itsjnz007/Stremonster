@@ -3,7 +3,9 @@ from flask import Response, request, jsonify
 from requests.exceptions import ReadTimeout, RequestException
 from urllib.parse import quote, urljoin
 import requests
+from app.core.logger import Logger
 
+logger = Logger("proxy")
 
 def respond_with(data: dict[str, object]) -> Response:
     resp = jsonify(data)
@@ -70,12 +72,14 @@ class Proxy:
                     url,
                     headers=headers,
                     stream=True,
-                    timeout=30,
+                    timeout=3,
                     allow_redirects=True,
                 )
             except ReadTimeout as exc:
+                logger.warning(f"Upstream read timed out for URL {url}")
                 return {"error": "Upstream read timed out", "details": str(exc)}, 504
             except RequestException as exc:
+                logger.warning(f"Upstream request failed for URL {url}")
                 return {"error": "Upstream request failed", "details": str(exc)}, 502
 
             if r.status_code not in (200, 206):
