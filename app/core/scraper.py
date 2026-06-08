@@ -80,7 +80,7 @@ class Scraper:
             # Finalize result: success if stream_url found, otherwise failed/partial handled below
             if stream_url:
                 return StreamResponse(
-                    title="Example Title", # TODO: Extract actual title from page content if needed
+                    title="Play", # TODO: Extract actual title from page content if needed
                     url=stream_url,
                     subtitles=subtitle_urls
                 )
@@ -91,7 +91,7 @@ class Scraper:
             # If execution reaches here, either an exception occurred or no stream was found.
             if stream_url:
                 return StreamResponse(
-                    title="Example Title",  # TODO: Extract actual title from page content if needed
+                    title="Play",  # TODO: Extract actual title from page content if needed
                     url=stream_url,
                     subtitles=subtitle_urls
                 )
