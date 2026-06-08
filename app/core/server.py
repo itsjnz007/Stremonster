@@ -53,12 +53,12 @@ def get_web_stream(type: str, id: str) -> Response:
     
     start_time = time.time()
 
-    tmp = StreamResponse(
-        title="Under manitenance!",
-        url="https://www.google/com",
-        subtitles=[]
-    )
-    return respond_with({"streams": [tmp]})
+    # tmp = StreamResponse(
+    #     title="Under manitenance!",
+    #     url="https://www.google/com",
+    #     subtitles=[]
+    # )
+    # return respond_with({"streams": [tmp]})
 
     if type == 'movie':
         tmdb_id = tmdb_client.imdb_to_tmdb(id)
@@ -67,7 +67,7 @@ def get_web_stream(type: str, id: str) -> Response:
             return respond_with({'streams': []})
         
         result: Optional[StreamResponse] = thread_pool.get_first([
-            lambda: vidking_scraper.get_movie(tmdb_id),
+            # lambda: vidking_scraper.get_movie(tmdb_id),
             lambda: flicky_scraper.get_movie(tmdb_id)
         ])
 
@@ -83,7 +83,7 @@ def get_web_stream(type: str, id: str) -> Response:
         tmdb_id = str(tmdb_id) + f':{season}:{episode}'
 
         result: Optional[StreamResponse] = thread_pool.get_first([
-            lambda: vidking_scraper.get_series(tmdb_id, season, episode),
+            # lambda: vidking_scraper.get_series(tmdb_id, season, episode),
             lambda: flicky_scraper.get_series(tmdb_id, season, episode)
         ])
 

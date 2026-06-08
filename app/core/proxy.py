@@ -72,17 +72,30 @@ class Proxy:
                     url,
                     headers=headers,
                     stream=True,
-                    timeout=3,
+                    timeout=30,
                     allow_redirects=True,
                 )
             except ReadTimeout as exc:
-                logger.warning(f"Upstream read timed out for URL {url}")
+                logger.error(f"Upstream read timed out for URL")
                 return {"error": "Upstream read timed out", "details": str(exc)}, 504
             except RequestException as exc:
-                logger.warning(f"Upstream request failed for URL {url}")
+                logger.error(f"Upstream request failed for URL")
                 return {"error": "Upstream request failed", "details": str(exc)}, 502
 
             if r.status_code not in (200, 206):
+                upstream_body = r.text
+                upstream_json = None
+                try:
+                    upstream_json = r.json()
+                except ValueError:
+                    pass
+
+                logger.error(
+                    "Upstream error for URL!"
+                    f"\nstatus={r.status_code}"
+                    f"\nbody={upstream_body}"
+                    f"\njson={upstream_json}"
+                )
                 return {"error": f"Upstream server returned status {r.status_code}"}, r.status_code
 
             content_type = r.headers.get("Content-Type", "application/octet-stream")
