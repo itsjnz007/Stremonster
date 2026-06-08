@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from typing import Optional
 from app.external.tmdb import Tmdb
 from app.models.responses import StreamResponse
-from app.sources import flicky as flicky_module, vidking as vidking_module
+from app.sources import flicky as flicky_module, vidking as vidking_module, torrentio as torrentio_module
 from flask import Flask
 from flask.wrappers import Response
 import os, time
@@ -94,6 +94,17 @@ def get_web_stream(type: str, id: str) -> Response:
     logger.warning(f"No stream found for {type} with ID {id}")
     return respond_with({'streams': []})
 
+@app.route('/torrent/stream/<type>/<id>.json')
+def get_torrent_stream(type: str, id: str) -> Response:
+    if type not in ('movie', 'series'): return respond_with({'error': 'Invalid type'})
+    start_time = time.time()
+
+    if type == "movie":
+        logger.info(f"Total time taken to fetch web stream: {time.time() - start_time:.2f} seconds")
+        return respond_with({"streams": torrentio_module.get_movie(id, True)})
+    else:
+        logger.info(f"Total time taken to fetch web stream: {time.time() - start_time:.2f} seconds")
+        return respond_with({"streams": torrentio_module.get_series(id, True)})
 
 @app.route("/stream.m3u8")
 def proxy_m3u8():

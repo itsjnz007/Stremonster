@@ -26,7 +26,7 @@ class Tmdb:
         find_cache = self.cache.get_tmdb(imdb_id)
 
         if find_cache:
-            logger.info(f"Found cached find response for IMDB ID {imdb_id}")
+            logger.debug(f"Found cached find response for IMDB ID {imdb_id}")
             return find_cache
         
         url = f"{self.base_url}/find/{imdb_id}"
@@ -54,13 +54,13 @@ class Tmdb:
         # Check movie results first
         if find_response.get("movie_results"):
             tmdb_id = find_response["movie_results"][0].get("id")
-            logger.info(f"Found TMDB ID {tmdb_id} for movie IMDB ID {imdb_id}")
+            logger.debug(f"Found TMDB ID {tmdb_id} for movie IMDB ID {imdb_id}")
             return tmdb_id
         
         # Check TV results next
         if find_response.get("tv_results"):
             tmdb_id = find_response["tv_results"][0].get("id")
-            logger.info(f"Found TMDB ID {tmdb_id} for TV IMDB ID {imdb_id}")
+            logger.debug(f"Found TMDB ID {tmdb_id} for TV IMDB ID {imdb_id}")
             return tmdb_id
         
         logger.info(f"No TMDB ID found in find response for IMDB ID {imdb_id}")

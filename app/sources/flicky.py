@@ -10,7 +10,7 @@ from typing import Optional
 
 class FlickyScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="flicky", timeout=30000)
+        super().__init__(headless=True, source="flicky", timeout=10000)
         self.base_url = "https://flickystream.su"
 
     def get_movie(self, tmdb_id: str) -> Optional[StreamResponse]:
