@@ -33,8 +33,7 @@ class MultiThreading:
                 # Ignore unsuccessful results and keep waiting for other tasks
                 if result is not None:
                     for pending in futures:
-                        if pending is not completed and not pending.done():
-                            pending.cancel()
+                        if pending is not completed and not pending.done(): pending.cancel()
                     return result
             except Exception as e:
                 self.logger.error(f"Task failed with error: {e}")

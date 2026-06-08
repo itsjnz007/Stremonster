@@ -32,7 +32,7 @@ class Proxy:
         if origin: 
             proxied_url += f"&origin={quote(origin, safe='%')}"
 
-        logger.info(f"Generated Proxied Endpoint: {proxied_url}")
+        logger.debug(f"Generated Proxied Endpoint: {proxied_url}")
         return proxied_url
 
     @staticmethod
