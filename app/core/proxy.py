@@ -1,5 +1,6 @@
 from app.config import TUNNEL_URL
 from flask import Response, request, jsonify
+from requests.exceptions import ReadTimeout, RequestException
 from urllib.parse import quote, urljoin
 import requests
 
@@ -20,9 +21,16 @@ class Proxy:
     """
 
     @staticmethod
-    def get_proxy_url(stream_url: str) -> str:
-        """Construct the full proxy URL for a given stream URL."""
-        return urljoin(TUNNEL_URL, f"/proxy?url={quote(stream_url)}")
+    def get_proxy_url(stream_url: str, origin: str | None = None) -> str:
+        """Construct the full proxy URL for a given stream URL.
+
+        If an origin is provided, add it as a query parameter so the proxy
+        can use it for Referer/Origin headers on the upstream request.
+        """
+        proxied_url = urljoin(TUNNEL_URL, f"/proxy?url={quote(stream_url, safe='%')}")
+        if origin:
+            proxied_url += f"&origin={quote(origin, safe='%')}"
+        return proxied_url
 
     @staticmethod
     def proxy_m3u8():
@@ -57,13 +65,18 @@ class Proxy:
             if range_header:
                 headers["Range"] = range_header
 
-            r = requests.get(
-                url,
-                headers=headers,
-                stream=True,
-                timeout=30,
-                allow_redirects=True,
-            )
+            try:
+                r = requests.get(
+                    url,
+                    headers=headers,
+                    stream=True,
+                    timeout=30,
+                    allow_redirects=True,
+                )
+            except ReadTimeout as exc:
+                return {"error": "Upstream read timed out", "details": str(exc)}, 504
+            except RequestException as exc:
+                return {"error": "Upstream request failed", "details": str(exc)}, 502
 
             if r.status_code not in (200, 206):
                 return {"error": f"Upstream server returned status {r.status_code}"}, r.status_code
@@ -92,7 +105,7 @@ class Proxy:
                         continue
 
                     absolute_url = urljoin(url, line)
-                    encoded_url = quote(absolute_url, safe="")
+                    encoded_url = quote(absolute_url, safe="%")
                     proxied_url = f"{TUNNEL_URL}/stream.ts?url={encoded_url}&origin={origin}"
                     rewritten_lines.append(proxied_url)
 

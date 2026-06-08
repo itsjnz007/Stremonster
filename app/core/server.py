@@ -83,9 +83,7 @@ def get_web_stream(type: str, id: str) -> Response:
         logger.info(f"Total time taken to fetch web stream: {time.time() - start_time:.2f} seconds")
         # if result: return respond_with({'streams': [result]})
 
-    if result:
-        result['url'] = Proxy.get_proxy_url(result['url'])
-        return respond_with({'streams': [result]})
+    if result: return respond_with({'streams': [result]})
     
     logger.warning(f"No stream found for {type} with ID {id}")
     return respond_with({'streams': []})
