@@ -20,7 +20,7 @@ class AniBridgeV3Resolver:
         self.mappings_db: Dict[str, Dict[str, Dict[str, str]]] = self._get_database()
 
     def _get_database(self):
-            print(f"[AniBridge v3] Sourcing distribution payload from Release channel...")
+            logger.info(f"Sourcing distribution payload from Release channel...")
             try:
                 # Mirroring target distribution binaries
                 response = requests.get(RAW_MAPPINGS_URL, timeout=15)
