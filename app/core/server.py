@@ -69,7 +69,7 @@ def get_web_stream(type: str, id: str) -> Response:
             result: Optional[WebResponse] = thread_pool.get_first([
                 lambda: vidking_scraper.get_movie(tmdb_id),
                 lambda: flicky_scraper.get_movie(tmdb_id),
-                lambda: dropfile_scraper.get_movie(tmdb_id)
+                lambda: dropfile_scraper.get_movie(id)
             ])
         else:
             imdb_id, season, episode = id.split(':')
@@ -81,7 +81,7 @@ def get_web_stream(type: str, id: str) -> Response:
             result: Optional[WebResponse] = thread_pool.get_first([
                 lambda: vidking_scraper.get_series(tmdb_id, season, episode),
                 lambda: flicky_scraper.get_series(tmdb_id, season, episode),
-                lambda: dropfile_scraper.get_series(tmdb_id, season, episode)
+                lambda: dropfile_scraper.get_series(imdb_id, season, episode)
             ])
         return result
 
