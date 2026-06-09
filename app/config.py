@@ -4,10 +4,7 @@ import os
 load_dotenv()
 
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
-
-TUNNEL_URL = "https://something.dpdns.org"
-# TUNNEL_URL = "http://localhost:5000"
-# TUNNEL_URL = "https://fraction-essex-pee-jones.trycloudflare.com"
+TUNNEL_URL = os.getenv("TUNNEL_URL")
 
 CACHE_DIR = ".cache"
 

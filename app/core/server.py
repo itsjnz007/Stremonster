@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from typing import Optional
 from app.external.tmdb import Tmdb
 from app.models.responses import WebResponse
-from app.sources import flicky as flicky_module, vidking as vidking_module, torrentio as torrentio_module
+from app.sources import flicky as flicky_module, vidking as vidking_module, torrentio as torrentio_module, dropfile as dropfile_module
 from flask import Flask
 from flask.wrappers import Response
 import os, time
@@ -17,14 +17,17 @@ from app.core.multithreading import MultiThreading
 from app.core.proxy import respond_with, Proxy
 
 logger = Logger("server")
-tmdb_cache = TmdbCache()
-web_cache = WebCache()
-torrent_cache = TorrentCache()
 app = Flask(__name__)
 thread_pool = MultiThreading(logger, max_workers=4)
 
+tmdb_cache = TmdbCache()
+web_cache = WebCache()
+torrent_cache = TorrentCache()
+
 flicky_scraper = flicky_module.FlickyScraper()
 vidking_scraper = vidking_module.VidkingScraper()
+dropfile_scraper = dropfile_module.DropfileScraper()
+
 tmdb_client = Tmdb(tmdb_cache)
 
 
@@ -65,7 +68,8 @@ def get_web_stream(type: str, id: str) -> Response:
             
             result: Optional[WebResponse] = thread_pool.get_first([
                 lambda: vidking_scraper.get_movie(tmdb_id),
-                lambda: flicky_scraper.get_movie(tmdb_id)
+                lambda: flicky_scraper.get_movie(tmdb_id),
+                lambda: dropfile_scraper.get_movie(tmdb_id)
             ])
         else:
             imdb_id, season, episode = id.split(':')
@@ -76,7 +80,8 @@ def get_web_stream(type: str, id: str) -> Response:
 
             result: Optional[WebResponse] = thread_pool.get_first([
                 lambda: vidking_scraper.get_series(tmdb_id, season, episode),
-                lambda: flicky_scraper.get_series(tmdb_id, season, episode)
+                lambda: flicky_scraper.get_series(tmdb_id, season, episode),
+                lambda: dropfile_scraper.get_series(tmdb_id, season, episode)
             ])
         return result
 

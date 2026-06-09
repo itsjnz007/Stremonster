@@ -1,6 +1,6 @@
 import sys
 import asyncio
-import threading
+import threading, logging
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -14,12 +14,16 @@ STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
 
 class Scraper:
-    def __init__(self, headless: bool = True, source: str = "scraper", timeout: int = 30000, subtitle_timeout: float = 0):
-        self.logger = Logger(f"scraper.{source}")
+    def __init__(self, headless: bool = True, source: str = "scraper", timeout: int = 15000, subtitle_timeout: float = 0, 
+                 stream_url_pattern: str = STREAM_URL_PATTERN, 
+                 subtitle_url_pattern: str = SUBTITLE_PATTERN):
+        self.logger = Logger(f"scraper.{source}", level=logging.DEBUG)
         self.source = source.upper()
         self.timeout = timeout
         self.subtitle_timeout = subtitle_timeout
         self.headless = headless
+        self.stream_url_pattern = stream_url_pattern
+        self.subtitle_url_pattern = subtitle_url_pattern
 
         self._playwright: Any = None
         self.browser: Optional[Browser] = None
@@ -76,12 +80,13 @@ class Scraper:
         start_time = time.time()
 
         try:
+            page.on("request", lambda req: self.logger.debug(f"Request URL: {req.url}"))
             await page.goto(url)
 
             try:
                 stream_request = await page.wait_for_event(
                     "request",
-                    predicate=lambda req: bool(re.search(STREAM_URL_PATTERN, req.url, re.I)),
+                    predicate=lambda req: bool(re.search(self.stream_url_pattern, req.url, re.I)),
                     timeout=self.timeout,
                 )
                 stream_url = stream_request.url
@@ -93,7 +98,7 @@ class Scraper:
                 try:
                     subtitle_response = await page.wait_for_event(
                         "response",
-                        predicate=lambda resp: bool(re.search(SUBTITLE_PATTERN, resp.url, re.I)),
+                        predicate=lambda resp: bool(re.search(self.subtitle_url_pattern, resp.url, re.I)),
                         timeout=self.subtitle_timeout,
                     )
                     if subtitle_response.url not in subtitle_urls:
@@ -104,7 +109,8 @@ class Scraper:
 
             if stream_url:
                 return WebResponse(
-                    title="Play",  # TODO: Extract actual title from page content if needed
+                    title="Web",  # TODO: Extract actual title from page content if needed
+                    name="1080p / 720p",
                     url=stream_url,
                     subtitles=subtitle_urls,
                 )
@@ -113,7 +119,8 @@ class Scraper:
             self.logger.error(f"Scraping error: {e}")
             if stream_url:
                 return WebResponse(
-                    title="Play",
+                    title="Web",
+                    name="1080p / 720p",
                     url=stream_url,
                     subtitles=subtitle_urls,
                 )

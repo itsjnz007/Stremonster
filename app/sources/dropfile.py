@@ -7,33 +7,29 @@ from app.core.scraper import Scraper
 from app.models.responses import WebResponse
 from typing import Optional
 
-class VidkingScraper(Scraper):
+class DropfileScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="vidking")
-        self.base_url = "https://vidking.net"
+        super().__init__(headless=True, source="dropfile",
+                          stream_url_pattern= r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/seg)\S*')
+        self.base_url = "https://dropfile.cc"
 
     def get_movie(self, tmdb_id: str) -> Optional[WebResponse]:
-        url = f"{self.base_url}/embed/movie/{tmdb_id}"
+        url = f"{self.base_url}/player/movie/{tmdb_id}"
         result = self.get_stream(url)
         if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url)
         return result
     
     def get_series(self, tmdb_id: str, season: str, episode: str) -> Optional[WebResponse]:
-        url = f"{self.base_url}/embed/tv/{tmdb_id}/{season}/{episode}"
+        url = f"{self.base_url}/player/tv/{tmdb_id}/{season}/{episode}?audio=sub&lang=en"
         result = self.get_stream(url)
         if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url)
         return result
     
 
 if __name__ == "__main__":
-    test_movie_id = "687163"  # John Wick: Chapter 4
-    test_series_id = "1399"    # Game of Thrones
+    test_series_id = "88046"    # Fire Force
 
-    scraper = VidkingScraper()
-    
-    print(f"Testing movie ID {test_movie_id}...")
-    movie_response = scraper.get_movie(test_movie_id)
-    print(f"Movie response: {movie_response}")
+    scraper = DropfileScraper()
 
-    series_response = scraper.get_series(test_series_id, "1", "1")
+    series_response = scraper.get_series(test_series_id, "1", "14")
     print(f"Series response: {series_response}")
