@@ -65,7 +65,7 @@ def get_streams(media_type: str, imdb_id: str, test_speeds: bool = False) -> Lis
             print(f"\n=== Testing {len(streams)} Streams using Interleaved Round-Robin Waves ===")
             torrent_tester = Torrent()
             # This calls your parallel wave engine!
-            streams = torrent_tester.get_best_torrents(streams, timeout=5)
+            streams = torrent_tester.get_best_torrents(streams)
             
         return streams
     except Exception as e:

@@ -4,10 +4,11 @@ from urllib.parse import quote, urljoin
 import requests
 import re
 from app.core.logger import Logger
+from typing import Any
 
 logger = Logger("proxy")
 
-def respond_with(data: dict[str, object]) -> Response:
+def respond_with(data: dict[str, Any]) -> Response:
     resp = jsonify(data)
     resp.headers['Access-Control-Allow-Origin'] = '*'
     resp.headers['Access-Control-Allow-Headers'] = '*'

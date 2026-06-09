@@ -59,14 +59,14 @@ class Torrent:
     @staticmethod
     def get_speed_category(speed_kb_s: float) -> tuple[str, int]:
         if speed_kb_s < 1.0:   return ("dead", 0)
-        if speed_kb_s < 10.0:  return ("very slow", 1)
-        if speed_kb_s < 100.0: return ("slow", 2)
-        if speed_kb_s < 500.0: return ("medium", 3)
-        if speed_kb_s < 1500.0:return ("fast", 4)
-        if speed_kb_s < 5000.0:return ("ultra fast", 5)
+        if speed_kb_s < 100.0:  return ("very slow", 1)
+        if speed_kb_s < 300.0: return ("slow", 2)
+        if speed_kb_s < 700.0: return ("medium", 3)
+        if speed_kb_s < 1000.0:return ("fast", 4)
+        if speed_kb_s < 2000.0:return ("ultra fast", 5)
         return ("extreme", 6)
 
-    def test_torrent(self, info_hash: str, quality: str, timeout: int = 5) -> float:
+    def test_torrent(self, info_hash: str, quality: str, timeout: int = 7) -> float:
         """Synchronously connects to an infohash and returns its maximum download speed in KB/s."""
         with self._qualities_lock:
             if quality in self._completed_qualities:
@@ -130,7 +130,7 @@ class Torrent:
 
         return max_speed # type: ignore
 
-    def get_best_torrents(self, streams: List[TorrentResponse], timeout: int = 5) -> List[TorrentResponse]:
+    def get_best_torrents(self, streams: List[TorrentResponse]) -> List[TorrentResponse]:
         """Runs single resolution tiers side-by-side using aggressive low-latency timeout configurations."""
         valid_streams = [s for s in streams if s.get("infoHash")]
         if not valid_streams: 
@@ -172,7 +172,7 @@ class Torrent:
             logger.info(f"🚀 Processing Interleaved Wave {wave_idx}/{len(execution_waves)}")
             
             tasks = [
-                lambda s=stream: (s, self.test_torrent(s["infoHash"], s.get("name", "Unknown"), timeout))
+                lambda s=stream: (s, self.test_torrent(s["infoHash"], s.get("name", "Unknown")))
                 for stream in filtered_wave_streams
             ]
             
@@ -207,5 +207,5 @@ if __name__ == "__main__":
     ]
 
     torrent_tester = Torrent(connection_speed=200)
-    result = torrent_tester.get_best_torrents(TEST_DATA, timeout=5)
+    result = torrent_tester.get_best_torrents(TEST_DATA)
     logger.info(f"Final Returned Results Map: {result}")

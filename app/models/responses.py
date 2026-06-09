@@ -1,7 +1,7 @@
 from typing import TypedDict
 
 
-class StreamResponse(TypedDict):
+class WebResponse(TypedDict):
     """Information about the scraped stream."""
     title: str
     name: str

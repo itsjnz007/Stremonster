@@ -66,7 +66,7 @@ class Scraper:
             future = asyncio.run_coroutine_threadsafe(self._start_browser_async(), self._loop)
             future.result(timeout=30)
 
-    async def _get_stream_async(self, url: str) -> Optional[StreamResponse]:
+    async def _get_stream_async(self, url: str) -> Optional[WebResponse]:
         assert self.browser is not None
         context = await self.browser.new_context()
         page = await context.new_page()
@@ -103,7 +103,7 @@ class Scraper:
                     self.logger.warning(f"Timeout! No subtitle found within {self.subtitle_timeout:.2f}s after stream detection")
 
             if stream_url:
-                return StreamResponse(
+                return WebResponse(
                     title="Play",  # TODO: Extract actual title from page content if needed
                     url=stream_url,
                     subtitles=subtitle_urls,
@@ -112,7 +112,7 @@ class Scraper:
         except Exception as e:
             self.logger.error(f"Scraping error: {e}")
             if stream_url:
-                return StreamResponse(
+                return WebResponse(
                     title="Play",
                     url=stream_url,
                     subtitles=subtitle_urls,
@@ -132,7 +132,7 @@ class Scraper:
 
         return None
 
-    def get_stream(self, url: str) -> Optional[StreamResponse]:
+    def get_stream(self, url: str) -> Optional[WebResponse]:
         self._ensure_browser()
         assert self._loop is not None
 

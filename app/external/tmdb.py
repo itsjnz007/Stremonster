@@ -6,13 +6,13 @@ from typing import Optional, Any
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.core.logger import Logger
-from app.core.caching import Caching
+from app.core.caching import TmdbCache
 import requests
 
 logger = Logger("tmdb")
 
 class Tmdb:
-    def __init__(self, cache: Caching):
+    def __init__(self, cache: TmdbCache):
         # Use provided api_key, fall back to environment variable
         api_key = os.getenv("TMDB_API_KEY")
         if not api_key:
@@ -23,7 +23,7 @@ class Tmdb:
         self.api_key = api_key
 
     def find(self, imdb_id: str) -> Optional[dict[str, Any]]:
-        find_cache = self.cache.get_tmdb(imdb_id)
+        find_cache = self.cache.get(imdb_id)
 
         if find_cache:
             logger.debug(f"Found cached find response for IMDB ID {imdb_id}")
@@ -38,7 +38,7 @@ class Tmdb:
         try:
             res = requests.get(url, params=params, timeout=5).json()
             # Cache the complete find API response
-            self.cache.set_tmdb(imdb_id, res)
+            self.cache.set(imdb_id, res)
             return res
         except requests.RequestException as e:
             logger.error(f"Error fetching find API for IMDB ID {imdb_id}: {e}")
@@ -67,7 +67,7 @@ class Tmdb:
         return None
         
 if __name__ == "__main__":
-    cache = Caching()
+    cache = TmdbCache()
     tmdb = Tmdb(cache)
     test_imdb_id = "tt1375666"  # Inception
     result = tmdb.imdb_to_tmdb(test_imdb_id)
