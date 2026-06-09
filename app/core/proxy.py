@@ -1,6 +1,6 @@
 from app.config import TUNNEL_URL
 from flask import Response, request, jsonify
-from urllib.parse import quote, urljoin
+from urllib.parse import quote, urljoin, urlparse
 import requests
 import re
 from app.core.logger import Logger
@@ -16,188 +16,125 @@ def respond_with(data: dict[str, Any]) -> Response:
 
 
 class Proxy:
-    """Collection of proxy-related helpers exposed as static methods.
-
-    Optimized for Android ExoPlayer compatibility by preserving clean explicit 
-    extensions and handling precise mime-types.
-    """
+    """Collection of proxy-related helpers optimized for streaming compatibility."""
 
     @staticmethod
     def get_proxy_url(stream_url: str, origin: str | None = None, type: str = "stream.m3u8") -> str:
-        """Constructs the initial proxy URL wrapper for Stremio to consume.
-        
-        Uses /stream.m3u8 directly to force Android ExoPlayer into HLS mode.
-        """
-        # CRITICAL CHANGE: Route explicitly through /stream.m3u8 so Android detects the format
         proxied_url = urljoin(TUNNEL_URL, f"/{type}?url={quote(stream_url, safe='%')}")
         if origin: 
             proxied_url += f"&origin={quote(origin, safe='%')}"
-
         logger.debug(f"Generated Proxied Endpoint: {proxied_url}")
         return proxied_url
 
     @staticmethod
     def proxy_m3u8() -> Response | tuple[dict[str, str], int]:
-        """Proxy endpoint for M3U8 playlists"""
         return Proxy.proxy()
 
     @staticmethod
     def proxy_stream_ts() -> Response | tuple[dict[str, str], int]:
-        """Proxy endpoint for TS segments"""
         return Proxy.proxy()
     
     @staticmethod
     def handle_m3u8(r: requests.Response, url: str, origin: str) -> Response:
-        """Parses and rewrites HLS stream configurations safely for Android frameworks."""
         playlist = r.text
         rewritten_lines: list[str] = []
-        
         is_master = "#EXT-X-STREAM-INF" in playlist
 
         if is_master:
-            logger.info("Optimizing Master HLS Playlist tracks while protecting audio layers...")
             lines = playlist.splitlines()
-            
-            # Scan for the maximum available video bandwidth
             max_bandwidth = 0
             for line in lines:
-                line = line.strip()
-                if line.startswith("#EXT-X-STREAM-INF:"):
+                if "#EXT-X-STREAM-INF:" in line:
                     bw_match = re.search(r'BANDWIDTH=(\d+)', line)
-                    if bw_match:
-                        bw = int(bw_match.group(1))
-                        if bw > max_bandwidth:
-                            max_bandwidth = bw
+                    if bw_match: max_bandwidth = max(max_bandwidth, int(bw_match.group(1)))
 
-            skip_next_url_line = False
-            
+            skip_next = False
             for raw_line in lines:
                 line = raw_line.rstrip()
-                if not line:
+                if not line: continue
+                if skip_next:
+                    skip_next = False
                     continue
-
-                if skip_next_url_line:
-                    skip_next_url_line = False
-                    continue
-
                 if line.startswith("#"):
-                    # Intercept separate audio/subtitle track streams
                     if 'URI=' in line:
-                        parts = line.split('URI="')
-                        if len(parts) > 1:
-                            sub_uri = parts[1].split('"')[0]
-                            absolute_audio_url = urljoin(url, sub_uri)
-                            encoded_audio_url = quote(absolute_audio_url, safe="%")
-                            # CRITICAL: Re-route sub-playlists through /stream.m3u8 explicitly
-                            proxied_audio = f"{TUNNEL_URL}/stream.m3u8?url={encoded_audio_url}&origin={origin}"
-                            line = line.replace(f'URI="{sub_uri}"', f'URI="{proxied_audio}"')
-                    
-                    if line.startswith("#EXT-X-STREAM-INF:"):
+                        sub_uri = re.search(r'URI="([^"]+)"', line)
+                        if sub_uri:
+                            abs_url = urljoin(url, sub_uri.group(1))
+                            proxied_audio = f"{TUNNEL_URL}/stream.m3u8?url={quote(abs_url, safe='%')}&origin={origin}"
+                            line = line.replace(sub_uri.group(1), proxied_audio)
+                    if "#EXT-X-STREAM-INF:" in line:
                         bw_match = re.search(r'BANDWIDTH=(\d+)', line)
                         if bw_match and int(bw_match.group(1)) < max_bandwidth:
-                            skip_next_url_line = True
+                            skip_next = True
                             continue
-                    
                     rewritten_lines.append(line)
                     continue
-
-                # Video Variant line rewrite
-                absolute_url = urljoin(url, line)
-                encoded_url = quote(absolute_url, safe="%")
-                proxied_url = f"{TUNNEL_URL}/stream.m3u8?url={encoded_url}&origin={origin}"
+                proxied_url = f"{TUNNEL_URL}/stream.m3u8?url={quote(urljoin(url, line), safe='%')}&origin={origin}"
                 rewritten_lines.append(proxied_url)
-                
         else:
-            # Direct Media Playlists (Pure segment chunks mapping)
             for raw_line in playlist.splitlines():
                 line = raw_line.rstrip()
-                if not line:
-                    rewritten_lines.append("")
-                    continue
-
-                if line.startswith("#"):
-                    rewritten_lines.append(line)
-                    continue
-
-                absolute_url = urljoin(url, line)
-                encoded_url = quote(absolute_url, safe="%")
-                # CRITICAL: Route video segments to /stream.ts to force Android's TsExtractor
-                proxied_url = f"{TUNNEL_URL}/stream.ts?url={encoded_url}&origin={origin}"
+                if not line: rewritten_lines.append(""); continue
+                if line.startswith("#"): rewritten_lines.append(line); continue
+                proxied_url = f"{TUNNEL_URL}/stream.ts?url={quote(urljoin(url, line), safe='%')}&origin={origin}"
                 rewritten_lines.append(proxied_url)
 
-        playlist_output = "\n".join(rewritten_lines)
-
-        # Android demands strict HLS mime-types
         return Response(
-            playlist_output,
+            "\n".join(rewritten_lines),
             status=200,
             content_type="application/vnd.apple.mpegurl",
-            headers={
-                "Access-Control-Allow-Origin": "*",
-                "Cache-Control": "no-cache",
-                "Content-Length": str(len(playlist_output.encode("utf-8"))),
-            },
+            headers={"Access-Control-Allow-Origin": "*", "Cache-Control": "no-cache"}
         )
 
     @staticmethod
     def proxy() -> Response | tuple[dict[str, str], int]:
-        """Core gateway pipe routing data packages downstream to Stremio."""
         try:
             url = request.args.get("url")
-            origin = request.args.get("origin", "https://www.vidking.net")
+            if not url: return {"error": "Missing url"}, 400
 
-            if not url:
-                return {"error": "Missing url"}, 400
+            # DYNAMIC SPOOFING: Use the target domain for Origin/Referer to bypass 403s
+            parsed = urlparse(url)
+            target_origin = f"{parsed.scheme}://{parsed.netloc}"
 
             headers = {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-                "Referer": origin + '/',
-                "Origin": origin,
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Referer": f"{target_origin}/",
+                "Origin": target_origin,
             }
 
-            r = requests.get(
-                url,
-                headers=headers,
-                stream=True,
-                timeout=30,
-                allow_redirects=True,
-            )
+            r = requests.get(url, headers=headers, stream=True, timeout=(10, 60), allow_redirects=True)
+            logger.info(f"Upstream: {r.status_code} | Type: {r.headers.get('Content-Type')} | URL: {url}")
 
             if r.status_code not in (200, 206):
                 return {"error": f"Upstream status {r.status_code}"}, r.status_code
 
-            # Resolve Content-Type based on the request path
-            # (Enforces compatibility when upstream servers send unhelpful generic content types)
-            path_lower = request.path.lower()
-            if "stream.m3u8" in path_lower or ".m3u8" in url.lower():
-                return Proxy.handle_m3u8(r, url, origin)
-            elif "stream.ts" in path_lower:
-                content_type = "video/mp2t"  # Force explicit MPEG-TS mimetype for ExoPlayer
+            # FORCE MIME TYPES: Ignore upstream claims and force video types for our routes
+            if "stream.ts" in request.path:
+                content_type = "video/mp2t"
+            elif "stream.m3u8" in request.path or ".m3u8" in url.lower():
+                return Proxy.handle_m3u8(r, url, request.args.get("origin", target_origin))
             else:
                 content_type = r.headers.get("Content-Type", "application/octet-stream")
+
+            # CLEAN HEADERS: Strip security headers that block proxying
+            excluded = ['content-encoding', 'content-length', 'x-content-type-options', 'access-control-allow-origin']
+            resp_headers = {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Accept-Ranges": "bytes",
+                "Content-Type": content_type
+            }
+            for k, v in r.headers.items():
+                if k.lower() not in excluded: resp_headers[k] = v
 
             def generate():
                 try:
                     for chunk in r.iter_content(chunk_size=1024 * 256):
                         if chunk: yield chunk
-                finally: 
-                    r.close()
+                finally: r.close()
 
-            response_headers = {
-                "Access-Control-Allow-Origin": "*", 
-                "Accept-Ranges": "bytes"
-            }
-            content_length = r.headers.get("Content-Length")
-            if content_length: 
-                response_headers["Content-Length"] = content_length
-
-            return Response(
-                generate(), 
-                status=r.status_code, 
-                content_type=content_type, 
-                headers=response_headers
-            )
+            return Response(generate(), status=r.status_code, headers=resp_headers)
 
         except Exception as e:
-            logger.error(str(e))
+            logger.error(f"Proxy Error: {str(e)}")
             return {"error": str(e)}, 500
