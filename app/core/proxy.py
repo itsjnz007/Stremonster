@@ -128,17 +128,17 @@ class Proxy:
         playlist_output = "\n".join(rewritten_lines)
 
         # Android demands strict HLS mime-types
-            return Response(
-                playlist_output,
-                status=200,
-                content_type="application/vnd.apple.mpegurl",
-                headers={
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Headers": "*",
-                    "Cache-Control": "no-cache",
-                    "Content-Length": str(len(playlist_output.encode("utf-8"))),
-                }
-            )
+        return Response(
+            playlist_output,
+            status=200,
+            content_type="application/vnd.apple.mpegurl",
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "*",
+                "Cache-Control": "no-cache",
+                "Content-Length": str(len(playlist_output.encode("utf-8"))),
+            }
+        )
 
     @staticmethod
     def proxy() -> Response | tuple[dict[str, str], int]:
