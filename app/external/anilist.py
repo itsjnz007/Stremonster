@@ -33,8 +33,6 @@ class AniBridgeV3Resolver:
                 raise IOError(f"Failed to bootstrap database asset file from GitHub Releases: {e}")
             
     def convert_episode(self, source_rule: str, target_rule: str, current_episode: int) -> int:
-        print(source_rule, target_rule)
-        
         def parse_range(rule: str):
             start, end = rule.split("-")
             return int(start), int(end) if end else None
@@ -98,7 +96,6 @@ class AniBridgeV3Resolver:
         if not tvdb_id: raise Exception(f"No tvdb mapping found for imdb id: {imdb_id}")
         logger.debug(f"Found tvdb id '{tvdb_id}' mapping for imdb id: {imdb_id}")
         mapping = self.mappings_db.get(f'tvdb_show:{tvdb_id}:s{season}')
-        # print("mapping ->", mapping)
         if not mapping: raise Exception(f"Could not find mapping for tvdb_id {tvdb_id}")
         mal_id, source_range, target_range = self.extract_mal_mapping(mapping)
         if not mal_id or not source_range or not target_range:

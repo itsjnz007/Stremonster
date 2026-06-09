@@ -10,7 +10,7 @@ from app.external.anilist import AniBridgeV3Resolver
 
 class DropfileScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="dropfile",
+        super().__init__(headless=True, source="dropfile", timeout=30000,
                           stream_url_pattern= r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/seg)\S*')
         self.base_url = "https://www.miruro.tv"
         self.anibridge = AniBridgeV3Resolver()
@@ -34,5 +34,5 @@ if __name__ == "__main__":
 
     scraper = DropfileScraper()
 
-    series_response = scraper.get_series(test_series_id, "22", "10")
+    series_response = scraper.get_series(test_series_id, "23", "8")
     print(f"Series response: {series_response}")
