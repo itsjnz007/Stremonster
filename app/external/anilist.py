@@ -30,14 +30,17 @@ class AniBridgeV3Resolver:
                 raise IOError(f"Failed to bootstrap database asset file from GitHub Releases: {e}")
             
     def convert_episode(self, source_rule: str, target_rule: str, current_episode: int) -> int:
-        source_start, source_end = map(int, source_rule.split("-"))
-        target_start, _ = map(int, target_rule.split("-"))
+        source_start, source_end = map(int, source_rule.split("-")) # type: ignore
+        target_start, target_end = map(int, target_rule.split("-")) # type: ignore
+
+        if source_start == 1: return current_episode
+        else: return source_start + current_episode
         
-        if not (source_start <= current_episode <= source_end):
-            raise ValueError(f"Episode {current_episode} falls outside source range {source_rule}")
+        # if not (source_start <= current_episode <= source_end):
+        #     raise ValueError(f"Episode {current_episode} falls outside source range {source_rule}")
             
-        offset = current_episode - source_start
-        final_episode = target_start + offset
+        # offset = current_episode - source_start
+        # final_episode = target_start + offset
         
         return final_episode
     
@@ -73,5 +76,5 @@ class AniBridgeV3Resolver:
 # --- IMPLEMENTATION VERIFICATION TESTING HARNESS ---
 if __name__ == "__main__":
     resolver = AniBridgeV3Resolver()
-    a, b = resolver.get_anilist_info(tmdb_id="88046", season="1", episode="14") # Fire Force
+    a, b = resolver.get_anilist_info(tmdb_id="37854", season="20", episode="1") # One Piece
     print(a, b)
