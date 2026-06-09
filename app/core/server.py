@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from typing import Optional
 from app.external.tmdb import Tmdb
 from app.models.responses import WebResponse
-from app.sources import flicky as flicky_module, vidking as vidking_module, torrentio as torrentio_module, dropfile as dropfile_module
+from app.sources import flicky as flicky_module, miruro as miruro_module, vidking as vidking_module, torrentio as torrentio_module
 from flask import Flask
 from flask.wrappers import Response
 import os, time
@@ -26,7 +26,7 @@ torrent_cache = TorrentCache()
 
 flicky_scraper = flicky_module.FlickyScraper()
 vidking_scraper = vidking_module.VidkingScraper()
-dropfile_scraper = dropfile_module.DropfileScraper()
+miruro_scraper = miruro_module.MiruroScraper()
 
 tmdb_client = Tmdb(tmdb_cache)
 
@@ -69,7 +69,7 @@ def get_web_stream(type: str, id: str) -> Response:
             result: Optional[WebResponse] = thread_pool.get_first([
                 lambda: vidking_scraper.get_movie(tmdb_id),
                 lambda: flicky_scraper.get_movie(tmdb_id),
-                lambda: dropfile_scraper.get_movie(id)
+                lambda: miruro_scraper.get_movie(id)
             ])
         else:
             imdb_id, season, episode = id.split(':')
@@ -81,7 +81,7 @@ def get_web_stream(type: str, id: str) -> Response:
             result: Optional[WebResponse] = thread_pool.get_first([
                 lambda: vidking_scraper.get_series(tmdb_id, season, episode),
                 lambda: flicky_scraper.get_series(tmdb_id, season, episode),
-                lambda: dropfile_scraper.get_series(imdb_id, season, episode)
+                lambda: miruro_scraper.get_series(imdb_id, season, episode)
             ])
         return result
 

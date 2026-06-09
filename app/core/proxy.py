@@ -29,7 +29,7 @@ class Proxy:
         Uses /stream.m3u8 directly to force Android ExoPlayer into HLS mode.
         """
         # CRITICAL CHANGE: Route explicitly through /stream.m3u8 so Android detects the format
-        proxied_url = urljoin(TUNNEL_URL, f"/{type}?url={quote(stream_url, safe='%')}")
+        proxied_url = urljoin(TUNNEL_URL, f"/{type}?url={quote(stream_url, safe='%')}") # type: ignore
         if origin: 
             proxied_url += f"&origin={quote(origin, safe='%')}"
 
