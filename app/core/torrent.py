@@ -62,7 +62,7 @@ class Torrent:
         if speed_kb_s < 100.0:  return ("very slow", 1)
         if speed_kb_s < 300.0: return ("slow", 2)
         if speed_kb_s < 700.0: return ("medium", 3)
-        if speed_kb_s < 1000.0:return ("fast", 4)
+        if speed_kb_s < 1200.0:return ("fast", 4)
         if speed_kb_s < 2000.0:return ("ultra fast", 5)
         return ("extreme", 6)
 
