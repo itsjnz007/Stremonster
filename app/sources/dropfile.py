@@ -22,7 +22,7 @@ class DropfileScraper(Scraper):
     def get_series(self, tmdb_id: str, season: str, episode: str) -> Optional[WebResponse]:
         url = f"{self.base_url}/player/tv/{tmdb_id}/{season}/{episode}?audio=sub&lang=en"
         result = self.get_stream(url)
-        if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url)
+        if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url, type="stream.ts")
         return result
     
 
