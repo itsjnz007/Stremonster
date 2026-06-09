@@ -12,7 +12,7 @@ class DropfileScraper(Scraper):
     def __init__(self):
         super().__init__(headless=True, source="dropfile",
                           stream_url_pattern= r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/seg)\S*')
-        self.base_url = "https://dropfile.cc"
+        self.base_url = "https://www.miruro.tv"
         self.anibridge = AniBridgeV3Resolver()
 
     def get_movie(self, imdb_id: str) -> Optional[WebResponse]:
@@ -23,9 +23,7 @@ class DropfileScraper(Scraper):
     
     def get_series(self, imdb_id: str, season: str, episode: str) -> Optional[WebResponse]:
         mal_id, mal_eps = self.anibridge.get_mal_info(imdb_id, season, episode)
-        # print(anilist_id, anilist_eps)
-        # url = f"{self.base_url}/player/tv/{imdb_id}/{season}/{episode}?audio=sub&lang=en"
-        url = f"https://www.miruro.tv/watch/{mal_id}?ep={mal_eps}"
+        url = f"{self.base_url}/watch/{mal_id}?ep={mal_eps}"
         result = self.get_stream(url)
         if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url)
         return result
