@@ -82,6 +82,11 @@ def get_web_stream(type: str, id: str) -> Response:
                 result: Optional[WebResponse] = thread_pool.get_first([
                     lambda: miruro_scraper.get_series(imdb_id, season, episode)
                 ])
+                if not result:
+                    result: Optional[WebResponse] = thread_pool.get_first([
+                        lambda: vidking_scraper.get_series(tmdb_id, season, episode),
+                        lambda: flicky_scraper.get_series(tmdb_id, season, episode)
+                    ])
             else:
                 if not tmdb_id:
                     logger.warning(f"No TMDB ID found for IMDB ID {imdb_id}")
