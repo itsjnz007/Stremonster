@@ -74,15 +74,23 @@ def get_web_stream(type: str, id: str) -> Response:
         else:
             imdb_id, season, episode = id.split(':')
             tmdb_id = tmdb_client.imdb_to_tmdb(imdb_id)
+            orig_lang = tmdb_client.get_original_lang(imdb_id)
             if not tmdb_id:
                 logger.warning(f"No TMDB ID found for IMDB ID {imdb_id}")
                 return
+            if orig_lang == "ja":
+                result: Optional[WebResponse] = thread_pool.get_first([
+                    lambda: miruro_scraper.get_series(imdb_id, season, episode)
+                ])
+            else:
+                if not tmdb_id:
+                    logger.warning(f"No TMDB ID found for IMDB ID {imdb_id}")
+                    return
 
-            result: Optional[WebResponse] = thread_pool.get_first([
-                lambda: vidking_scraper.get_series(tmdb_id, season, episode),
-                lambda: flicky_scraper.get_series(tmdb_id, season, episode),
-                lambda: miruro_scraper.get_series(imdb_id, season, episode)
-            ])
+                result: Optional[WebResponse] = thread_pool.get_first([
+                    lambda: vidking_scraper.get_series(tmdb_id, season, episode),
+                    lambda: flicky_scraper.get_series(tmdb_id, season, episode)
+                ])
         return result
 
     cache = web_cache.get(key=id, upto_mins=60)
