@@ -12,7 +12,7 @@ class FlickyScraper(Scraper):
     def __init__(self):
         super().__init__(headless=True, source="flicky")
         # self.base_url = "https://flickystream.su"
-        self.base_url = "https://new.vidnest.fun"
+        self.base_url = "https://vidnest.fun"
 
     def get_movie(self, tmdb_id: str) -> Optional[WebResponse]:
         # url = f"{self.base_url}/player/movie/{tmdb_id}"
