@@ -80,7 +80,7 @@ class Scraper:
         start_time = time.time()
 
         try:
-            page.on("request", lambda req: self.logger.debug(f"Request URL: {req.url}"))
+            # page.on("request", lambda req: self.logger.debug(f"Request URL: {req.url}"))
             await page.goto(url)
 
             try:
