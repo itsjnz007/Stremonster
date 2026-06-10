@@ -75,10 +75,10 @@ class AniBridgeV3Resolver:
         
         return final_episode
     
-    def extract_mapping(self, data: Dict[str, Dict[str, str]], key: str = 'mal'):
+    def extract_mapping(self, data: Dict[str, Dict[str, str]], extraction_key: str = 'mal'):
         # Look through the dictionary keys
         for key in data.keys():
-            if key.startswith(f"{key}:"):
+            if key.startswith(f"{extraction_key}:"):
                 # Split the string on the colon and convert the second half to an integer
                 mal_id = key.split(":")[1]
                 source_dict = data.get(key)
@@ -124,4 +124,4 @@ class AniBridgeV3Resolver:
 if __name__ == "__main__":
     resolver = AniBridgeV3Resolver()
     # print(resolver.get_anilist_info(imdb_id="tt9307686", season="3", episode="1"))
-    print(resolver.get_mal_info(imdb_id="tt0388629", season="23", episode="1"))
+    print(resolver.get_mal_info(imdb_id="tt9307686", season="2", episode="10"))
