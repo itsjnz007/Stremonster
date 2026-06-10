@@ -143,6 +143,8 @@ class Scraper:
         self._ensure_browser()
         assert self._loop is not None
 
+        self.logger.info(f"GET stream: {url}")
+
         future = asyncio.run_coroutine_threadsafe(self._get_stream_async(url), self._loop)
         try:
             return future.result(timeout=(self.timeout / 1000) + 15)
