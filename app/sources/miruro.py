@@ -30,9 +30,9 @@ class MiruroScraper(Scraper):
     
 
 if __name__ == "__main__":
-    test_series_id = "tt0388629" # One Piece
+    test_series_id = "21" # One Piece
 
     scraper = MiruroScraper()
 
-    series_response = scraper.get_series(test_series_id, "8")
+    series_response = scraper.get_series(test_series_id, "1166")
     print(f"Series response: {series_response}")

@@ -158,7 +158,7 @@ class Proxy:
             headers={
                 "Access-Control-Allow-Origin": "*",
                 "Access-Control-Allow-Headers": "*",
-                "Cache-Control": "no-cache",
+                # "Cache-Control": "no-cache",
                 "Content-Length": str(len(playlist_output.encode("utf-8"))),
             }
         )
@@ -174,7 +174,7 @@ class Proxy:
                 return {"error": "Missing url"}, 400
 
             headers = {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+                # "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
                 "Referer": origin + '/',
                 "Origin": origin,
             }
@@ -196,15 +196,15 @@ class Proxy:
             path_lower = request.path.lower()
             if "stream.m3u8" in path_lower or ".m3u8" in url.lower():
                 return Proxy.handle_m3u8(r, url, origin)
-            elif "stream.ts" in path_lower:
-                content_type = "video/mp2t"  # Force explicit MPEG-TS mimetype for ExoPlayer
-            else:
-                # content_type = r.headers.get("Content-Type", "application/octet-stream")
-                content_type = "video/mp2t"
+            # elif "stream.ts" in path_lower:
+            #     content_type = "video/mp2t"  # Force explicit MPEG-TS mimetype for ExoPlayer
+            # else:
+            #     # content_type = r.headers.get("Content-Type", "application/octet-stream")
+            #     content_type = "video/mp2t"
 
             def generate():
                 try:
-                    for chunk in r.iter_content(chunk_size=1024 * 256):
+                    for chunk in r.iter_content(chunk_size=1024 * 64): 
                         if chunk: yield chunk
                 finally: 
                     r.close()
@@ -220,7 +220,7 @@ class Proxy:
             return Response(
                 generate(), 
                 status=r.status_code, 
-                content_type=content_type, 
+                content_type=r.headers.get("Content-Type", "video/mp2t"), 
                 headers=response_headers
             )
 
