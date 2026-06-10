@@ -6,14 +6,14 @@ from app.core.proxy import Proxy
 from app.core.scraper import Scraper
 from app.models.responses import WebResponse
 from typing import Optional
-from app.external.anilist import AniBridgeV3Resolver
+# from app.external.anilist import AniBridgeV3Resolver
 
 class MiruroScraper(Scraper):
     def __init__(self):
         super().__init__(headless=True, source="miruro", timeout=30000,
                           stream_url_pattern= r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/seg)\S*')
         self.base_url = "https://www.miruro.tv"
-        self.anibridge = AniBridgeV3Resolver()
+        # self.anibridge = AniBridgeV3Resolver()
 
     def get_movie(self, imdb_id: str) -> Optional[WebResponse]:
         return None
@@ -22,9 +22,8 @@ class MiruroScraper(Scraper):
         # if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url)
         return result
     
-    def get_series(self, imdb_id: str, season: str, episode: str) -> Optional[WebResponse]:
-        mal_id, mal_eps = self.anibridge.get_mal_info(imdb_id, season, episode)
-        url = f"{self.base_url}/watch/{mal_id}?ep={mal_eps}"
+    def get_series(self, animal_id: str, episode: str) -> Optional[WebResponse]:
+        url = f"{self.base_url}/watch/{animal_id}?ep={episode}"
         result = self.get_stream(url)
         if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url)
         return result
@@ -35,5 +34,5 @@ if __name__ == "__main__":
 
     scraper = MiruroScraper()
 
-    series_response = scraper.get_series(test_series_id, "23", "8")
+    series_response = scraper.get_series(test_series_id, "8")
     print(f"Series response: {series_response}")

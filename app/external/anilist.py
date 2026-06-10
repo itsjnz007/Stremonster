@@ -75,10 +75,10 @@ class AniBridgeV3Resolver:
         
         return final_episode
     
-    def extract_mal_mapping(self, data: Dict[str, Dict[str, str]]):
+    def extract_mapping(self, data: Dict[str, Dict[str, str]], key: str = 'mal'):
         # Look through the dictionary keys
         for key in data.keys():
-            if key.startswith("mal:"):
+            if key.startswith(f"{key}:"):
                 # Split the string on the colon and convert the second half to an integer
                 mal_id = key.split(":")[1]
                 source_dict = data.get(key)
@@ -97,7 +97,21 @@ class AniBridgeV3Resolver:
         logger.debug(f"Found tvdb id '{tvdb_id}' mapping for imdb id: {imdb_id}")
         mapping = self.mappings_db.get(f'tvdb_show:{tvdb_id}:s{season}')
         if not mapping: raise Exception(f"Could not find mapping for tvdb_id {tvdb_id}")
-        mal_id, source_range, target_range = self.extract_mal_mapping(mapping)
+        mal_id, source_range, target_range = self.extract_mapping(mapping, 'mal')
+        if not mal_id or not source_range or not target_range:
+            raise Exception(f'Could not extract anilist mapping for tvdb_id {tvdb_id}. mal_id: {mal_id}, source_range: {source_range}, target_range: {target_range}')
+        eps_number = self.convert_episode(source_range, target_range, int(episode))
+        return mal_id, eps_number
+    
+    def get_anilist_info(self, imdb_id: str, season: str, episode: str):
+        ani_zip_response = requests.get(ANI_ZIP_URL % imdb_id)
+        ani_zip_response.raise_for_status
+        tvdb_id: Optional[str] = ani_zip_response.json().get("mappings", {}).get("thetvdb_id")
+        if not tvdb_id: raise Exception(f"No tvdb mapping found for imdb id: {imdb_id}")
+        logger.debug(f"Found tvdb id '{tvdb_id}' mapping for imdb id: {imdb_id}")
+        mapping = self.mappings_db.get(f'tvdb_show:{tvdb_id}:s{season}')
+        if not mapping: raise Exception(f"Could not find mapping for tvdb_id {tvdb_id}")
+        mal_id, source_range, target_range = self.extract_mapping(mapping, 'anilist')
         if not mal_id or not source_range or not target_range:
             raise Exception(f'Could not extract anilist mapping for tvdb_id {tvdb_id}. mal_id: {mal_id}, source_range: {source_range}, target_range: {target_range}')
         eps_number = self.convert_episode(source_range, target_range, int(episode))

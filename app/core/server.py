@@ -15,6 +15,7 @@ from app.config import MANIFEST_TMDB, MANIFEST_TORRENTS, MANIFEST_WEB
 from app.core.caching import TmdbCache, WebCache, TorrentCache
 from app.core.multithreading import MultiThreading
 from app.core.proxy import respond_with, Proxy
+from app.external.anilist import AniBridgeV3Resolver
 
 logger = Logger("server")
 app = Flask(__name__)
@@ -23,6 +24,7 @@ thread_pool = MultiThreading(logger, max_workers=4)
 tmdb_cache = TmdbCache()
 web_cache = WebCache()
 torrent_cache = TorrentCache()
+anibride = AniBridgeV3Resolver()
 
 flicky_scraper = flicky_module.FlickyScraper()
 vidking_scraper = vidking_module.VidkingScraper()
@@ -79,8 +81,11 @@ def get_web_stream(type: str, id: str) -> Response:
                 logger.warning(f"No TMDB ID found for IMDB ID {imdb_id}")
                 return
             if orig_lang == "ja":
+                mal_id, mal_eps = anibride.get_mal_info(imdb_id, season, episode)
+                ani_id, ani_eps = anibride.get_anilist_info(imdb_id, season, episode)
                 result: Optional[WebResponse] = thread_pool.get_first([
-                    lambda: miruro_scraper.get_series(imdb_id, season, episode)
+                    lambda: miruro_scraper.get_series(mal_id, str(mal_eps)),
+                    lambda: miruro_scraper.get_series(ani_id, str(ani_eps))
                 ])
                 if not result:
                     result: Optional[WebResponse] = thread_pool.get_first([
