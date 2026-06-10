@@ -5,6 +5,7 @@ import requests
 import re
 from app.core.logger import Logger
 from typing import Any
+import json
 
 logger = Logger("proxy")
 session = requests.Session()
@@ -22,6 +23,30 @@ class Proxy:
     Optimized for Android ExoPlayer compatibility by preserving clean explicit 
     extensions and handling precise mime-types.
     """
+    @staticmethod
+    def get_external_proxy_url(stream_url: str, origin: str) -> str:
+        if 'proxy' in stream_url: return stream_url
+        headers = {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
+            "accept": "*/*",
+            "accept-language": "en-US,en;q=0.5",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "origin": origin,
+            "referer": origin.rstrip("/") + "/"
+        }
+
+        encoded_url = quote(stream_url, safe="")
+        encoded_headers = quote(
+            json.dumps(headers, separators=(",", ":")),
+            safe=""
+        )
+
+        return (
+            "https://megacloud.animanga.fun/proxy"
+            f"?url={encoded_url}&headers={encoded_headers}"
+        )
 
     @staticmethod
     def get_proxy_url(stream_url: str, origin: str | None = None, type: str = "stream.m3u8") -> str:
