@@ -12,7 +12,8 @@ class MiruroScraper(Scraper):
     def __init__(self):
         super().__init__(headless=True, source="miruro", timeout=30000,
                           stream_url_pattern= r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/seg)\S*')
-        self.base_url = "https://www.miruro.tv"
+        # self.base_url = "https://www.miruro.tv"
+        self.base_url = "https://vidnest.fun"
         # self.anibridge = AniBridgeV3Resolver()
 
     def get_movie(self, imdb_id: str) -> Optional[WebResponse]:
@@ -23,7 +24,8 @@ class MiruroScraper(Scraper):
         return result
     
     def get_series(self, animal_id: str, episode: str) -> Optional[WebResponse]:
-        url = f"{self.base_url}/watch/{animal_id}?ep={episode}"
+        # url = f"{self.base_url}/watch/{animal_id}?ep={episode}"
+        url = f"{self.base_url}/anime/{animal_id}/{episode}/sub"
         result = self.get_stream(url)
         if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url)
         return result
