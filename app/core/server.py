@@ -98,7 +98,7 @@ def get_web_stream(type: str, id: str) -> Response:
                     return
 
                 result: Optional[WebResponse] = thread_pool.get_first([
-                    lambda: vidking_scraper.get_series(tmdb_id, season, episode),
+                    # lambda: vidking_scraper.get_series(tmdb_id, season, episode),
                     lambda: flicky_scraper.get_series(tmdb_id, season, episode)
                 ])
         return result
