@@ -7,6 +7,7 @@ from app.core.logger import Logger
 from typing import Any
 
 logger = Logger("proxy")
+session = requests.Session()
 
 def respond_with(data: dict[str, Any]) -> Response:
     resp = jsonify(data)
@@ -178,15 +179,16 @@ class Proxy:
                 "Origin": origin,
             }
 
-            r = requests.get(
+            r = session.get(
                 url,
                 headers=headers,
                 stream=True,
-                timeout=30,
+                timeout=10,
                 allow_redirects=True,
             )
 
             if r.status_code not in (200, 206):
+                logger.error(f"Upstream error {r.status_code} {r.text}")
                 return {"error": f"Upstream status {r.status_code}"}, r.status_code
 
             # Resolve Content-Type based on the request path
@@ -196,10 +198,9 @@ class Proxy:
                 return Proxy.handle_m3u8(r, url, origin)
             elif "stream.ts" in path_lower:
                 content_type = "video/mp2t"  # Force explicit MPEG-TS mimetype for ExoPlayer
-            elif "stream.key" in path_lower:
-                content_type = "application/octet-stream"  # Encryption key binary data
             else:
-                content_type = r.headers.get("Content-Type", "application/octet-stream")
+                # content_type = r.headers.get("Content-Type", "application/octet-stream")
+                content_type = "video/mp2t"
 
             def generate():
                 try:
