@@ -81,8 +81,19 @@ class Proxy:
                     continue
 
                 if line.startswith("#"):
+                    # Intercept encryption keys and route through /stream.ts
+                    if line.startswith("#EXT-X-KEY:") and 'URI=' in line:
+                        parts = line.split('URI="')
+                        if len(parts) > 1:
+                            key_uri = parts[1].split('"')[0]
+                            absolute_key_url = urljoin(url, key_uri)
+                            encoded_key_url = quote(absolute_key_url, safe="%")
+                            # Route encryption keys through /stream.ts endpoint
+                            proxied_key = f"{TUNNEL_URL}/stream.ts?url={encoded_key_url}&origin={origin}"
+                            line = line.replace(f'URI="{key_uri}"', f'URI="{proxied_key}"')
+                    
                     # Intercept separate audio/subtitle track streams
-                    if 'URI=' in line:
+                    if 'URI=' in line and not line.startswith("#EXT-X-KEY:"):
                         parts = line.split('URI="')
                         if len(parts) > 1:
                             sub_uri = parts[1].split('"')[0]
@@ -116,6 +127,17 @@ class Proxy:
                     continue
 
                 if line.startswith("#"):
+                    # Intercept encryption keys and route through /stream.ts
+                    if line.startswith("#EXT-X-KEY:") and 'URI=' in line:
+                        parts = line.split('URI="')
+                        if len(parts) > 1:
+                            key_uri = parts[1].split('"')[0]
+                            absolute_key_url = urljoin(url, key_uri)
+                            encoded_key_url = quote(absolute_key_url, safe="%")
+                            # Route encryption keys through /stream.ts endpoint
+                            proxied_key = f"{TUNNEL_URL}/stream.ts?url={encoded_key_url}&origin={origin}"
+                            line = line.replace(f'URI="{key_uri}"', f'URI="{proxied_key}"')
+                    
                     rewritten_lines.append(line)
                     continue
 
@@ -174,6 +196,8 @@ class Proxy:
                 return Proxy.handle_m3u8(r, url, origin)
             elif "stream.ts" in path_lower:
                 content_type = "video/mp2t"  # Force explicit MPEG-TS mimetype for ExoPlayer
+            elif "stream.key" in path_lower:
+                content_type = "application/octet-stream"  # Encryption key binary data
             else:
                 content_type = r.headers.get("Content-Type", "application/octet-stream")
 
