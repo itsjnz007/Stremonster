@@ -49,15 +49,10 @@ class Proxy:
         )
 
     @staticmethod
-    def get_proxy_url(stream_url: str, origin: str | None = None, type: str = "stream.m3u8") -> str:
-        """Constructs the initial proxy URL wrapper for Stremio to consume.
-        
-        Uses /stream.m3u8 directly to force Android ExoPlayer into HLS mode.
-        """
-        # CRITICAL CHANGE: Route explicitly through /stream.m3u8 so Android detects the format
+    def get_proxy_url(stream_url: str, origin: str, type: str = "stream.m3u8") -> str:
+        if 'proxy' in stream_url: return stream_url
         proxied_url = urljoin(TUNNEL_URL, f"/{type}?url={quote(stream_url, safe='%')}") # type: ignore
-        if origin: 
-            proxied_url += f"&origin={quote(origin, safe='%')}"
+        proxied_url += f"&origin={quote(origin, safe='%')}"
 
         logger.debug(f"Generated Proxied Endpoint: {proxied_url}")
         return proxied_url
