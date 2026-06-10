@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from app.core.proxy import Proxy
+# from app.core.proxy import Proxy
 from app.core.scraper import Scraper
 from app.models.responses import WebResponse
 from typing import Optional
@@ -27,7 +27,7 @@ class MiruroScraper(Scraper):
         # url = f"{self.base_url}/watch/{animal_id}?ep={episode}"
         url = f"{self.base_url}/anime/{animal_id}/{episode}/sub"
         result = self.get_stream(url)
-        if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url)
+        # if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url)
         return result
     
 

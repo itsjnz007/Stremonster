@@ -81,10 +81,10 @@ def get_web_stream(type: str, id: str) -> Response:
                 logger.warning(f"No TMDB ID found for IMDB ID {imdb_id}")
                 return
             if orig_lang == "ja":
-                mal_id, mal_eps = anibride.get_mal_info(imdb_id, season, episode)
+                # mal_id, mal_eps = anibride.get_mal_info(imdb_id, season, episode)
                 ani_id, ani_eps = anibride.get_anilist_info(imdb_id, season, episode)
                 result: Optional[WebResponse] = thread_pool.get_first([
-                    lambda: miruro_scraper.get_series(mal_id, str(mal_eps)),
+                    # lambda: miruro_scraper.get_series(mal_id, str(mal_eps)),
                     lambda: miruro_scraper.get_series(ani_id, str(ani_eps))
                 ])
                 if not result:
