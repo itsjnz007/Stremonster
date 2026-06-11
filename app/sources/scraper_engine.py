@@ -11,7 +11,7 @@ from app.core.multithreading import MultiThreading
 from app.core.logger import Logger
 
 logger = Logger("general")
-thread_pool = MultiThreading(logger, max_workers=4)
+thread_pool = MultiThreading(logger, max_workers=9)
 
 
 class ScraperEngine(Scraper):
@@ -95,7 +95,13 @@ class GeneralScraper(ScraperEngine):
         movie_sources = [
             "https://www.vidsrc.wtf/1/movie/%s",
             "https://flickystream.su/player/movie/%s",
-            "https://vidking.net/embed/movie/%s"
+            "https://vidking.net/embed/movie/%s",
+            "https://www.vidsrc.wtf/1/movie/%s",
+            "https://flickystream.su/player/movie/%s",
+            "https://vidking.net/embed/movie/%s",
+            "https://www.vidsrc.wtf/1/movie/%s",
+            "https://flickystream.su/player/movie/%s",
+            "https://vidking.net/embed/movie/%s",
         ]
 
         series_sources = [
@@ -115,7 +121,7 @@ class AnimeScraper(ScraperEngine):
         super().__init__(source="general", anime_series_sources=series_sources)
 
 if __name__ == "__main__":
-    # scraper = GeneralScraper()
-    # scraper.get_movie("936075")
-    scraper = AnimeScraper()
-    scraper.get_anime_series('21', '1000')
+    scraper = GeneralScraper()
+    scraper.get_movie("936075")
+    # scraper = AnimeScraper()
+    # scraper.get_anime_series('21', '1000')

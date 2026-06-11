@@ -8,6 +8,7 @@ from typing import List
 
 from app.core.torrent import Torrent
 from app.models.responses import TorrentResponse
+from app.core.multithreading import MultiThreading
 
 BASE_URL = "https://torrentio.strem.fun/qualityfilter=scr,cam,brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,480p,other,unknown%7Climit=3"
 
@@ -51,7 +52,7 @@ def bucket_streams(torrentio_json: TorrentResponse) -> List[TorrentResponse]:
     return buckets["4k"] + buckets["1080p"] + buckets["720p"]
 
 
-def get_streams(media_type: str, imdb_id: str, test_speeds: bool = False) -> List[TorrentResponse]:
+def get_streams(media_type: str, imdb_id: str, threadpool: MultiThreading, test_speeds: bool = False) -> List[TorrentResponse]:
     """Core retrieval script pulling raw Torrentio indexes and calling our validation engine."""
     url = f"{BASE_URL}/stream/{media_type}/{imdb_id}.json"
     try:
@@ -63,7 +64,7 @@ def get_streams(media_type: str, imdb_id: str, test_speeds: bool = False) -> Lis
         
         if test_speeds and streams:
             print(f"\n=== Testing {len(streams)} Streams using Interleaved Round-Robin Waves ===")
-            torrent_tester = Torrent()
+            torrent_tester = Torrent(threadpool)
             # This calls your parallel wave engine!
             streams = torrent_tester.get_best_torrents(streams)
             
@@ -73,22 +74,24 @@ def get_streams(media_type: str, imdb_id: str, test_speeds: bool = False) -> Lis
         return []
 
 
-def get_movie(imdb_id: str, test_speeds: bool = False) -> List[TorrentResponse]:
+def get_movie(imdb_id: str, threadpool: MultiThreading, test_speeds: bool = False) -> List[TorrentResponse]:
     """Fetch movie metadata streams."""
-    return get_streams("movie", imdb_id, test_speeds)
+    return get_streams("movie", imdb_id, threadpool, test_speeds)
 
 
-def get_series(imdb_id: str, test_speeds: bool = False) -> List[TorrentResponse]:
+def get_series(imdb_id: str, threadpool: MultiThreading, test_speeds: bool = False) -> List[TorrentResponse]:
     """Fetch series metadata streams."""
-    return get_streams("series", imdb_id, test_speeds)
+    return get_streams("series", imdb_id, threadpool, test_speeds)
 
 
 if __name__ == "__main__":
     print("Testing Live Torrentio Speed Verification System...")
     start_time = time.time()
-    
+    from app.core.logger import Logger
+    logger = Logger('torrentio')
+    threadpool = MultiThreading(logger, 2)
     # Interstellar IMDB id used for profiling speed categorization workflows
-    results = get_movie("tt1130884", test_speeds=True)
+    results = get_movie("tt1130884", threadpool, test_speeds=True)
     
     response_time = time.time() - start_time
     print(f"\n🏁 Finished evaluation loops in: {response_time:.2f} seconds")

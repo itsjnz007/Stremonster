@@ -17,10 +17,11 @@ from app.core.multithreading import MultiThreading
 logger = Logger('torrent')
 
 class Torrent:
-    def __init__(self, connection_speed: int = 200):
+    def __init__(self, threadpool: MultiThreading, connection_speed: int = 200, ):
         self.connection_speed = connection_speed
         self._session = None
         self._session_lock = threading.Lock()
+        self.threadpool = threadpool
         
         if platform.system() == "Linux" and os.path.exists("/dev/shm"):
             self.temp_dir = "/dev/shm/torrent_speed_cache"
@@ -155,7 +156,7 @@ class Torrent:
                     current_wave.append(bucket.popleft())
             execution_waves.append(current_wave)
 
-        mt = MultiThreading(logger=logger, max_workers=len(quality_buckets))
+        # mt = MultiThreading(logger=logger, max_workers=len(quality_buckets))
         results: List[Tuple[TorrentResponse, float]] = []
 
         for wave_idx, wave_streams in enumerate(execution_waves, start=1):
@@ -176,7 +177,7 @@ class Torrent:
                 for stream in filtered_wave_streams
             ]
             
-            wave_results = mt.get_all(tasks)
+            wave_results = self.threadpool.get_all(tasks)
             results.extend(wave_results)
 
         # Build final optimized outputs mapping dicts
@@ -205,7 +206,7 @@ if __name__ == "__main__":
         {"infoHash": "4615a780aa66f3a09218c5d458505c2d17770920", "name": "720p", "title": "Torrent"},
         {"infoHash": "4615a780aa66f3a09218c5d458505c2d17770920", "name": "720p", "title": "Torrent"},
     ]
-
-    torrent_tester = Torrent(connection_speed=200)
+    threadpool = MultiThreading(logger, 3)
+    torrent_tester = Torrent(threadpool, connection_speed=10)
     result = torrent_tester.get_best_torrents(TEST_DATA)
     logger.info(f"Final Returned Results Map: {result}")

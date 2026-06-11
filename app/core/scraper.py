@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from typing import Optional, Any
-from playwright.async_api import Browser, async_playwright
+from playwright.async_api import Browser, async_playwright, BrowserContext, Request
 from app.models.responses import *
 import re, time
 from app.core.logger import Logger
@@ -28,6 +28,7 @@ class Scraper:
 
         self._playwright: Any = None
         self.browser: Optional[Browser] = None
+        self.context: Optional[BrowserContext] = None
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._loop_thread: Optional[threading.Thread] = None
         self._loop_ready = threading.Event()
@@ -56,16 +57,20 @@ class Scraper:
     async def _start_browser_async(self):
         self._playwright = await async_playwright().start()
         self.browser = await self._playwright.chromium.launch(headless=self.headless)
+        if self.browser:
+            self.context = await self.browser.new_context()
         self.logger.info("Browser instance successfully launched in background")
 
     def _ensure_browser(self):
         self._ensure_loop()
         if self.browser is not None:
-            return
+            if self.context:
+                return
 
         with self._browser_lock:
             if self.browser is not None:
-                return
+                if self.context:
+                    return
 
             assert self._loop is not None
             future = asyncio.run_coroutine_threadsafe(self._start_browser_async(), self._loop)
@@ -75,16 +80,26 @@ class Scraper:
 
         domain = urlparse(url).netloc
         assert self.browser is not None
-        context = await self.browser.new_context()
-        page = await context.new_page()
+        assert self.context is not None
+        # context = await self.browser.new_context()
+        page = await self.context.new_page()
 
         stream_url: Optional[str] = None
         subtitle_urls: list[str] = []
         start_time = time.time()
 
+        def handle_request(request: Request):
+            nonlocal stream_url
+            # self.logger.info(f"Request -> {request.url}")
+            if re.search(self.stream_url_pattern, request.url, re.I):
+                stream_url = request.url
+                self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
+
         try:
+            await page.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "stylesheet", "font"] else route.continue_())
+            page.on("request", handle_request)
             # page.on("request", lambda req: self.logger.debug(f"Request URL: {req.url}"))
-            await page.goto(url)
+            await page.goto(url, timeout=10000)
 
             try:
                 stream_request = await page.wait_for_event(
@@ -97,18 +112,18 @@ class Scraper:
             except Exception:
                 self.logger.warning(f"Timeout! No stream found within {self.timeout / 1000:.2f}s")
 
-            if stream_url and self.subtitle_timeout > 0:
-                try:
-                    subtitle_response = await page.wait_for_event(
-                        "response",
-                        predicate=lambda resp: bool(re.search(self.subtitle_url_pattern, resp.url, re.I)),
-                        timeout=self.subtitle_timeout,
-                    )
-                    if subtitle_response.url not in subtitle_urls:
-                        subtitle_urls.append(subtitle_response.url)
-                        self.logger.info(f"💬 Subtitles: {subtitle_response.url}")
-                except Exception:
-                    self.logger.warning(f"Timeout! No subtitle found within {self.subtitle_timeout:.2f}s after stream detection")
+            # if stream_url and self.subtitle_timeout > 0:
+            #     try:
+            #         subtitle_response = await page.wait_for_event(
+            #             "response",
+            #             predicate=lambda resp: bool(re.search(self.subtitle_url_pattern, resp.url, re.I)),
+            #             timeout=self.subtitle_timeout,
+            #         )
+            #         if subtitle_response.url not in subtitle_urls:
+            #             subtitle_urls.append(subtitle_response.url)
+            #             self.logger.info(f"💬 Subtitles: {subtitle_response.url}")
+            #     except Exception:
+            #         self.logger.warning(f"Timeout! No subtitle found within {self.subtitle_timeout:.2f}s after stream detection")
 
             if stream_url:
                 return WebResponse(
@@ -135,10 +150,10 @@ class Scraper:
                 await page.close()
             except Exception:
                 pass
-            try:
-                await context.close()
-            except Exception:
-                pass
+            # try:
+            #     await context.close()
+            # except Exception:
+            #     pass
         
         self.logger.info(f"END {url}")
 
@@ -160,9 +175,11 @@ class Scraper:
     async def _shutdown_async(self):
         if self.browser is not None:
             try:
+                if self.context is not None: await self.context.close()
                 await self.browser.close()
             except Exception:
                 pass
+            self.context = None
             self.browser = None
 
         if self._playwright is not None:
