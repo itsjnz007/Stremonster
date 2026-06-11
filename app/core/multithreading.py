@@ -14,7 +14,7 @@ class MultiThreading:
             return task()
         return wrapper
 
-    def get_all(self, tasks: Iterable[Callable[[], Any]], delay_between: float = 1.0) -> List[Any]:
+    def get_all(self, tasks: Iterable[Callable[[], Any]], delay_between: float = 2.0) -> List[Any]:
         # Wrap each task with a cumulative delay
         delayed_tasks = [
             self._delayed_task(task, i * delay_between) 
@@ -30,7 +30,7 @@ class MultiThreading:
                 self.logger.error(f"Task failed: {e}")
         return results
 
-    def get_first(self, tasks: Iterable[Callable[[], Any]], delay_between: float = 1.0) -> Any:
+    def get_first(self, tasks: Iterable[Callable[[], Any]], delay_between: float = 2.0) -> Any:
         # Wrap each task with a cumulative delay
         delayed_tasks = [
             self._delayed_task(task, i * delay_between) 
