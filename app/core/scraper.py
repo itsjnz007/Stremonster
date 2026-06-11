@@ -9,6 +9,7 @@ from playwright.async_api import Browser, async_playwright
 from app.models.responses import *
 import re, time
 from app.core.logger import Logger
+from urllib.parse import urlparse
 
 STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
@@ -71,6 +72,8 @@ class Scraper:
             future.result(timeout=30)
 
     async def _get_stream_async(self, url: str) -> Optional[WebResponse]:
+
+        domain = urlparse(url).netloc
         assert self.browser is not None
         context = await self.browser.new_context()
         page = await context.new_page()
@@ -90,7 +93,7 @@ class Scraper:
                     timeout=self.timeout,
                 )
                 stream_url = stream_request.url
-                self.logger.info(f"🎥 Stream: {stream_url}")
+                self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
             except Exception:
                 self.logger.warning(f"Timeout! No stream found within {self.timeout / 1000:.2f}s")
 
@@ -136,6 +139,8 @@ class Scraper:
                 await context.close()
             except Exception:
                 pass
+        
+        self.logger.info(f"END {url}")
 
         return None
 
