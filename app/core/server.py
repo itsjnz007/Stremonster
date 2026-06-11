@@ -98,7 +98,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 ])
                 if not result:
                     result: Optional[WebResponse] = web_thread_pool.get_first([
-                        lambda: vidking_scraper.get_movie(tmdb_id),
+                        # lambda: vidking_scraper.get_movie(tmdb_id),
                         lambda: flicky_scraper.get_movie(tmdb_id),
                         lambda: vidsrc_scraper.get_movie(tmdb_id),
                     ])
@@ -108,7 +108,7 @@ def get_web_stream(type: str, id: str) -> Response:
                     return
 
                 result: Optional[WebResponse] = web_thread_pool.get_first([
-                    lambda: vidking_scraper.get_movie(tmdb_id),
+                    # lambda: vidking_scraper.get_movie(tmdb_id),
                     lambda: flicky_scraper.get_movie(tmdb_id),
                     lambda: vidsrc_scraper.get_movie(tmdb_id),
                 ])
