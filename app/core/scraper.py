@@ -99,7 +99,7 @@ class Scraper:
             await page.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "stylesheet", "font"] else route.continue_())
             page.on("request", handle_request)
             # page.on("request", lambda req: self.logger.debug(f"Request URL: {req.url}"))
-            await page.goto(url, timeout=10000)
+            await page.goto(url)
 
             try:
                 stream_request = await page.wait_for_event(
