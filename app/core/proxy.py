@@ -5,7 +5,7 @@ import requests
 from app.core.logger import Logger
 from typing import Any
 import json, re
-from typing import Optional, Iterable
+from typing import Optional
 
 logger = Logger("proxy")
 # session = requests.Session()
@@ -158,7 +158,7 @@ class Proxy:
         return response
     
     @staticmethod
-    def proxy():
+    def proxy() -> Response:
         response: Optional[requests.Response] = None
 
         try:
@@ -175,7 +175,7 @@ class Proxy:
                         media_url,
                         timeout=10,
                         headers=headers,
-                        stream=True,
+                        # stream=True,
                         cookies=request.cookies
                     )
                 else:
@@ -183,7 +183,7 @@ class Proxy:
                         media_url,
                         timeout=10,
                         headers=headers,
-                        stream=True,
+                        # stream=True,
                         cookies=request.cookies
                     )
             except Exception as e: return Response(f"Upstream error {e}", status=503)
@@ -213,15 +213,11 @@ class Proxy:
 
                 return Proxy.apply_header(resp)
 
-            def generate() -> Iterable[bytes]:
-                if response:
-                    try: yield from response.iter_content(chunk_size=8192)
-                    finally: response.close()
-                else: return Response("Missing response", status=503)
-
-            resp = Response(generate(), status=response.status_code)
+            resp = Response(response, status=response.status_code)
             return Proxy.apply_header(resp)
-        
+        except Exception as e: 
+            logger.error(f"Proxy error: {e}")
+            return Response(f"Proxy error: {e}")
         finally:
             try:
                 if response: response.close()
