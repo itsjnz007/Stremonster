@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from typing import Optional, Any
-from playwright.async_api import Browser, async_playwright, BrowserContext, Request
+from playwright.async_api import Browser, async_playwright, Request
 from app.models.responses import *
 import re, time
 from app.core.logger import Logger
@@ -29,7 +29,7 @@ class Scraper:
 
         self._playwright: Any = None
         self.browser: Optional[Browser] = None
-        self.context: Optional[BrowserContext] = None
+        # self.context: Optional[BrowserContext] = None
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._loop_thread: Optional[threading.Thread] = None
         self._loop_ready = threading.Event()
@@ -58,20 +58,22 @@ class Scraper:
     async def _start_browser_async(self):
         self._playwright = await async_playwright().start()
         self.browser = await self._playwright.chromium.launch(headless=self.headless)
-        if self.browser:
-            self.context = await self.browser.new_context()
+        # if self.browser:
+        #     self.context = await self.browser.new_context()
         self.logger.info("Browser instance successfully launched in background")
 
     def _ensure_browser(self):
         self._ensure_loop()
         if self.browser is not None:
-            if self.context:
-                return
+            # if self.context:
+            #     return
+            return
 
         with self._browser_lock:
             if self.browser is not None:
-                if self.context:
-                    return
+                # if self.context:
+                #     return
+                return
 
             assert self._loop is not None
             future = asyncio.run_coroutine_threadsafe(self._start_browser_async(), self._loop)
@@ -81,9 +83,9 @@ class Scraper:
         if stop_event and stop_event.is_set(): return
         domain = urlparse(url).netloc
         assert self.browser is not None
-        assert self.context is not None
-        # context = await self.browser.new_context()
-        page = await self.context.new_page()
+        # assert self.context is not None
+        context = await self.browser.new_context()
+        page = await context.new_page()
 
         stream_url: Optional[str] = None
         subtitle_urls: list[str] = []
@@ -161,10 +163,10 @@ class Scraper:
             self.logger.info(f"Response time: {elapsed_ms / 1000:.2f}s")
             try: await page.close()
             except Exception: pass
-            # try:
-            #     await context.close()
-            # except Exception:
-            #     pass
+            try:
+                await context.close()
+            except Exception:
+                pass
         
         self.logger.info(f"END {url}")
 
@@ -186,7 +188,7 @@ class Scraper:
     async def _shutdown_async(self):
         if self.browser is not None:
             try:
-                if self.context is not None: await self.context.close()
+                # if context is not None: await context.close()
                 await self.browser.close()
             except Exception:
                 pass
