@@ -10,6 +10,7 @@ from app.models.responses import *
 import re, time
 from app.core.logger import Logger
 from urllib.parse import urlparse
+from threading import Event
 
 STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
@@ -76,8 +77,8 @@ class Scraper:
             future = asyncio.run_coroutine_threadsafe(self._start_browser_async(), self._loop)
             future.result(timeout=30)
 
-    async def _get_stream_async(self, url: str) -> Optional[WebResponse]:
-
+    async def _get_stream_async(self, url: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+        if stop_event and stop_event.is_set(): return
         domain = urlparse(url).netloc
         assert self.browser is not None
         assert self.context is not None
@@ -101,16 +102,28 @@ class Scraper:
             # page.on("request", lambda req: self.logger.debug(f"Request URL: {req.url}"))
             await page.goto(url)
 
-            try:
-                stream_request = await page.wait_for_event(
-                    "request",
-                    predicate=lambda req: bool(re.search(self.stream_url_pattern, req.url, re.I)),
-                    timeout=self.timeout,
-                )
-                stream_url = stream_request.url
-                self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
-            except Exception:
-                self.logger.warning(f"Timeout! No stream found within {self.timeout / 1000:.2f}s")
+            start_time = time.time()
+            while not stream_url:
+                if stop_event and stop_event.is_set(): 
+                    self.logger.info(f"❌ Task skipped for {domain}")
+                    return
+                if time.time() - start_time > (self.timeout / 1000): break
+                await asyncio.sleep(0.1)
+
+            # for _ in range(int(self.timeout / 500)):
+            #     if stop_event and stop_event.is_set(): 
+            #         self.logger.debug(f"Stopping task due to a stop_event")
+            #         break
+            #     try:
+            #         stream_request = await page.wait_for_event(
+            #             "request",
+            #             predicate=lambda req: bool(re.search(self.stream_url_pattern, req.url, re.I)),
+            #             timeout=self.timeout,
+            #         )
+            #         stream_url = stream_request.url
+            #         self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
+            #     except Exception:
+            #         self.logger.warning(f"Timeout! No stream found within {self.timeout / 1000:.2f}s")
 
             # if stream_url and self.subtitle_timeout > 0:
             #     try:
@@ -146,10 +159,8 @@ class Scraper:
         finally:
             elapsed_ms = int((time.time() - start_time) * 1000)
             self.logger.info(f"Response time: {elapsed_ms / 1000:.2f}s")
-            try:
-                await page.close()
-            except Exception:
-                pass
+            try: await page.close()
+            except Exception: pass
             # try:
             #     await context.close()
             # except Exception:
@@ -159,13 +170,13 @@ class Scraper:
 
         return None
 
-    def get_stream(self, url: str) -> Optional[WebResponse]:
+    def get_stream(self, url: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         self._ensure_browser()
         assert self._loop is not None
 
         self.logger.info(f"GET stream: {url}")
 
-        future = asyncio.run_coroutine_threadsafe(self._get_stream_async(url), self._loop)
+        future = asyncio.run_coroutine_threadsafe(self._get_stream_async(url, stop_event), self._loop)
         try:
             return future.result(timeout=(self.timeout / 1000) + 15)
         except Exception as e:

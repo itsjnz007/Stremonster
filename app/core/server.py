@@ -77,9 +77,9 @@ def get_web_stream(type: str, id: str) -> Response:
                 return
             
             result: Optional[WebResponse] = web_thread_pool.get_first([
-                lambda: vidking_scraper.get_movie(tmdb_id),
-                lambda: flicky_scraper.get_movie(tmdb_id),
-                lambda: vidsrc_scraper.get_movie(tmdb_id),
+                lambda event: vidking_scraper.get_movie(tmdb_id, event),
+                lambda event: flicky_scraper.get_movie(tmdb_id, event),
+                lambda event: vidsrc_scraper.get_movie(tmdb_id, event),
             ])
         else:
             imdb_id, season, episode = id.split(':')
@@ -92,15 +92,15 @@ def get_web_stream(type: str, id: str) -> Response:
                 mal_id, mal_eps = anibride.get_mal_info(imdb_id, season, episode)
                 ani_id, ani_eps = anibride.get_anilist_info(imdb_id, season, episode)
                 result: Optional[WebResponse] = web_thread_pool.get_first([
-                    lambda: miruro_scraper.get_series(mal_id, str(mal_eps)),
-                    lambda: miruro_scraper.get_series(ani_id, str(ani_eps)),
-                    lambda: vidnest_scraper.get_series(ani_id, str(ani_eps)),
+                    lambda event: miruro_scraper.get_series(mal_id, str(mal_eps), event),
+                    lambda event: miruro_scraper.get_series(ani_id, str(ani_eps), event),
+                    lambda event: vidnest_scraper.get_series(ani_id, str(ani_eps), event),
                 ])
                 if not result:
                     result: Optional[WebResponse] = web_thread_pool.get_first([
-                        lambda: vidking_scraper.get_series(tmdb_id, season, episode),
-                        lambda: flicky_scraper.get_series(tmdb_id, season, episode),
-                        lambda: vidsrc_scraper.get_series(tmdb_id, season, episode),
+                        lambda event: vidking_scraper.get_series(tmdb_id, season, episode, event),
+                        lambda event: flicky_scraper.get_series(tmdb_id, season, episode, event),
+                        lambda event: vidsrc_scraper.get_series(tmdb_id, season, episode, event),
                     ])
             else:
                 if not tmdb_id:
@@ -108,9 +108,9 @@ def get_web_stream(type: str, id: str) -> Response:
                     return
 
                 result: Optional[WebResponse] = web_thread_pool.get_first([
-                    lambda: vidking_scraper.get_series(tmdb_id, season, episode),
-                    lambda: flicky_scraper.get_series(tmdb_id, season, episode),
-                    lambda: vidsrc_scraper.get_series(tmdb_id, season, episode),
+                    lambda event: vidking_scraper.get_series(tmdb_id, season, episode, event),
+                    lambda event: flicky_scraper.get_series(tmdb_id, season, episode, event),
+                    lambda event: vidsrc_scraper.get_series(tmdb_id, season, episode, event),
                 ])
         return result
 

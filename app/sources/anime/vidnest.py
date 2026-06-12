@@ -6,6 +6,7 @@ from app.core.proxy import Proxy
 from app.core.scraper import Scraper
 from app.models.responses import WebResponse
 from typing import Optional
+from threading import Event
 
 class VidnestScraper(Scraper):
     def __init__(self):
@@ -13,17 +14,17 @@ class VidnestScraper(Scraper):
                           stream_url_pattern= r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/seg)\S*')
         self.base_url = "https://vidnest.fun"
 
-    def get_movie(self, imdb_id: str) -> Optional[WebResponse]:
-        return None
-        url = f"{self.base_url}/watch/{imdb_id}"
-        result = self.get_stream(url)
-        # if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url)
-        return result
+    # def get_movie(self, imdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+    #     return None
+    #     url = f"{self.base_url}/watch/{imdb_id}"
+    #     result = self.get_stream(url)
+    #     # if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url)
+    #     return result
     
-    def get_series(self, animal_id: str, episode: str) -> Optional[WebResponse]:
+    def get_series(self, animal_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         # url = f"{self.base_url}/watch/{animal_id}?ep={episode}"
         url = f"{self.base_url}/anime/{animal_id}/{episode}/sub"
-        result = self.get_stream(url)
+        result = self.get_stream(url, stop_event)
         if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url)
         return result
   
