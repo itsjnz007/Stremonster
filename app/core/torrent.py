@@ -173,7 +173,7 @@ class Torrent:
             logger.info(f"🚀 Processing Interleaved Wave {wave_idx}/{len(execution_waves)}")
             
             tasks = [
-                lambda s=stream: (s, self.test_torrent(s["infoHash"], s.get("name", "Unknown")))
+                lambda event, s=stream: (s, self.test_torrent(s["infoHash"], s.get("name", "Unknown")))
                 for stream in filtered_wave_streams
             ]
             
