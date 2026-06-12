@@ -89,7 +89,7 @@ if __name__ == "__main__":
     start_time = time.time()
     from app.core.logger import Logger
     logger = Logger('torrentio')
-    threadpool = MultiThreading(logger, 2)
+    threadpool = MultiThreading(2)
     # Interstellar IMDB id used for profiling speed categorization workflows
     results = get_movie("tt1130884", threadpool, test_speeds=True)
     

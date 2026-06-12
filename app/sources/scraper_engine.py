@@ -11,7 +11,7 @@ from app.core.multithreading import MultiThreading
 from app.core.logger import Logger
 
 logger = Logger("general")
-thread_pool = MultiThreading(logger, max_workers=9)
+thread_pool = MultiThreading(max_workers=9)
 
 
 class ScraperEngine(Scraper):

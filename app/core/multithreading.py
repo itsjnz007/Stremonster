@@ -1,9 +1,12 @@
 import time, threading
 from concurrent.futures import ThreadPoolExecutor, as_completed, Future
 from typing import Callable, Iterable, List, Any
+from app.core.logger import Logger
+
+logger = Logger("multithreading")
 
 class MultiThreading:
-    def __init__(self, logger: Any, max_workers: int = 4):
+    def __init__(self, max_workers: int = 4):
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self.logger = logger
         self.stop_event: threading.Event = threading.Event()

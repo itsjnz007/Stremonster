@@ -21,8 +21,8 @@ from app.sources.anime import miruro as miruro, vidnest as vidnest
 
 logger = Logger("server")
 app = Flask(__name__)
-web_thread_pool = MultiThreading(logger, max_workers=3)
-torrent_thread_pool = MultiThreading(logger, max_workers=1)
+web_thread_pool = MultiThreading(max_workers=3)
+torrent_thread_pool = MultiThreading(max_workers=1)
 
 tmdb_cache = TmdbCache()
 web_cache = WebCache()

@@ -206,7 +206,7 @@ if __name__ == "__main__":
         {"infoHash": "4615a780aa66f3a09218c5d458505c2d17770920", "name": "720p", "title": "Torrent"},
         {"infoHash": "4615a780aa66f3a09218c5d458505c2d17770920", "name": "720p", "title": "Torrent"},
     ]
-    threadpool = MultiThreading(logger, 3)
+    threadpool = MultiThreading(3)
     torrent_tester = Torrent(threadpool, connection_speed=10)
     result = torrent_tester.get_best_torrents(TEST_DATA)
     logger.info(f"Final Returned Results Map: {result}")
