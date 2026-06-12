@@ -8,7 +8,8 @@ import json, re
 from typing import Optional, Iterable
 
 logger = Logger("proxy")
-session = requests.Session()
+# session = requests.Session()
+# session.headers.update({"Connection": "close"})
 
 def respond_with(data: dict[str, Any]) -> Response:
     resp = jsonify(data)
@@ -170,7 +171,7 @@ class Proxy:
 
             try:
                 if request.method == "POST":
-                    response = session.post(
+                    response = requests.post(
                         media_url,
                         timeout=10,
                         headers=headers,
@@ -178,7 +179,7 @@ class Proxy:
                         cookies=request.cookies
                     )
                 else:
-                    response = session.get(
+                    response = requests.get(
                         media_url,
                         timeout=10,
                         headers=headers,
