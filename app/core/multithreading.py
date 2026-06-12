@@ -13,7 +13,7 @@ class MultiThreading:
 
 
     # Added: This helper wraps any function to inject a delay
-    def _delayed_task(self, task: Callable[[threading.Event], Any], delay: float) -> Callable[[threading.Event], Any]:
+    def _delayed_task(self, task: Callable[[threading.Event], Any], delay: float) -> Callable[[], Any]:
         def wrapper() -> Any:
             start_time = time.time()
             while time.time() - start_time < delay:
@@ -21,8 +21,8 @@ class MultiThreading:
                     return None
                 time.sleep(0.1)  # Check every 100ms
             if self.stop_event.is_set(): return None
-            return task(self.stop_event) # type: ignore
-        return wrapper # type: ignore
+            return task(self.stop_event)
+        return wrapper
 
     def get_all(self, tasks: Iterable[Callable[[threading.Event], Any]], delay_between: float = 2.0) -> List[Any]:
         # Wrap each task with a cumulative delay
@@ -31,7 +31,7 @@ class MultiThreading:
             for i, task in enumerate(tasks)
         ]
         
-        futures: List[Future[Any]] = [self.executor.submit(task) for task in delayed_tasks] # type: ignore
+        futures: List[Future[Any]] = [self.executor.submit(task) for task in delayed_tasks]
         results: List[Any] = []
         for future in as_completed(futures):
             try:
@@ -48,7 +48,7 @@ class MultiThreading:
             for i, task in enumerate(tasks)
         ]
         
-        futures: List[Future[Any]] = [self.executor.submit(task) for task in delayed_tasks] # type: ignore
+        futures: List[Future[Any]] = [self.executor.submit(task) for task in delayed_tasks]
         
         for completed in as_completed(futures):
             try:
