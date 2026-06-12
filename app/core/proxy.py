@@ -4,7 +4,7 @@ from urllib.parse import quote, urlparse
 import requests
 from app.core.logger import Logger
 from typing import Any
-import json
+import json, re
 
 logger = Logger("proxy")
 session = requests.Session()
@@ -98,12 +98,10 @@ class Proxy:
         )
 
 
-
     @staticmethod
     def parse_segment(content: bytes, headers: str, master_url: str) -> str:
-
         text = content.decode("utf-8", errors="ignore")
-        rewritten = ""
+        rewritten: list[str] = []
 
         parsed = urlparse(master_url)
         host = f"{parsed.scheme}://{parsed.netloc}"
@@ -112,31 +110,43 @@ class Proxy:
         is_master = "#EXT-X-STREAM-INF" in text
         stream_type = "stream.m3u8" if is_master else "stream.ts"
 
+        def resolve_url(url: str) -> str:
+            """Converts relative URLs to absolute."""
+            if url.startswith("http"):
+                return url
+            elif url.startswith("/"):
+                return host + url
+            else:
+                return f"{host}{base_path}/{url}"
+
+        # Regex to find URI="..." inside tags
+        uri_pattern = re.compile(r'(URI=["\'])(.*?)(["\'])')
+
         for line in text.split("\n"):
             line = line.strip()
-
             if not line:
-                rewritten += "\n"
+                rewritten.append("")
                 continue
 
-            # NEVER rewrite tags
+            # Handle tags that might contain URIs
             if line.startswith("#"):
-                rewritten += line + "\n"
-                continue
-
-            # build absolute URL
-            if line.startswith("http"):
-                url = line
-
-            elif line.startswith("/"):
-                url = host + line
-
+                if 'URI=' in line:
+                    # Replace the URI inside the tag with the proxied version
+                    def replace_uri(match: re.Match[str]):
+                        full_url = resolve_url(match.group(2))
+                        proxied_url = Proxy.add_proxy(full_url, headers, stream_type)
+                        return f'{match.group(1)}{proxied_url}{match.group(3)}'
+                    
+                    rewritten.append(uri_pattern.sub(replace_uri, line))
+                else:
+                    # Standard tag, no URI to proxy
+                    rewritten.append(line)
+            
+            # Handle segment URLs (lines not starting with #)
             else:
-                url = f"{host}{base_path}/{line}"
+                rewritten.append(Proxy.add_proxy(resolve_url(line), headers, stream_type))
 
-            rewritten += Proxy.add_proxy(url, headers, stream_type) + "\n"
-
-        return rewritten
+        return "\n".join(rewritten)
     
     @staticmethod
     def apply_header(response: Response):
