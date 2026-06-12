@@ -34,10 +34,8 @@ class MultiThreading:
         futures: List[Future[Any]] = [self.executor.submit(task) for task in delayed_tasks]
         results: List[Any] = []
         for future in as_completed(futures):
-            try:
-                results.append(future.result())
-            except Exception as e:
-                self.logger.error(f"Task failed: {e}")
+            try: results.append(future.result())
+            except Exception as e: self.logger.error(f"Task failed: {e}")
         return results
 
     def get_first(self, tasks: Iterable[Callable[[threading.Event], Any]], delay_between: float = 2.0) -> Any:
