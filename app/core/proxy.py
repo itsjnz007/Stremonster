@@ -5,6 +5,7 @@ import requests
 from app.core.logger import Logger
 from typing import Any
 import json, re
+from typing import Optional, Iterable
 
 logger = Logger("proxy")
 session = requests.Session()
@@ -157,6 +158,8 @@ class Proxy:
     
     @staticmethod
     def proxy():
+        response: Optional[requests.Response] = None
+
         try:
             media_url = request.args.get("url")
             if not media_url: raise Exception("No media_url found")
@@ -167,7 +170,7 @@ class Proxy:
 
             try:
                 if request.method == "POST":
-                    response = requests.post(
+                    response = session.post(
                         media_url,
                         timeout=10,
                         headers=headers,
@@ -175,7 +178,7 @@ class Proxy:
                         cookies=request.cookies
                     )
                 else:
-                    response = requests.get(
+                    response = session.get(
                         media_url,
                         timeout=10,
                         headers=headers,
@@ -189,7 +192,6 @@ class Proxy:
             is_m3u8 = (
                 ".m3u8" in media_url
                 or "mpegurl" in content_type
-                or response.text.strip().startswith("#EXTM3U")
             )
 
             if is_m3u8 and response.status_code in (200, 206):
@@ -210,9 +212,17 @@ class Proxy:
 
                 return Proxy.apply_header(resp)
 
-            resp = Response(response.iter_content(chunk_size=8192), status=response.status_code)
+            def generate() -> Iterable[bytes]:
+                if response:
+                    try: yield from response.iter_content(chunk_size=8192)
+                    finally: response.close()
+                else: return Response("Missing response", status=503)
+
+            resp = Response(generate(), status=response.status_code)
             return Proxy.apply_header(resp)
         
         finally:
-            try: request.close()
+            try:
+                if response: response.close()
+                response = None
             except: pass

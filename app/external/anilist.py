@@ -91,7 +91,7 @@ class AniBridgeV3Resolver:
     
     def get_mal_info(self, imdb_id: str, season: str, episode: str):
         ani_zip_response = requests.get(ANI_ZIP_URL % imdb_id)
-        ani_zip_response.raise_for_status
+        ani_zip_response.raise_for_status()
         tvdb_id: Optional[str] = ani_zip_response.json().get("mappings", {}).get("thetvdb_id")
         if not tvdb_id: raise Exception(f"No tvdb mapping found for imdb id: {imdb_id}")
         logger.debug(f"Found tvdb id '{tvdb_id}' mapping for imdb id: {imdb_id}")
@@ -105,7 +105,7 @@ class AniBridgeV3Resolver:
     
     def get_anilist_info(self, imdb_id: str, season: str, episode: str):
         ani_zip_response = requests.get(ANI_ZIP_URL % imdb_id)
-        ani_zip_response.raise_for_status
+        ani_zip_response.raise_for_status()
         tvdb_id: Optional[str] = ani_zip_response.json().get("mappings", {}).get("thetvdb_id")
         if not tvdb_id: raise Exception(f"No tvdb mapping found for imdb id: {imdb_id}")
         logger.debug(f"Found tvdb id '{tvdb_id}' mapping for imdb id: {imdb_id}")
