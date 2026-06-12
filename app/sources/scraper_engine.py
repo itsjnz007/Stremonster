@@ -9,6 +9,7 @@ from app.core.scraper import Scraper
 from app.models.responses import WebResponse
 from app.core.multithreading import MultiThreading
 from app.core.logger import Logger
+from threading import Event
 
 logger = Logger("general")
 thread_pool = MultiThreading(max_workers=9)
@@ -32,7 +33,7 @@ class ScraperEngine(Scraper):
     def _run_sources(
         self,
         sources: list[str],
-        worker_factory: Callable[[str], Callable[[], Optional[WebResponse]]]
+        worker_factory: Callable[[str], Callable[[Event], Optional[WebResponse]]]
     ) -> Optional[WebResponse]:
 
         if not sources:
@@ -60,7 +61,7 @@ class ScraperEngine(Scraper):
     def get_movie(self, tmdb_id: str) -> Optional[WebResponse]:
         return self._run_sources(
             self.movie_sources,
-            lambda url: lambda: self.get_stream(url % tmdb_id)
+            lambda url: lambda event: self.get_stream(url % tmdb_id, event)
         )
 
     def get_series(
@@ -72,8 +73,8 @@ class ScraperEngine(Scraper):
 
         return self._run_sources(
             self.series_sources,
-            lambda url: lambda: self.get_stream(
-                url % (tmdb_id, season, episode)
+            lambda url: lambda event: self.get_stream(
+                url % (tmdb_id, season, episode, event)
             )
         )
 
@@ -85,8 +86,8 @@ class ScraperEngine(Scraper):
 
         return self._run_sources(
             self.anime_series_sources,
-            lambda url: lambda: self.get_stream(
-                url % (anilist_id, episode)
+            lambda url: lambda event: self.get_stream(
+                url % (anilist_id, episode, event)
             )
         )
     

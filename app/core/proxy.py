@@ -157,56 +157,62 @@ class Proxy:
     
     @staticmethod
     def proxy():
-
-        media_url = request.args.get("url")
-        if not media_url: raise Exception("No media_url found")
-
-        headers_str = request.args.get("headers", "{}")
-        try: headers = json.loads(headers_str)
-        except Exception as e: return Response(f"Unable to parse headers_str. Error: {e}", status=503)
-
         try:
-            if request.method == "POST":
-                response = requests.post(
-                    media_url,
-                    timeout=10,
-                    headers=headers,
-                    cookies=request.cookies
-                )
-            else:
-                response = requests.get(
-                    media_url,
-                    timeout=10,
-                    headers=headers,
-                    cookies=request.cookies
-                )
-        except Exception as e: return Response(f"Upstream error {e}", status=503)
+            media_url = request.args.get("url")
+            if not media_url: raise Exception("No media_url found")
 
-        content_type = response.headers.get("content-type", "").lower()
+            headers_str = request.args.get("headers", "{}")
+            try: headers = json.loads(headers_str)
+            except Exception as e: return Response(f"Unable to parse headers_str. Error: {e}", status=503)
 
-        is_m3u8 = (
-            ".m3u8" in media_url
-            or "mpegurl" in content_type
-            or response.text.strip().startswith("#EXTM3U")
-        )
+            try:
+                if request.method == "POST":
+                    response = requests.post(
+                        media_url,
+                        timeout=10,
+                        headers=headers,
+                        stream=True,
+                        cookies=request.cookies
+                    )
+                else:
+                    response = requests.get(
+                        media_url,
+                        timeout=10,
+                        headers=headers,
+                        stream=True,
+                        cookies=request.cookies
+                    )
+            except Exception as e: return Response(f"Upstream error {e}", status=503)
 
-        if is_m3u8 and response.status_code in (200, 206):
+            content_type = response.headers.get("content-type", "").lower()
 
-            content = response.content
-
-            updated_content = Proxy.parse_segment(
-                content,
-                headers,
-                media_url
+            is_m3u8 = (
+                ".m3u8" in media_url
+                or "mpegurl" in content_type
+                or response.text.strip().startswith("#EXTM3U")
             )
 
-            resp = Response(
-                updated_content,
-                status=response.status_code,
-                mimetype="application/vnd.apple.mpegurl"
-            )
+            if is_m3u8 and response.status_code in (200, 206):
 
+                content = response.content
+
+                updated_content = Proxy.parse_segment(
+                    content,
+                    headers,
+                    media_url
+                )
+
+                resp = Response(
+                    updated_content,
+                    status=response.status_code,
+                    mimetype="application/vnd.apple.mpegurl"
+                )
+
+                return Proxy.apply_header(resp)
+
+            resp = Response(response.iter_content(chunk_size=8192), status=response.status_code)
             return Proxy.apply_header(resp)
-
-        resp = Response(response.content, status=response.status_code)
-        return Proxy.apply_header(resp)
+        
+        finally:
+            try: request.close()
+            except: pass
