@@ -162,6 +162,7 @@ class Proxy:
         response: Optional[requests.Response] = None
 
         try:
+            logger.info(f"Proxying: {request.url}")
             media_url = request.args.get("url")
             if not media_url: raise Exception("No media_url found")
 
