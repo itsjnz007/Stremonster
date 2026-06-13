@@ -15,14 +15,15 @@ class Caching:
     def __init__(self):
         self.cache_dir = Path(CACHE_DIR)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.cache: dict[str, Any]
+        # self.cache: dict[str, Any]
         self.cache_path: Path
 
-    def _load_from_disk(self, path: Path) -> dict[str, Any]:
+    def _load_from_disk(self) -> dict[str, Any]:
         """Load cache from JSON file if it exists."""
+        if not hasattr(self, 'cache_path'): raise AttributeError('Subclass must define `cache_path` attribute')
         try:
-            if path.exists():
-                with open(path, 'r', encoding='utf-8') as f: 
+            if self.cache_path.exists():
+                with open(self.cache_path, 'r', encoding='utf-8') as f: 
                     return json.load(f)
         except Exception as e: logger.error(f"Error loading cache from disk: {e}")
         return {}
@@ -36,16 +37,18 @@ class Caching:
             print(f"Error saving cache to disk: {e}")
 
     def set(self, key: str, value: Any) -> None:
-        if not hasattr(self, 'cache'): raise AttributeError('Subclass must define `cache` attribute')
-        if not hasattr(self, 'cache_path'): raise AttributeError('Subclass must define `cache_path` attribute')
+        # if not hasattr(self, 'cache'): raise AttributeError('Subclass must define `cache` attribute')
+        # if not hasattr(self, 'cache_path'): raise AttributeError('Subclass must define `cache_path` attribute')
 
         timestamp = datetime.now(timezone.utc).isoformat()
-        self.cache[key] = {"value": value, "ts": timestamp}
-        self._save_to_disk(self.cache_path, self.cache)
+        cache = self._load_from_disk()
+        cache[key] = {"value": value, "ts": timestamp}
+        self._save_to_disk(self.cache_path, cache)
 
     def get(self, key: str, upto_mins: int = 0) -> Any | None:
-        if not hasattr(self, 'cache'): raise AttributeError('Subclass must define `cache` attribute')
-        entry = self.cache.get(key)
+        # if not hasattr(self, 'cache'): raise AttributeError('Subclass must define `cache` attribute')
+        cache = self._load_from_disk()
+        entry = cache.get(key)
         if entry is None: return None
 
         now = datetime.now(timezone.utc)
@@ -62,19 +65,19 @@ class TmdbCache(Caching):
     def __init__(self):
         super().__init__()
         self.cache_path = self.cache_dir / "tmdb.json"
-        self.cache: dict[str, Any] = self._load_from_disk(self.cache_path)
+        # self.cache: dict[str, Any] = self._load_from_disk()
 
 class WebCache(Caching):
     def __init__(self):
         super().__init__()
         self.cache_path = self.cache_dir / "web_results.json"
-        self.cache: dict[str, Any] = self._load_from_disk(self.cache_path)
+        # self.cache: dict[str, Any] = self._load_from_disk()
 
 class TorrentCache(Caching):
     def __init__(self):
         super().__init__()
         self.cache_path = self.cache_dir / "torrent_results.json"
-        self.cache: dict[str, Any] = self._load_from_disk(self.cache_path)
+        # self.cache: dict[str, Any] = self._load_from_disk()
 
 if __name__ == "__main__":
     web_cache = WebCache()

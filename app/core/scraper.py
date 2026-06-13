@@ -16,7 +16,7 @@ STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
 
 class Scraper:
-    def __init__(self, headless: bool = True, source: str = "scraper", timeout: int = 15000, subtitle_timeout: float = 0, 
+    def __init__(self, headless: bool = True, source: str = "scraper", timeout: int = 30000, subtitle_timeout: float = 0, 
                  stream_url_pattern: str = STREAM_URL_PATTERN, 
                  subtitle_url_pattern: str = SUBTITLE_PATTERN):
         self.logger = Logger(f"scraper.{source}", level=logging.DEBUG)
