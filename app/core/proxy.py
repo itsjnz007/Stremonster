@@ -1,5 +1,5 @@
 from app.config import TUNNEL_URL
-from flask import Response, request, jsonify
+from flask import Response, request, jsonify, stream_with_context
 from urllib.parse import quote, urlparse
 import requests
 from app.core.logger import Logger
@@ -9,8 +9,7 @@ from typing import Optional
 from requests.cookies import RequestsCookieJar
 
 logger = Logger("proxy")
-# session = requests.Session()
-# session.headers.update({"Connection": "close"})
+session = requests.Session()
 
 def respond_with(data: dict[str, Any]) -> Response:
     resp = jsonify(data)
@@ -52,9 +51,7 @@ class Proxy:
 
     @staticmethod
     def get_proxy_url(stream_url: str, origin: str, type: str = "stream.m3u8", cookies: Optional[dict[str, str] | RequestsCookieJar] = None) -> str:
-        # if 'proxy' in stream_url: return stream_url
-        # proxied_url = urljoin(TUNNEL_URL, f"/{type}?url={quote(stream_url, safe='%')}") # type: ignore
-        # proxied_url += f"&origin={quote(origin, safe='%')}"
+
         headers = {"ffuser-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
             "accept": "*/*",
             "accept-language": "en-US,en;q=0.5",
@@ -94,24 +91,17 @@ class Proxy:
     @staticmethod
     def add_proxy(url: str, headers: str, stream_type: str = "stream.ts") -> str:
 
-        if not TUNNEL_URL:
-            raise Exception("TUNNEL_URL not set")
+        if not TUNNEL_URL: raise Exception("TUNNEL_URL not set")
 
-        # --- normalize headers ---
         if isinstance(headers, dict): headers_str = json.dumps(headers, separators=(",", ":"))
         else: headers_str = str(headers)
 
-        # if isinstance(cookies, dict): cookies_str = json.dumps(cookies, separators=(",", ":"))
-        # else: cookies_str = str(cookies)
-
-        # --- normalize url ---
         url_str = str(url)
 
         return (
             f"{TUNNEL_URL}/{stream_type}"
             + "?url=" + quote(url_str, safe="")
             + "&headers=" + quote(headers_str, safe="")
-            # + "&cookies=" + quote(cookies_str, safe="")
         )
 
 
@@ -187,33 +177,33 @@ class Proxy:
 
             try:
                 if request.method == "POST":
-                    response = requests.post(
+                    upstream_response = session.post(
                         media_url,
                         timeout=10,
                         headers=headers,
-                        # stream=True,
+                        stream=True,
                         cookies=request.cookies
                     )
                 else:
-                    response = requests.get(
+                    upstream_response = session.get(
                         media_url,
                         timeout=10,
                         headers=headers,
-                        # stream=True,
+                        stream=True,
                         cookies=request.cookies
                     )
             except Exception as e: return Response(f"Upstream error {e}", status=503)
 
-            content_type = response.headers.get("content-type", "").lower()
+            content_type = upstream_response.headers.get("content-type", "").lower()
 
             is_m3u8 = (
                 ".m3u8" in media_url
                 or "mpegurl" in content_type
             )
 
-            if is_m3u8 and response.status_code in (200, 206):
+            if is_m3u8 and upstream_response.status_code in (200, 206):
 
-                content = response.content
+                content = upstream_response.content
 
                 updated_content = Proxy.parse_segment(
                     content,
@@ -223,19 +213,26 @@ class Proxy:
 
                 resp = Response(
                     updated_content,
-                    status=response.status_code,
+                    status=upstream_response.status_code,
                     mimetype="application/vnd.apple.mpegurl"
                 )
-
                 return Proxy.apply_header(resp)
+            
+            def generate_media():
+                # try:
+                    # Yield chunks of 64KB as they arrive
+                for chunk in upstream_response.iter_content(chunk_size=1024*64):
+                    if chunk: yield chunk
+                # finally:
+                #     response.close()
 
-            resp = Response(response, status=response.status_code)
+            resp = Response(stream_with_context(generate_media()), status=upstream_response.status_code)
             return Proxy.apply_header(resp)
         except Exception as e: 
             logger.error(f"Proxy error: {e}")
             return Response(f"Proxy error: {e}")
         finally:
-            try:
-                if response: response.close()
-                response = None
-            except: pass
+            # try:
+            if response: upstream_response.close()
+            response = None
+            # except: pass
