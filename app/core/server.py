@@ -18,11 +18,14 @@ from app.core.proxy import respond_with, Proxy
 from app.external.anilist import AniBridgeV3Resolver
 from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as vidsrc
 from app.sources.anime import miruro as miruro, vidnest as vidnest
+from app.core.utils import wait_until
 
 logger = Logger("server")
 app = Flask(__name__)
-web_thread_pool = MultiThreading(max_workers=2)
-torrent_thread_pool = MultiThreading(max_workers=1)
+# web_thread_pool = MultiThreading(max_workers=2)
+# torrent_thread_pool = MultiThreading(max_workers=1)
+
+thread_pool = MultiThreading(max_workers=4)
 
 tmdb_cache = TmdbCache()
 web_cache = WebCache()
@@ -76,7 +79,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 logger.warning(f"No TMDB ID found for IMDB ID {id}")
                 return
             
-            result: Optional[WebResponse] = web_thread_pool.get_first([
+            result: Optional[WebResponse] = thread_pool.get_first([
                 lambda event: vidking_scraper.get_movie(tmdb_id, event),
                 lambda event: flicky_scraper.get_movie(tmdb_id, event),
                 lambda event: vidsrc_scraper.get_movie(tmdb_id, event),
@@ -91,12 +94,12 @@ def get_web_stream(type: str, id: str) -> Response:
             if orig_lang == "ja":
                 mal_id, mal_eps = anibride.get_mal_info(imdb_id, season, episode)
                 ani_id, ani_eps = anibride.get_anilist_info(imdb_id, season, episode)
-                result: Optional[WebResponse] = web_thread_pool.get_first([
+                result: Optional[WebResponse] = thread_pool.get_first([
                     lambda event: miruro_scraper.get_series(mal_id, str(mal_eps), event),
                     lambda event: miruro_scraper.get_series(ani_id, str(ani_eps), event),
                 ])
                 if not result:
-                    result: Optional[WebResponse] = web_thread_pool.get_first([
+                    result: Optional[WebResponse] = thread_pool.get_first([
                         lambda event: vidnest_scraper.get_series(ani_id, str(ani_eps), event),
                     ])
 
@@ -111,7 +114,7 @@ def get_web_stream(type: str, id: str) -> Response:
                     logger.warning(f"No TMDB ID found for IMDB ID {imdb_id}")
                     return
 
-                result: Optional[WebResponse] = web_thread_pool.get_first([
+                result: Optional[WebResponse] = thread_pool.get_first([
                     lambda event: vidking_scraper.get_series(tmdb_id, season, episode, event),
                     lambda event: flicky_scraper.get_series(tmdb_id, season, episode, event),
                     lambda event: vidsrc_scraper.get_series(tmdb_id, season, episode, event),
@@ -141,16 +144,17 @@ def get_torrent_stream(type: str, id: str) -> Response:
     def calculate():
         if type == "movie":
             logger.info(f"Total time taken to fetch web stream: {time.time() - start_time:.2f} seconds")
-            return torrentio_module.get_movie(id, torrent_thread_pool, True)
+            return torrentio_module.get_movie(id, thread_pool, True)
         else:
             logger.info(f"Total time taken to fetch web stream: {time.time() - start_time:.2f} seconds")
-            return torrentio_module.get_series(id, torrent_thread_pool, True)
+            return torrentio_module.get_series(id, thread_pool, True)
         
     cache = torrent_cache.get(key=id, upto_mins=60*24)
     if cache:
         logger.info("Returning cached torrent result...")
         return respond_with(cache)
     else:
+        wait_until(4)
         result = calculate()
         if result:
             formatted_result = {'streams': result}
