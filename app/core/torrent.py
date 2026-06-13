@@ -3,7 +3,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import os
-import platform
 import time
 import shutil
 import threading
@@ -13,6 +12,7 @@ from collections import deque
 from app.core.logger import Logger
 from app.models.responses import TorrentResponse
 from app.core.multithreading import MultiThreading
+from app.config import CACHE_DIR
 
 logger = Logger('torrent')
 
@@ -22,19 +22,20 @@ class Torrent:
         self._session = None
         self._session_lock = threading.Lock()
         self.threadpool = threadpool
+        self.temp_dir = CACHE_DIR + '/torrent_cache'
         
-        if platform.system() == "Linux" and os.path.exists("/dev/shm"):
-            self.temp_dir = "/dev/shm/torrent_speed_cache"
-        elif platform.system() == "Darwin" and os.path.exists("/Volumes"):
-            self.temp_dir = "/tmp/torrent_speed_cache"
-        else:
-            self.temp_dir = "./.temp_ram_fallback"
+        # if platform.system() == "Linux" and os.path.exists("/dev/shm"):
+        #     self.temp_dir = "/dev/shm/torrent_speed_cache"
+        # elif platform.system() == "Darwin" and os.path.exists("/Volumes"):
+        #     self.temp_dir = "/tmp/torrent_speed_cache"
+        # else:
+        #     self.temp_dir = "./.temp_ram_fallback"
 
-        self._completed_qualities = set()
+        self._completed_qualities: set[Any] = set()
         self._qualities_lock = threading.Lock()
         
         # Pre-initialize the single instance session to eliminate initialization delays
-        self._get_session()
+        self._get_session() # type: ignore
 
     def _get_session(self) -> lt.session: # type: ignore
         """Thread-safely initializes a single shared libtorrent session context."""
@@ -141,20 +142,20 @@ class Torrent:
             self._completed_qualities.clear()
 
         # Build Round-Robin Buckets
-        quality_buckets: Dict[str, deque] = {}
+        quality_buckets: Dict[str, deque] = {} # type: ignore
         for s in valid_streams:
             q = s.get("name", "Unknown")
             if q not in quality_buckets:
                 quality_buckets[q] = deque()
-            quality_buckets[q].append(s)
+            quality_buckets[q].append(s) # type: ignore
 
         execution_waves: List[List[Dict[str, Any]]] = []
-        while any(len(bucket) > 0 for bucket in quality_buckets.values()):
+        while any(len(bucket) > 0 for bucket in quality_buckets.values()): # type: ignore
             current_wave = []
-            for bucket in quality_buckets.values():
+            for bucket in quality_buckets.values(): # type: ignore
                 if bucket:
-                    current_wave.append(bucket.popleft())
-            execution_waves.append(current_wave)
+                    current_wave.append(bucket.popleft()) # type: ignore
+            execution_waves.append(current_wave) # type: ignore
 
         # mt = MultiThreading(logger=logger, max_workers=len(quality_buckets))
         results: List[Tuple[TorrentResponse, float]] = []
@@ -165,19 +166,19 @@ class Torrent:
             for s in wave_streams:
                 with self._qualities_lock:
                     if s.get("name", "Unknown") not in self._completed_qualities:
-                        filtered_wave_streams.append(s)
+                        filtered_wave_streams.append(s) # type: ignore
             
             if not filtered_wave_streams:
                 continue
 
             logger.info(f"🚀 Processing Interleaved Wave {wave_idx}/{len(execution_waves)}")
             
-            tasks = [
-                lambda event, s=stream: (s, self.test_torrent(s["infoHash"], s.get("name", "Unknown")))
-                for stream in filtered_wave_streams
+            tasks = [ # type: ignore
+                lambda event, s=stream: (s, self.test_torrent(s["infoHash"], s.get("name", "Unknown"))) # type: ignore
+                for stream in filtered_wave_streams # type: ignore
             ]
             
-            wave_results = self.threadpool.get_all(tasks)
+            wave_results = self.threadpool.get_all(tasks) # type: ignore
             results.extend(wave_results)
 
         # Build final optimized outputs mapping dicts
@@ -188,13 +189,13 @@ class Torrent:
                 quality_map[quality] = (stream, speed)
 
         final_streams = []
-        for quality, (stream, speed) in quality_map.items():
-            category, _ = self.get_speed_category(speed)
+        for quality, (stream, speed) in quality_map.items(): # type: ignore
+            category, _ = self.get_speed_category(speed) # type: ignore
             stream["title"] = f"Torrent ({category.title()})"
-            final_streams.append(stream)
+            final_streams.append(stream) # type: ignore
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
-        return final_streams
+        return final_streams # type: ignore
 
 if __name__ == "__main__":
     # Test dataset containing duplicates inside the 1080p and 720p buckets

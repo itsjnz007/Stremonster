@@ -10,7 +10,7 @@ from threading import Event
 
 class MiruroScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="miruro", timeout=30000,
+        super().__init__(headless=True, source="miruro",
                           stream_url_pattern= r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/seg)\S*')
         self.base_url = "https://www.miruro.tv"
 

@@ -21,7 +21,7 @@ from app.sources.anime import miruro as miruro, vidnest as vidnest
 
 logger = Logger("server")
 app = Flask(__name__)
-web_thread_pool = MultiThreading(max_workers=3)
+web_thread_pool = MultiThreading(max_workers=2)
 torrent_thread_pool = MultiThreading(max_workers=1)
 
 tmdb_cache = TmdbCache()
@@ -182,4 +182,4 @@ if __name__ == "__main__":
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         logger.info("Starting server...")
     
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(host="0.0.0.0", port=8000, debug=False)
