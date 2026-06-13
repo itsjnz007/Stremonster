@@ -164,7 +164,7 @@ class Proxy:
     
     @staticmethod
     def proxy() -> Response:
-        response: Optional[requests.Response] = None
+        upstream_response: Optional[requests.Response] = None
 
         try:
             logger.info(f"Proxying: {request.url}")
@@ -219,12 +219,11 @@ class Proxy:
                 return Proxy.apply_header(resp)
             
             def generate_media():
-                # try:
-                    # Yield chunks of 64KB as they arrive
-                for chunk in upstream_response.iter_content(chunk_size=1024*64):
-                    if chunk: yield chunk
-                # finally:
-                #     response.close()
+                if upstream_response:
+                    try:
+                        for chunk in upstream_response.iter_content(chunk_size=1024*64):
+                            if chunk: yield chunk
+                    except Exception as e: logger.error(f"Generating chunk error: {e}")
 
             resp = Response(stream_with_context(generate_media()), status=upstream_response.status_code)
             return Proxy.apply_header(resp)
@@ -232,7 +231,7 @@ class Proxy:
             logger.error(f"Proxy error: {e}")
             return Response(f"Proxy error: {e}")
         finally:
-            # try:
-            if response: upstream_response.close()
-            response = None
-            # except: pass
+            try:
+                if upstream_response: upstream_response.close()
+                upstream_response = None
+            except Exception as e: logger.error(f"Unable to close upstream_response. Error: {e}")
