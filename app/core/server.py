@@ -18,7 +18,7 @@ from app.core.proxy import respond_with, Proxy
 from app.external.anilist import AniBridgeV3Resolver
 from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as vidsrc
 from app.sources.anime import miruro as miruro, vidnest as vidnest
-from app.core.utils import wait_until
+# from app.core.utils import wait_until
 
 logger = Logger("server")
 app = Flask(__name__)
@@ -152,7 +152,7 @@ def get_torrent_stream(type: str, id: str) -> Response:
         logger.info("Returning cached torrent result...")
         return respond_with(cache)
     else:
-        wait_until(4)
+        # wait_until(4)
         result = calculate()
         if result:
             formatted_result = {'streams': result}

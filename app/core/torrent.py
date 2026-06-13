@@ -127,8 +127,9 @@ class Torrent:
             try:
                 ses.remove_torrent(handle) # type: ignore
                 shutil.rmtree(torrent_params.save_path, ignore_errors=True)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.error(f"Error removing cache: {e}")
+
 
         return max_speed # type: ignore
 
@@ -174,7 +175,7 @@ class Torrent:
             logger.info(f"🚀 Processing Interleaved Wave {wave_idx}/{len(execution_waves)}")
             
             tasks = [ # type: ignore
-                lambda event, s=stream: (s, self.test_torrent(s["infoHash"], s.get("name", "Unknown"))) # type: ignore
+                lambda event, s=stream: (s, self.test_torrent(s["infoHash"], s.get("name", "Unknown"))) or 0.0 # type: ignore
                 for stream in filtered_wave_streams # type: ignore
             ]
             
@@ -182,8 +183,8 @@ class Torrent:
             for r in wave_results:
                 if isinstance(r, tuple) and len(r) == 2: # type: ignore
                     results.append(r) # type: ignore
-                else:
-                    logger.warning(f"Skipping invalid torrent result: {r}")
+                # else:
+                #     logger.warning(f"Skipping invalid torrent result: {r}")
 
         # Build final optimized outputs mapping dicts
         quality_map = {}
