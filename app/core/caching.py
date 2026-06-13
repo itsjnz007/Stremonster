@@ -2,12 +2,13 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import json
+import json, fcntl, os
 from pathlib import Path
 from datetime import datetime, timezone
 from app.config import CACHE_DIR
 from app.core.logger import Logger
 from typing import Any
+
 
 logger = Logger('caching')
 
@@ -24,15 +25,22 @@ class Caching:
         try:
             if self.cache_path.exists():
                 with open(self.cache_path, 'r', encoding='utf-8') as f: 
-                    return json.load(f)
+                    fcntl.flock(f, fcntl.LOCK_SH)
+                    data = json.load(f)
+                    fcntl.flock(f, fcntl.LOCK_UN)
+                    return data
         except Exception as e: logger.error(f"Error loading cache from disk: {e}")
         return {}
 
     def _save_to_disk(self, path: Path, data: dict[str, Any]):
         """Save cache to JSON file."""
+        tmp_path = path.with_suffix(".tmp")
         try:
-            with open(path, 'w', encoding='utf-8') as f:
+            with open(tmp_path, 'w', encoding='utf-8') as f:
+                fcntl.flock(f, fcntl.LOCK_EX)
                 json.dump(data, f, indent=2, default=str)
+                fcntl.flock(f, fcntl.LOCK_UN)
+                os.replace(tmp_path, path)
         except Exception as e:
             print(f"Error saving cache to disk: {e}")
 
