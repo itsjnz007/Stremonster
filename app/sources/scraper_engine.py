@@ -61,7 +61,7 @@ class ScraperEngine(Scraper):
     def get_movie(self, tmdb_id: str) -> Optional[WebResponse]:
         return self._run_sources(
             self.movie_sources,
-            lambda url: lambda event: self.get_stream(url % tmdb_id, event)
+            lambda url: lambda event: self.get_stream(url % tmdb_id, stop_event=event)
         )
 
     def get_series(
@@ -74,7 +74,7 @@ class ScraperEngine(Scraper):
         return self._run_sources(
             self.series_sources,
             lambda url: lambda event: self.get_stream(
-                url % (tmdb_id, season, episode, event)
+                url % (tmdb_id, season, episode), stop_event=event
             )
         )
 
@@ -87,7 +87,7 @@ class ScraperEngine(Scraper):
         return self._run_sources(
             self.anime_series_sources,
             lambda url: lambda event: self.get_stream(
-                url % (anilist_id, episode, event)
+                url % (anilist_id, episode), stop_event=event
             )
         )
     
@@ -115,6 +115,7 @@ class GeneralScraper(ScraperEngine):
 class AnimeScraper(ScraperEngine):
     def __init__(self):
         series_sources = [
+            "https://cdn.4animo.xyz/embed/hd-1/ani/%s/%s/sub?k=1",
             "https://vidnest.fun/anime/%s/%s/sub"
             "https://www.miruro.tv/watch/%s/%s",
             # "https://vidking.net/embed/movie/%s/%s/%s"
@@ -122,7 +123,7 @@ class AnimeScraper(ScraperEngine):
         super().__init__(source="general", anime_series_sources=series_sources)
 
 if __name__ == "__main__":
-    scraper = GeneralScraper()
-    scraper.get_movie("936075")
-    # scraper = AnimeScraper()
-    # scraper.get_anime_series('21', '1000')
+    # scraper = GeneralScraper()
+    # scraper.get_movie("936075")
+    scraper = AnimeScraper()
+    scraper.get_anime_series('21', '1000')

@@ -17,8 +17,7 @@ from app.core.multithreading import MultiThreading
 from app.core.proxy import respond_with, Proxy
 from app.external.anilist import AniBridgeV3Resolver
 from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as vidsrc
-from app.sources.anime import miruro as miruro, vidnest as vidnest
-# from app.core.utils import wait_until
+from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo
 
 logger = Logger("server")
 app = Flask(__name__)
@@ -36,8 +35,9 @@ vidking_scraper = vidking.VidkingScraper()
 vidsrc_scraper = vidsrc.VidsrcScraper()
 
 # Anime Scrapers
+four_animo_scraper = four_animo.FourAnimoScraper()
 miruro_scraper = miruro.MiruroScraper()
-vidnest_scraper = vidnest.VidnestScraper()
+# vidnest_scraper = vidnest.VidnestScraper()
 
 tmdb_client = Tmdb(tmdb_cache)
 
@@ -93,12 +93,15 @@ def get_web_stream(type: str, id: str) -> Response:
                 mal_id, mal_eps = anibride.get_mal_info(imdb_id, season, episode)
                 ani_id, ani_eps = anibride.get_anilist_info(imdb_id, season, episode)
                 result: Optional[WebResponse] = thread_pool.get_first([
-                    lambda event: miruro_scraper.get_series(mal_id, str(mal_eps), event),
-                    lambda event: miruro_scraper.get_series(ani_id, str(ani_eps), event),
+                    # lambda event: miruro_scraper.get_series(mal_id, str(mal_eps), event),
+                    # lambda event: miruro_scraper.get_series(ani_id, str(ani_eps), event),
+                    lambda event: four_animo_scraper.get_series(ani_id, str(ani_eps), event)
                 ])
                 if not result:
                     result: Optional[WebResponse] = thread_pool.get_first([
-                        lambda event: vidnest_scraper.get_series(ani_id, str(ani_eps), event),
+                        # lambda event: vidnest_scraper.get_series(ani_id, str(ani_eps), event),
+                        lambda event: miruro_scraper.get_series(mal_id, str(mal_eps), event),
+                        lambda event: miruro_scraper.get_series(ani_id, str(ani_eps), event),
                     ])
 
                 # if not result:

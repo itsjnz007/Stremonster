@@ -6,6 +6,7 @@ from app.core.logger import Logger
 from typing import Any
 import json, re
 from typing import Optional
+from requests.cookies import RequestsCookieJar
 
 logger = Logger("proxy")
 # session = requests.Session()
@@ -50,22 +51,34 @@ class Proxy:
         )
 
     @staticmethod
-    def get_proxy_url(stream_url: str, origin: str, type: str = "stream.m3u8") -> str:
+    def get_proxy_url(stream_url: str, origin: str, type: str = "stream.m3u8", cookies: Optional[dict[str, str] | RequestsCookieJar] = None) -> str:
         # if 'proxy' in stream_url: return stream_url
         # proxied_url = urljoin(TUNNEL_URL, f"/{type}?url={quote(stream_url, safe='%')}") # type: ignore
         # proxied_url += f"&origin={quote(origin, safe='%')}"
-        headers_str = """{"ffuser-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
+        headers = {"ffuser-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
             "accept": "*/*",
             "accept-language": "en-US,en;q=0.5",
             "sec-fetch-dest": "empty",
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "cross-site",
-            "origin": "%s",
-            "referer": "%s/"
-        }"""
+            "origin": origin,
+            "referer": f"{origin}/"
+        }
+
+        if cookies:
+            if isinstance(cookies, RequestsCookieJar):
+                cookie_header = "; ".join(
+                    f"{c.name}={c.value}" for c in cookies
+                )
+            else:
+                cookie_header = "; ".join(f"{k}={v}" for k, v in cookies.items())
+
+            headers["cookie"] = cookie_header
+
+        headers_str = json.dumps(headers)
 
         # logger.debug(f"Generated Proxied Endpoint: {proxied_url}")
-        proxied_url = Proxy.add_proxy(stream_url, headers_str % (origin, origin), type)
+        proxied_url = Proxy.add_proxy(stream_url, headers_str, type)
         return proxied_url
 
     @staticmethod
@@ -85,10 +98,11 @@ class Proxy:
             raise Exception("TUNNEL_URL not set")
 
         # --- normalize headers ---
-        if isinstance(headers, dict):
-            headers_str = json.dumps(headers, separators=(",", ":"))
-        else:
-            headers_str = str(headers)
+        if isinstance(headers, dict): headers_str = json.dumps(headers, separators=(",", ":"))
+        else: headers_str = str(headers)
+
+        # if isinstance(cookies, dict): cookies_str = json.dumps(cookies, separators=(",", ":"))
+        # else: cookies_str = str(cookies)
 
         # --- normalize url ---
         url_str = str(url)
@@ -97,6 +111,7 @@ class Proxy:
             f"{TUNNEL_URL}/{stream_type}"
             + "?url=" + quote(url_str, safe="")
             + "&headers=" + quote(headers_str, safe="")
+            # + "&cookies=" + quote(cookies_str, safe="")
         )
 
 

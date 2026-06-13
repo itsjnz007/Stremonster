@@ -11,14 +11,22 @@ import re, time
 from app.core.logger import Logger
 from urllib.parse import urlparse
 from threading import Event
+from typing import Optional, Any, Callable, Awaitable
+from playwright.async_api import Page
 
 STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
 
 class Scraper:
-    def __init__(self, headless: bool = True, source: str = "scraper", timeout: int = 30000, subtitle_timeout: float = 0, 
+    def __init__(self, headless: bool = True, 
+                 source: str = "scraper", 
+                 timeout: int = 30000, 
+                 subtitle_timeout: float = 0, 
                  stream_url_pattern: str = STREAM_URL_PATTERN, 
-                 subtitle_url_pattern: str = SUBTITLE_PATTERN):
+                 subtitle_url_pattern: str = SUBTITLE_PATTERN,
+                 log_requests: bool = False,
+                 page_hook: Optional[Callable[[Page], Awaitable[None]]] =None
+    ):
         self.logger = Logger(f"scraper.{source}", level=logging.DEBUG)
         self.source = source.upper()
         self.timeout = timeout
@@ -26,6 +34,8 @@ class Scraper:
         self.headless = headless
         self.stream_url_pattern = stream_url_pattern
         self.subtitle_url_pattern = subtitle_url_pattern
+        self.log_requests = log_requests
+        self.page_hook = page_hook
 
         self._playwright: Any = None
         self.browser: Optional[Browser] = None
@@ -93,7 +103,7 @@ class Scraper:
 
         def handle_request(request: Request):
             nonlocal stream_url
-            # self.logger.info(f"Request -> {request.url}")
+            if self.log_requests: self.logger.info(f"Request -> {request.url}")
             if re.search(self.stream_url_pattern, request.url, re.I):
                 stream_url = request.url
                 self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
@@ -103,6 +113,8 @@ class Scraper:
             page.on("request", handle_request)
             # page.on("request", lambda req: self.logger.debug(f"Request URL: {req.url}"))
             await page.goto(url)
+
+            if self.page_hook: await self.page_hook(page)
 
             start_time = time.time()
             while not stream_url:
