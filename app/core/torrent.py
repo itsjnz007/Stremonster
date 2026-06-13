@@ -179,7 +179,11 @@ class Torrent:
             ]
             
             wave_results = self.threadpool.get_all(tasks) # type: ignore
-            results.extend(wave_results)
+            for r in wave_results:
+                if isinstance(r, tuple) and len(r) == 2: # type: ignore
+                    results.append(r) # type: ignore
+                else:
+                    logger.warning(f"Skipping invalid torrent result: {r}")
 
         # Build final optimized outputs mapping dicts
         quality_map = {}
