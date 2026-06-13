@@ -22,7 +22,7 @@ from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo a
 logger = Logger("server")
 app = Flask(__name__)
 
-thread_pool = MultiThreading(max_workers=3)
+thread_pool = MultiThreading(max_workers=8)
 
 tmdb_cache = TmdbCache()
 web_cache = WebCache()
