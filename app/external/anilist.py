@@ -7,8 +7,9 @@ from typing import Dict
 from app.core.logger import Logger
 from typing import Optional
 import logging
+from app.core.caching import TvdbCache
 
-logger = Logger('anilist', level=logging.DEBUG)
+logger = Logger('anilist', level=logging.INFO)
 
 # Official v3 Direct Production Release Distribution URL
 RAW_MAPPINGS_URL = "https://github.com/anibridge/anibridge-mappings/releases/download/v3/mappings.json"
@@ -21,6 +22,7 @@ class AniBridgeV3Resolver:
     """
     def __init__(self):
         self.mappings_db: Dict[str, Dict[str, Dict[str, str]]] = self._get_database()
+        self.cache: TvdbCache = TvdbCache()
 
     def _get_database(self):
             logger.info(f"Sourcing distribution payload from Release channel...")
@@ -60,20 +62,6 @@ class AniBridgeV3Resolver:
             )
 
         return mapped_ep
-
-        # if 
-        # if target_start == source_start: return current_episode
-
-        # if source_start == : return current_episode
-        # else: return source_start + current_episode
-        
-        # if not (source_start <= current_episode <= source_end):
-        #     raise ValueError(f"Episode {current_episode} falls outside source range {source_rule}")
-            
-        # offset = current_episode - source_start
-        # final_episode = target_start + offset
-        
-        return final_episode
     
     def extract_mapping(self, data: Dict[str, Dict[str, str]], extraction_key: str = 'mal'):
         # Look through the dictionary keys
@@ -89,10 +77,15 @@ class AniBridgeV3Resolver:
                 return mal_id, source_range, target_range
         return None, None, None
     
+    def get_tvdb_id(self, imdb_id: str) -> Optional[str]:
+        tvdb_id: Optional[str] = self.cache.get(imdb_id)
+        if not tvdb_id:
+            ani_zip_response = requests.get(ANI_ZIP_URL % imdb_id)
+            ani_zip_response.raise_for_status()
+            tvdb_id: Optional[str] = ani_zip_response.json().get("mappings", {}).get("thetvdb_id")
+    
     def get_mal_info(self, imdb_id: str, season: str, episode: str):
-        ani_zip_response = requests.get(ANI_ZIP_URL % imdb_id)
-        ani_zip_response.raise_for_status()
-        tvdb_id: Optional[str] = ani_zip_response.json().get("mappings", {}).get("thetvdb_id")
+        tvdb_id: Optional[str] = self.get_tvdb_id(imdb_id)
         if not tvdb_id: raise Exception(f"No tvdb mapping found for imdb id: {imdb_id}")
         logger.debug(f"Found tvdb id '{tvdb_id}' mapping for imdb id: {imdb_id}")
         mapping = self.mappings_db.get(f'tvdb_show:{tvdb_id}:s{season}')
@@ -104,9 +97,7 @@ class AniBridgeV3Resolver:
         return mal_id, eps_number
     
     def get_anilist_info(self, imdb_id: str, season: str, episode: str):
-        ani_zip_response = requests.get(ANI_ZIP_URL % imdb_id)
-        ani_zip_response.raise_for_status()
-        tvdb_id: Optional[str] = ani_zip_response.json().get("mappings", {}).get("thetvdb_id")
+        tvdb_id: Optional[str] = self.get_tvdb_id(imdb_id)
         if not tvdb_id: raise Exception(f"No tvdb mapping found for imdb id: {imdb_id}")
         logger.debug(f"Found tvdb id '{tvdb_id}' mapping for imdb id: {imdb_id}")
         mapping = self.mappings_db.get(f'tvdb_show:{tvdb_id}:s{season}')
@@ -124,4 +115,4 @@ class AniBridgeV3Resolver:
 if __name__ == "__main__":
     resolver = AniBridgeV3Resolver()
     # print(resolver.get_anilist_info(imdb_id="tt9307686", season="3", episode="1"))
-    print(resolver.get_mal_info(imdb_id="tt9307686", season="2", episode="10"))
+    print(resolver.get_mal_info(imdb_id="tt0388629", season="23", episode="10"))
