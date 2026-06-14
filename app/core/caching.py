@@ -95,7 +95,6 @@ class CatalogCache(Caching):
         self.cache_path = self.cache_dir / "catalog.json"
         self.cache: dict[str, Any] = self._load_from_disk()
         from pprint import pprint
-        pprint(self.cache)
 
 if __name__ == "__main__":
     web_cache = WebCache()

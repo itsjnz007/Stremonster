@@ -12,7 +12,7 @@ from flask.wrappers import Response
 import os, time
 from app.core.logger import Logger
 from app.config import MANIFEST_CATALOG, MANIFEST_TORRENTS, MANIFEST_WEB
-from app.core.caching import CatalogCache, TmdbCache, WebCache, TorrentCache
+from app.core.caching import TmdbCache, WebCache, TorrentCache
 from app.core.multithreading import MultiThreading
 from app.core.proxy import respond_with, Proxy
 from app.external.anilist import AniBridgeV3Resolver
