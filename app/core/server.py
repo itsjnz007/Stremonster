@@ -107,24 +107,25 @@ def get_web_stream(type: str, id: str) -> Response:
                     return []
                 
                 results: List[WebResponse] = thread_pool_web.get_all([
-                    thread_pool_web.get_first([
+                    [thread_pool_web.get_first([
                         lambda event: flicky_scraper.get_movie(tmdb_id, event),
                         lambda event: vidking_scraper.get_movie(tmdb_id, event),
                         lambda event: vidsrc_scraper.get_movie(tmdb_id, event),
-                    ]),
+                    ])],
                     thread_pool_web.get_all([
                         lambda event: tamilblasters_scraper.get_movie(title, "tamil", event),
                         lambda event: tamilblasters_scraper.get_movie(title, "malayalam", event),
                     ])
                 ])
+                results: List[WebResponse] = [result for result in results if result]
 
             else:
-                result: Optional[WebResponse] = thread_pool_web.get_first([
+                results_nested: Optional[WebResponse] = thread_pool_web.get_first([
                     lambda event: flicky_scraper.get_movie(tmdb_id, event),
                     lambda event: vidking_scraper.get_movie(tmdb_id, event),
                     lambda event: vidsrc_scraper.get_movie(tmdb_id, event),
                 ])
-                results = [result] if result else []
+                results = [item for sublist in results_nested if sublist is not None for item in sublist if item is not None]
         else:
             imdb_id, season, episode = id.split(':')
             tmdb_id = tmdb_client.imdb_to_tmdb(imdb_id)
