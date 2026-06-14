@@ -81,10 +81,10 @@ def get_catalog(media_type: str, catalog_id: str) -> Response:
             return respond_with(result)
         else:
             logger.warning(f"No catalog found for {catalog_id}")
-            return respond_with({"error": "Catalog not found"}, status_code=404)
+            return Response("Failed to fetch catalog", status=500)
     except Exception as e:
         logger.error(f"Error fetching catalog {catalog_id}: {e}")
-        return respond_with({"error": "Failed to fetch catalog"}, status_code=500)
+        return Response("Failed to fetch catalog", status=500)
 
 
 @app.route('/web/stream/<type>/<id>.json')
@@ -106,14 +106,6 @@ def get_web_stream(type: str, id: str) -> Response:
                     logger.warning(f"No title found for IMDB ID {id}")
                     return []
                 
-                # result: Optional[WebResponse] = thread_pool_web.get_first([
-                #     lambda event: flicky_scraper.get_movie(tmdb_id, event),
-                #     lambda event: vidking_scraper.get_movie(tmdb_id, event),
-                #     lambda event: vidsrc_scraper.get_movie(tmdb_id, event),
-                # ])
-                # results = [result] if result else []
-                # thread_pool_web.stop_event.clear()
-
                 results: List[WebResponse] = thread_pool_web.get_all([
                     lambda event: flicky_scraper.get_movie(tmdb_id, event),
                     lambda event: tamilblasters_scraper.get_movie(title, "tamil", event),
