@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from typing import Optional
+from typing import List, Optional
 from app.external.tmdb import Tmdb
 from app.models.responses import WebResponse
 from app.sources import torrentio as torrentio_module
@@ -18,6 +18,7 @@ from app.core.proxy import respond_with, Proxy
 from app.external.anilist import AniBridgeV3Resolver
 from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as vidsrc
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo
+from app.sources.regional import tamilblasters as tamilblasters
 
 logger = Logger("server")
 app = Flask(__name__)
@@ -38,7 +39,9 @@ vidsrc_scraper = vidsrc.VidsrcScraper()
 # Anime Scrapers
 four_animo_scraper = four_animo.FourAnimoScraper()
 miruro_scraper = miruro.MiruroScraper()
-# vidnest_scraper = vidnest.VidnestScraper()
+
+# Regional Scrapers
+tamilblasters_scraper = tamilblasters.TamilBlasters()
 
 tmdb_client = Tmdb(tmdb_cache)
 
@@ -71,66 +74,82 @@ def get_web_stream(type: str, id: str) -> Response:
     
     start_time = time.time()
 
-    def calculate() -> Optional[WebResponse]:
+    def calculate() -> List[WebResponse]:
         if type == 'movie':
             tmdb_id = tmdb_client.imdb_to_tmdb(id)
+            orig_lang = tmdb_client.get_original_lang(id)
             if not tmdb_id: 
                 logger.warning(f"No TMDB ID found for IMDB ID {id}")
-                return
-            
-            result: Optional[WebResponse] = thread_pool_web.get_first([
-                lambda event: vidking_scraper.get_movie(tmdb_id, event),
-                lambda event: flicky_scraper.get_movie(tmdb_id, event),
-                lambda event: vidsrc_scraper.get_movie(tmdb_id, event),
-            ])
+                return []
+            if orig_lang != "en":
+                title = tmdb_client.get_title(id)
+                if not title:
+                    logger.warning(f"No title found for IMDB ID {id}")
+                    return []
+                
+                result: Optional[WebResponse] = thread_pool_web.get_first([
+                    lambda event: flicky_scraper.get_movie(tmdb_id, event),
+                    lambda event: vidking_scraper.get_movie(tmdb_id, event),
+                    lambda event: vidsrc_scraper.get_movie(tmdb_id, event),
+                ])
+                results = [result] if result else []
+                thread_pool_web.stop_event.clear()
+
+                results_regional: List[WebResponse] = thread_pool_web.get_all([
+                    lambda event: tamilblasters_scraper.get_movie(title, "tamil", event),
+                    lambda event: tamilblasters_scraper.get_movie(title, "malayalam", event),
+                ])
+
+                results.extend(results_regional)
+            else:
+                result: Optional[WebResponse] = thread_pool_web.get_first([
+                    lambda event: flicky_scraper.get_movie(tmdb_id, event),
+                    lambda event: vidking_scraper.get_movie(tmdb_id, event),
+                    lambda event: vidsrc_scraper.get_movie(tmdb_id, event),
+                ])
+                results = [result] if result else []
         else:
             imdb_id, season, episode = id.split(':')
             tmdb_id = tmdb_client.imdb_to_tmdb(imdb_id)
             orig_lang = tmdb_client.get_original_lang(imdb_id)
             if not tmdb_id:
                 logger.warning(f"No TMDB ID found for IMDB ID {imdb_id}")
-                return
+                return []
             if orig_lang == "ja":
                 mal_id, mal_eps = anibride.get_mal_info(imdb_id, season, episode)
                 ani_id, ani_eps = anibride.get_anilist_info(imdb_id, season, episode)
                 result: Optional[WebResponse] = thread_pool_web.get_first([
-                    # lambda event: miruro_scraper.get_series(mal_id, str(mal_eps), event),
-                    # lambda event: miruro_scraper.get_series(ani_id, str(ani_eps), event),
                     lambda event: four_animo_scraper.get_series(ani_id, str(ani_eps), event)
                 ])
-                if not result:
+                results = [result] if result else []
+                if not results:
                     result: Optional[WebResponse] = thread_pool_web.get_first([
-                        # lambda event: vidnest_scraper.get_series(ani_id, str(ani_eps), event),
                         lambda event: miruro_scraper.get_series(mal_id, str(mal_eps), event),
                         lambda event: miruro_scraper.get_series(ani_id, str(ani_eps), event),
                     ])
+                    results = [result] if result else []
 
-                # if not result:
-                #     result: Optional[WebResponse] = web_thread_pool.get_first([
-                #         lambda event: vidking_scraper.get_series(tmdb_id, season, episode, event),
-                #         lambda event: flicky_scraper.get_series(tmdb_id, season, episode, event),
-                #         lambda event: vidsrc_scraper.get_series(tmdb_id, season, episode, event),
-                #     ])
             else:
                 if not tmdb_id:
                     logger.warning(f"No TMDB ID found for IMDB ID {imdb_id}")
-                    return
+                    return []
 
                 result: Optional[WebResponse] = thread_pool_web.get_first([
                     lambda event: vidking_scraper.get_series(tmdb_id, season, episode, event),
                     lambda event: flicky_scraper.get_series(tmdb_id, season, episode, event),
                     lambda event: vidsrc_scraper.get_series(tmdb_id, season, episode, event),
                 ])
-        return result
+                results = [result] if result else []
+        return results
 
     cache = web_cache.get(key=id, upto_mins=60)
     if cache: 
         logger.info("Returning cached web results...")
         return respond_with(cache)
     else:
-        result = calculate()
-        if result:
-            formatted_result = {'streams': [result]}
+        results = calculate()
+        if results:
+            formatted_result = {'streams': results}
             web_cache.set(id, formatted_result)
             return respond_with(formatted_result)
 

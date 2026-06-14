@@ -16,6 +16,14 @@ from playwright.async_api import Page
 
 STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
+AD_BLOCK_LIST = [
+    "**/adsense/**",
+    "**/doubleclick.net/**",
+    "**/google-analytics.com/**",
+    "**/googletagmanager.com/**",
+    "**/analytics.js",
+    "**/adservice/**",
+]
 
 class Scraper:
     def __init__(self, headless: bool = True, 
@@ -89,7 +97,9 @@ class Scraper:
             future = asyncio.run_coroutine_threadsafe(self._start_browser_async(), self._loop)
             future.result(timeout=30)
 
-    async def _get_stream_async(self, url: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+    async def _get_stream_async(self, url: str, stop_event: Optional[Event] = None,
+                                title: Optional[str] = None,
+                                name: Optional[str] = None) -> Optional[WebResponse]:
         if stop_event and stop_event.is_set(): return
         domain = urlparse(url).netloc
         assert self.browser is not None
@@ -109,7 +119,11 @@ class Scraper:
                 self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
 
         try:
-            await page.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "stylesheet", "font"] else route.continue_())
+            # await page.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "stylesheet", "font"] else route.continue_())
+            await page.route("**/*", lambda route: 
+                route.abort() if any(pattern in route.request.url for pattern in AD_BLOCK_LIST) 
+                else route.continue_()
+            )
             page.on("request", handle_request)
             # page.on("request", lambda req: self.logger.debug(f"Request URL: {req.url}"))
             await page.goto(url)
@@ -154,8 +168,8 @@ class Scraper:
 
             if stream_url:
                 return WebResponse(
-                    title="Web",  # TODO: Extract actual title from page content if needed
-                    name="1080p / 720p",
+                    title=title or "Web",  # TODO: Extract actual title from page content if needed
+                    name=name or "1080p / 720p",
                     url=stream_url,
                     subtitles=subtitle_urls,
                 )
@@ -164,8 +178,8 @@ class Scraper:
             self.logger.error(f"Scraping error: {e}")
             if stream_url:
                 return WebResponse(
-                    title="Web",
-                    name="1080p / 720p",
+                    title=title or "Web",
+                    name=name or "1080p / 720p",
                     url=stream_url,
                     subtitles=subtitle_urls,
                 )
@@ -184,13 +198,15 @@ class Scraper:
 
         return None
 
-    def get_stream(self, url: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+    def get_stream(self, url: str, stop_event: Optional[Event] = None,
+                   title: Optional[str] = None,
+                   name: Optional[str] = None) -> Optional[WebResponse]:
         self._ensure_browser()
         assert self._loop is not None
 
         self.logger.info(f"GET stream: {url}")
 
-        future = asyncio.run_coroutine_threadsafe(self._get_stream_async(url, stop_event), self._loop)
+        future = asyncio.run_coroutine_threadsafe(self._get_stream_async(url, stop_event, title=title, name=name), self._loop)
         try:
             return future.result(timeout=(self.timeout / 1000) + 15)
         except Exception as e:

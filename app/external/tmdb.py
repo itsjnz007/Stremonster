@@ -83,6 +83,24 @@ class Tmdb:
             tmdb_id = find_response["tv_results"][0].get("original_language")
             return tmdb_id
         
+    def get_title(self, imdb_id: str) -> Optional[str]:
+        find_response = self.find(imdb_id)
+
+        if not find_response:
+            logger.info(f"No find response for IMDB ID {imdb_id}")
+            return None
+        
+        # Check movie results first
+        if find_response.get("movie_results"):
+            tmdb_id = find_response["movie_results"][0].get("title")
+            return tmdb_id
+        
+        # Check TV results next
+        if find_response.get("tv_results"):
+            tmdb_id = find_response["tv_results"][0].get("title")
+            return tmdb_id
+
+        
 
 if __name__ == "__main__":
     cache = TmdbCache()
