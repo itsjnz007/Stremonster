@@ -106,21 +106,18 @@ def get_web_stream(type: str, id: str) -> Response:
                     logger.warning(f"No title found for IMDB ID {id}")
                     return []
                 
-                # result: Optional[WebResponse] = thread_pool_web.get_first([
-                #     lambda event: flicky_scraper.get_movie(tmdb_id, event),
-                #     lambda event: vidking_scraper.get_movie(tmdb_id, event),
-                #     lambda event: vidsrc_scraper.get_movie(tmdb_id, event),
-                # ])
-                # results = [result] if result else []
-                # thread_pool_web.stop_event.clear()
-
                 results: List[WebResponse] = thread_pool_web.get_all([
-                    lambda event: flicky_scraper.get_movie(tmdb_id, event),
-                    lambda event: tamilblasters_scraper.get_movie(title, "tamil", event),
-                    lambda event: tamilblasters_scraper.get_movie(title, "malayalam", event),
+                    thread_pool_web.get_first([
+                        lambda event: flicky_scraper.get_movie(tmdb_id, event),
+                        lambda event: vidking_scraper.get_movie(tmdb_id, event),
+                        lambda event: vidsrc_scraper.get_movie(tmdb_id, event),
+                    ]),
+                    thread_pool_web.get_all([
+                        lambda event: tamilblasters_scraper.get_movie(title, "tamil", event),
+                        lambda event: tamilblasters_scraper.get_movie(title, "malayalam", event),
+                    ])
                 ])
 
-                # results.extend(results_regional)
             else:
                 result: Optional[WebResponse] = thread_pool_web.get_first([
                     lambda event: flicky_scraper.get_movie(tmdb_id, event),
