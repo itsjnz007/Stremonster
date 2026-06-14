@@ -11,14 +11,15 @@ from flask import Flask
 from flask.wrappers import Response
 import os, time
 from app.core.logger import Logger
-from app.config import MANIFEST_TMDB, MANIFEST_TORRENTS, MANIFEST_WEB
-from app.core.caching import TmdbCache, WebCache, TorrentCache
+from app.config import MANIFEST_CATALOG, MANIFEST_TORRENTS, MANIFEST_WEB
+from app.core.caching import CatalogCache, TmdbCache, WebCache, TorrentCache
 from app.core.multithreading import MultiThreading
 from app.core.proxy import respond_with, Proxy
 from app.external.anilist import AniBridgeV3Resolver
 from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as vidsrc
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo
 from app.sources.regional import tamilblasters as tamilblasters
+from app.core.catalog import Catalog
 
 logger = Logger("server")
 app = Flask(__name__)
@@ -29,6 +30,10 @@ thread_pool_torrent = MultiThreading(max_workers=3)
 tmdb_cache = TmdbCache()
 web_cache = WebCache()
 torrent_cache = TorrentCache()
+catalog = Catalog(tmdb_cache)
+
+catalog.build_catalog(pages=1)  # Pre-build catalog on startup
+
 anibride = AniBridgeV3Resolver()
 
 # General Scrapers
@@ -59,7 +64,7 @@ def torrent_manifest() -> Response:
 # TMDB Catalogs addon
 @app.route('/catalog/manifest.json')
 def catalog_manifest() -> Response:
-    return respond_with(MANIFEST_TMDB)
+    return respond_with(MANIFEST_CATALOG)
 
 # Landing page
 @app.route('/')
@@ -67,6 +72,20 @@ def index() -> Response:
     return respond_with({
         "message": "Welcome! Available endpoints: /web/manifest.json, /torrent/manifest.json, /catalog/manifest.json"
     })
+
+@app.route('/catalog/catalog/<media_type>/<catalog_id>.json')
+def get_catalog(media_type: str, catalog_id: str) -> Response:
+    try:
+        result = catalog.get_catalog(catalog_id)
+        if result:
+            return respond_with(result)
+        else:
+            logger.warning(f"No catalog found for {catalog_id}")
+            return respond_with({"error": "Catalog not found"}, status_code=404)
+    except Exception as e:
+        logger.error(f"Error fetching catalog {catalog_id}: {e}")
+        return respond_with({"error": "Failed to fetch catalog"}, status_code=500)
+
 
 @app.route('/web/stream/<type>/<id>.json')
 def get_web_stream(type: str, id: str) -> Response:

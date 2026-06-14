@@ -28,101 +28,59 @@ MANIFEST_TORRENTS: dict[str, object] = {
     'resources': ["stream"]
 }
 
-MANIFEST_TMDB: dict[str, object] = {
+CATALOG_BUILDER = {
+    "global": {
+        "movie": {
+            "popular": "https://api.themoviedb.org/3/movie/popular",
+            "now_playing": "https://api.themoviedb.org/3/movie/now_playing"
+        },
+        "series": {
+            "popular": "https://api.themoviedb.org/3/tv/popular",
+        }
+    },
+    "tamil": {
+        "movie": {
+            "popular": "https://api.themoviedb.org/3/discover/movie?with_original_language=ta&sort_by=popularity.desc",
+        }
+    },
+    "malayalam": {
+        "movie": {
+            "popular": "https://api.themoviedb.org/3/discover/movie?with_original_language=ml&sort_by=popularity.desc",
+        }
+    },
+}
+
+def get_catalog_metadata(catalog_builder: dict[str, dict[str, str]] = CATALOG_BUILDER) -> list[dict[str, str]]:
+    metadata = []
+    for region, types in catalog_builder.items():
+        for media_type, categories in types.items():
+            for category, url in categories.items():
+                catalog_id = f"{region}_{media_type}_{category}"
+                metadata.append({
+                    "id": catalog_id,
+                    "name": f"{category.replace('_', ' ').title()} ({region.title()})",
+                    "type": media_type,
+                    "description": f"TMDB {media_type} for {region} region, category: {category}",
+                    "extra": {
+                        "tmdb_url": url
+                    }
+                })
+    return metadata
+
+MANIFEST_CATALOG: dict[str, object] = {
     "id": "org.tmdb.regional.catalogs",
     "version": "1.0.0",
     "name": "Stremonster - Catalogs",
     "description": "Movies and series from TMDB in multiple languages (India, Tamil, Malayalam, Hindi)",
     "resources": ["catalog"],
     "types": ["movie", "series"],
-    "catalogs": [
-        # Movies (India)
-        # {
-        #     "type": "movie",
-        #     "id": "popular_IN",
-        #     "name": "Popular (India)"
-        # },
-        {
-            "type": "movie",
-            "id": "now_playing_IN",
-            "name": "Now Playing"
-        },
-        # Recommended (Top Rated) Movies (India)
-        {
-            "type": "movie",
-            "id": "recommended_IN",
-            "name": "Top Rated"
-        },
-        # Series (India)
-        # {
-        #     "type": "series",
-        #     "id": "popular_IN",
-        #     "name": "Popular (India)"
-        # },
-        # Recommended (Top Rated) Series (India)
-        {
-            "type": "series",
-            "id": "recommended_IN",
-            "name": "Top Rated"
-        },
-        # Movies (Tamil)
-        {
-            "type": "movie",
-            "id": "popular_TL",
-            "name": "Popular (Tamil)"
-        },
-        # {
-        #     "type": "movie",
-        #     "id": "now_playing_TL",
-        #     "name": "Now Playing (Tamil)"
-        # },
-        # Series (Tamil)
-        # {
-        #     "type": "series",
-        #     "id": "popular_TL",
-        #     "name": "Popular (Tamil)"
-        # },
-        # Movies (Malayalam)
-        {
-            "type": "movie",
-            "id": "popular_ML",
-            "name": "Popular (Malayalam)"
-        },
-        # {
-        #     "type": "movie",
-        #     "id": "now_playing_ML",
-        #     "name": "Now Playing (Malayalam)"
-        # },
-        # Series (Malayalam)
-        # {
-        #     "type": "series",
-        #     "id": "popular_ML",
-        #     "name": "Popular (Malayalam)"
-        # },
-        # Movies (Hindi)
-        {
-            "type": "movie",
-            "id": "popular_HI",
-            "name": "Popular (Hindi)"
-        },
-        # {
-        #     "type": "movie",
-        #     "id": "now_playing_HI",
-        #     "name": "Now Playing (Hindi)"
-        # },
-        # Series (Hindi)
-        # {
-        #     "type": "series",
-        #     "id": "popular_HI",
-        #     "name": "Popular (Hindi)"
-        # },
-    ]
+    "catalogs": get_catalog_metadata()
 }
 
 ABSOLUTE_EPISODE_FOR = [
     "tt0388629",
 ]
 
-
-# Legacy manifest for backward compatibility
-MANIFEST = MANIFEST_WEB
+if __name__ == "__main__":
+    from pprint import pprint
+    pprint(MANIFEST_CATALOG)

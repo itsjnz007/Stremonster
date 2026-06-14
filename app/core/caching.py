@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import json, fcntl, os
+import json, os
 from pathlib import Path
 from datetime import datetime, timezone
 from app.config import CACHE_DIR
@@ -25,9 +25,7 @@ class Caching:
         try:
             if self.cache_path.exists():
                 with open(self.cache_path, 'r', encoding='utf-8') as f: 
-                    fcntl.flock(f, fcntl.LOCK_SH)
                     data = json.load(f)
-                    fcntl.flock(f, fcntl.LOCK_UN)
                     return data
         except Exception as e: logger.error(f"Error loading cache from disk: {e}")
         return {}
@@ -37,10 +35,8 @@ class Caching:
         tmp_path = path.with_suffix(".tmp")
         try:
             with open(tmp_path, 'w', encoding='utf-8') as f:
-                fcntl.flock(f, fcntl.LOCK_EX)
                 json.dump(data, f, indent=2, default=str)
-                fcntl.flock(f, fcntl.LOCK_UN)
-                os.replace(tmp_path, path)
+            os.replace(tmp_path, path)
         except Exception as e:
             print(f"Error saving cache to disk: {e}")
 
@@ -92,6 +88,14 @@ class TvdbCache(Caching):
         super().__init__()
         self.cache_path = self.cache_dir / "tvdb.json"
         self.cache: dict[str, Any] = self._load_from_disk()
+
+class CatalogCache(Caching):
+    def __init__(self):
+        super().__init__()
+        self.cache_path = self.cache_dir / "catalog.json"
+        self.cache: dict[str, Any] = self._load_from_disk()
+        from pprint import pprint
+        pprint(self.cache)
 
 if __name__ == "__main__":
     web_cache = WebCache()

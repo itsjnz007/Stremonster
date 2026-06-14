@@ -6,3 +6,4 @@ flask_socketio
 requests
 playwright
 dotenv
+filelock
