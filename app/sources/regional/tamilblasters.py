@@ -15,7 +15,7 @@ class TamilBlasters(Scraper):
             try:
                 first_url = await page.evaluate("document.querySelector('.posts-wrapper article:first-child a')?.href")
                 if not first_url: return
-                await page.goto(first_url, wait_until="networkidle")
+                await page.goto(first_url)
 
             except Exception as e:
                 print(f"Hook error: {e}")
