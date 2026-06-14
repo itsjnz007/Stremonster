@@ -114,10 +114,6 @@ class AniBridgeV3Resolver:
         
 
 
-    
-# --- IMPLEMENTATION VERIFICATION TESTING HARNESS ---
 if __name__ == "__main__":
     resolver = AniBridgeV3Resolver()
     print(resolver.get_tvdb_id("tt9307686"))
-    # print(resolver.get_anilist_info(imdb_id="tt9307686", season="3", episode="1"))
-    # print(resolver.get_mal_info(imdb_id="tt0388629", season="23", episode="10"))

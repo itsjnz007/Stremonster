@@ -118,7 +118,6 @@ class Torrent:
         except Exception as e:
             logger.error(f"Error testing hash {info_hash}: {e}")
         finally:
-            # THIS is where the micro-cleanup happens to prevent memory/disk leaks
             try:
                 ses.remove_torrent(handle)
                 shutil.rmtree(torrent_params.save_path, ignore_errors=True)
