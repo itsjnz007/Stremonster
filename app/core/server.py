@@ -159,7 +159,7 @@ def get_web_stream(type: str, id: str) -> Response:
         logger.info("Returning cached web results...")
         return respond_with(cache)
     else:
-        results = calculate()
+        results = [i for i in calculate() if i]
         if results:
             formatted_result = {'streams': results}
             web_cache.set(id, formatted_result)
