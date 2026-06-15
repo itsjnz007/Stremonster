@@ -16,7 +16,7 @@ from app.core.caching import TmdbCache, WebCache, TorrentCache
 from app.core.multithreading import MultiThreading
 from app.core.proxy import respond_with, Proxy
 from app.external.anilist import AniBridgeV3Resolver
-from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as vidsrc
+from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as vidsrc, cineby as cineby
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo
 from app.sources.regional import tamilblasters as tamilblasters
 from app.core.catalog import Catalog
@@ -40,6 +40,7 @@ anibride = AniBridgeV3Resolver()
 flicky_scraper = flicky.FlickyScraper()
 vidking_scraper = vidking.VidkingScraper()
 vidsrc_scraper = vidsrc.VidsrcScraper()
+cineby_scraper = cineby.CinebyScraper()
 
 # Anime Scrapers
 four_animo_scraper = four_animo.FourAnimoScraper()
@@ -116,6 +117,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 # results.extend(results_regional)
             else:
                 result: Optional[WebResponse] = thread_pool_web.get_first([
+                    lambda event: cineby_scraper.get_movie(tmdb_id, event),
                     lambda event: flicky_scraper.get_movie(tmdb_id, event),
                     lambda event: vidking_scraper.get_movie(tmdb_id, event),
                     lambda event: vidsrc_scraper.get_movie(tmdb_id, event),
@@ -148,8 +150,9 @@ def get_web_stream(type: str, id: str) -> Response:
                     return []
 
                 result: Optional[WebResponse] = thread_pool_web.get_first([
-                    lambda event: vidking_scraper.get_series(tmdb_id, season, episode, event),
+                    lambda event: cineby_scraper.get_series(tmdb_id, season, episode, event),
                     lambda event: flicky_scraper.get_series(tmdb_id, season, episode, event),
+                    lambda event: vidking_scraper.get_series(tmdb_id, season, episode, event),
                     lambda event: vidsrc_scraper.get_series(tmdb_id, season, episode, event),
                 ])
                 results = [result] if result else []
