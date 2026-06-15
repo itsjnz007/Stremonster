@@ -89,6 +89,7 @@ def get_catalog(media_type: str, catalog_id: str) -> Response:
 
 @app.route('/web/stream/<type>/<id>.json')
 def get_web_stream(type: str, id: str) -> Response:
+    logger.info(f"GET /web/stream/{type}/{id}.json")
     if type not in ('movie', 'series'): return respond_with({'error': 'Invalid type'})
     
     start_time = time.time()
@@ -176,6 +177,7 @@ def get_web_stream(type: str, id: str) -> Response:
 
 @app.route('/torrent/stream/<type>/<id>.json')
 def get_torrent_stream(type: str, id: str) -> Response:
+    logger.info(f"GET /torrent/stream/{type}/{id}.json")
     if type not in ('movie', 'series'): return respond_with({'error': 'Invalid type'})
     start_time = time.time()
 
