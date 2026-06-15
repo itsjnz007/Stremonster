@@ -28,7 +28,7 @@ MANIFEST_TORRENTS: dict[str, object] = {
     'resources': ["stream"]
 }
 
-CATALOG_BUILDER = {
+CATALOG_BUILDER: dict[str, dict[str, dict[str, str]]] = {
     "global": {
         "movie": {
             "popular": "https://api.themoviedb.org/3/movie/popular",
@@ -50,8 +50,8 @@ CATALOG_BUILDER = {
     },
 }
 
-def get_catalog_metadata(catalog_builder: dict[str, dict[str, str]] = CATALOG_BUILDER) -> list[dict[str, str]]:
-    metadata = []
+def get_catalog_metadata(catalog_builder: dict[str, dict[str, dict[str, str]]] = CATALOG_BUILDER) -> list[dict[str, object]]:
+    metadata: list[dict[str, object]] = []
     for region, types in catalog_builder.items():
         for media_type, categories in types.items():
             for category, url in categories.items():
