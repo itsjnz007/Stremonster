@@ -25,6 +25,7 @@ class MultiThreading:
         return wrapper
 
     def get_all(self, tasks: Iterable[Callable[[threading.Event], Any]], delay_between: float = 2.0) -> List[Any]:
+        self.stop_event.clear()
         # Wrap each task with a cumulative delay
         delayed_tasks = [
             self._delayed_task(task, i * delay_between) 
