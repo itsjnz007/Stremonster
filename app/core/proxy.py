@@ -27,6 +27,16 @@ class Proxy:
     extensions and handling precise mime-types.
     """
     @staticmethod
+    def is_valid(stream_url: str) -> bool:
+        try:
+            response = requests.head(stream_url, timeout=10, allow_redirects=True)
+            if response.status_code in [200, 203, 206]: return True 
+        except Exception as e:
+            logger.error(f"Error checking URL validity. Error: {e}")
+
+        return False
+
+    @staticmethod
     def get_external_proxy_url(stream_url: str, origin: str) -> str:
         if 'proxy' in stream_url: return stream_url
         headers = {

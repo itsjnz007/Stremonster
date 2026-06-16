@@ -171,18 +171,30 @@ def get_web_stream(type: str, id: str) -> Response:
     cache = web_cache.get(key=id, upto_mins=60)
     if cache: 
         logger.info("Returning cached web results...")
-        return respond_with(cache)
-    else:
-        try:
-            calculated = calculate()
-            results = [i for i in calculated if i]
-            if results:
-                formatted_result = {'streams': results}
-                web_cache.set(id, formatted_result)
-                return respond_with(formatted_result)
-        except Exception as e:
-            logger.error(f"Error calculating web streams. Error: {e}")
-            return respond_with({"streams": []})
+        streams = cache.get("streams", [])
+        
+        # Assume cache is valid until proven otherwise
+        is_cache_valid = True
+        for stream in streams:
+            if not Proxy.is_valid(stream.get("url")):
+                is_cache_valid = False
+                break
+                
+        if is_cache_valid: return respond_with(cache)
+        
+        # If we get here, the cache was invalid
+        logger.info("Cached results expired/invalid, fetching fresh data...")
+    
+    try:
+        calculated = calculate()
+        results = [i for i in calculated if i]
+        if results:
+            formatted_result = {'streams': results}
+            web_cache.set(id, formatted_result)
+            return respond_with(formatted_result)
+    except Exception as e:
+        logger.error(f"Error calculating web streams. Error: {e}")
+        return respond_with({"streams": []})
 
     logger.info(f"Total time taken to fetch web stream: {time.time() - start_time:.2f} seconds")
     logger.warning(f"No web stream found for {type} with ID {id}")
