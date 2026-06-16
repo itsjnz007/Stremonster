@@ -99,11 +99,9 @@ def ignore_source(id: str, source: str):
                            title="Source Ignored", 
                            message="The source has been added to your ignore list.")
 
-@app.route('/web/clear_ignore_source/<id>/<source>.json')
+@app.route('/web/clear_ignore_source/<id>.json')
 def clear_ignore_source(id: str, source: str):
-    source_list: List[str] = ignore_source_cache.get(id, 60*24) or []
-    source_list.append(source)
-    ignore_source_cache.set(id, list(set(source_list)))
+    ignore_source_cache.set(id, [])
     web_cache.remove(id)
     return render_template('message.html', 
                            title="Source Cleared", 
@@ -124,7 +122,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 return ExternalWebResponse(
                     title="Clear source preference?",
                     name="⭕️",
-                    externalUrl=f"{TUNNEL_URL}/web/clear_ignore_source/{id}/{source}.json",
+                    externalUrl=f"{TUNNEL_URL}/web/clear_ignore_source/{id}.json",
                     subtitles=[]
                 )
             return ExternalWebResponse(
