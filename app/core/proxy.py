@@ -4,9 +4,11 @@ from urllib.parse import quote, urlparse
 import requests
 from app.core.logger import Logger
 from typing import Any
-import json, re
+import json, re, urllib3
 from typing import Optional
 from requests.cookies import RequestsCookieJar
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = Logger("proxy")
 session = requests.Session()
