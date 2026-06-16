@@ -11,6 +11,21 @@ class Parsers:
     def __init__(self):
         self.languages = ['english', 'tamil', 'malayalam', 'kannada', 'hindi', 'telugu']
 
+    def is_match(self, item_title: str, target_title: str) -> bool:
+        # 1. Clean the prefix from the item_title (e.g., "LIK: " -> "")
+        # This regex removes anything followed by a colon at the start of the string
+        cleaned_item = re.sub(r'^[^:]+:\s*', '', item_title)
+        
+        # 2. Normalize both
+        norm_item = self.normalize_text(cleaned_item)
+        norm_target = self.normalize_text(target_title)
+        
+        # 3. Use Regex with Word Boundaries (\b) to ensure complete word matching
+        # \b ensures that "Lokahe" does not match "Lokah"
+        pattern = rf"\b{re.escape(norm_target)}\b"
+        
+        return bool(re.search(pattern, norm_item))
+
     def normalize_text(self, text: str) -> str:
         """Removes special characters and maps numerical synonyms to digits."""
         # 1. Map number words to digits to standardize
@@ -48,6 +63,7 @@ class Parsers:
                 
             # 2. Compare Title:
             if self.normalize_text(item.title) == target_title_norm:
+            # if self.is_match(self.normalize_text(item.title), target_title_norm):
                 matches.append(item)
                 
         return matches

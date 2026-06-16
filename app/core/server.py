@@ -100,6 +100,10 @@ def get_web_stream(type: str, id: str) -> Response:
             tmdb_id = tmdb_client.imdb_to_tmdb(id)
             orig_lang = tmdb_client.get_original_lang(id)
             release_year = tmdb_client.get_release_year(id)
+
+            logger.info(f"Original Language: {orig_lang}")
+            logger.info(f"Title: {tmdb_client.get_title(id)}")
+
             if not tmdb_id: 
                 logger.warning(f"No TMDB ID found for IMDB ID {id}")
                 return []
