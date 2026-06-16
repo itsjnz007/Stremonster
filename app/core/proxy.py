@@ -9,9 +9,25 @@ from typing import Optional
 from requests.cookies import RequestsCookieJar
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
+# --- Add this setup block ---
 logger = Logger("proxy")
 session = requests.Session()
+
+# Configure retry strategy
+retry_strategy = Retry(
+    total=3,  # Total number of retries
+    backoff_factor=0.5,  # Wait 0.5s, 1s, 2s between retries
+    status_forcelist=[500, 502, 503, 504, 403],  # Retry on these status codes
+    allowed_methods=["GET", "POST"]
+)
+
+adapter = HTTPAdapter(max_retries=retry_strategy)
+session.mount("http://", adapter)
+session.mount("https://", adapter)
+# ----------------------------
 
 def respond_with(data: dict[str, Any]) -> Response:
     resp = jsonify(data)
