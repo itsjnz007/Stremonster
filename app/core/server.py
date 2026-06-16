@@ -100,7 +100,7 @@ def ignore_source(id: str, source: str):
                            message="The source has been added to your ignore list.")
 
 @app.route('/web/clear_ignore_source/<id>.json')
-def clear_ignore_source(id: str, source: str):
+def clear_ignore_source(id: str):
     ignore_source_cache.set(id, [])
     web_cache.remove(id)
     return render_template('message.html', 
