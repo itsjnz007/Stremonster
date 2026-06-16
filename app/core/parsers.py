@@ -9,7 +9,7 @@ from app.models.metadata import Metadata
 
 class Parsers:
     def __init__(self):
-        self.languages = ['english', 'tamil', 'malayalam', 'kannada', 'hindi']
+        self.languages = ['english', 'tamil', 'malayalam', 'kannada', 'hindi', 'telugu']
 
     def normalize_text(self, text: str) -> str:
         """Removes special characters and maps numerical synonyms to digits."""

@@ -35,7 +35,13 @@ class TamilBlasters(Scraper):
                     meta = parsers.parse_metadata(item['text'], item['url'])
                     results.append(meta)
 
+            # from pprint import pprint
+            # print("\nresults ->")
+            # pprint(results)
+
             matches = parsers.find_all_matches(input_title=self.title, input_year=self.year, metadata_list=results)
+            # print("\nmatches ->")
+            # pprint(matches)
             return matches
 
         except Exception as e:
@@ -54,7 +60,15 @@ class TamilBlasters(Scraper):
         future = asyncio.run_coroutine_threadsafe(self.search_page(url), self._loop) # type: ignore
         results = future.result(timeout=60)
 
-        responses = [r for r in threadpool.get_all([lambda event, r=m: self.get_stream(r.url, event, title=f"Web | {' + '.join(lang.title() for lang in r.languages)}") for m in results]) if r]
+        responses = [
+            r for r in threadpool.get_all([
+                lambda event, r=m: self.get_stream(
+                    r.url, 
+                    event, 
+                    title=f"Web{' | ' + ' + '.join(lang.title() for lang in r.languages) if r.languages else ''}"
+                ) for m in results
+            ]) if r
+        ]   
         for response in responses: response['url'] = Proxy.get_proxy_url(response['url'], origin=self.base_url)
 
         return responses
@@ -64,5 +78,5 @@ if __name__ == "__main__":
     scraper = TamilBlasters()
     threading = MultiThreading()
     print(
-        scraper.get_movie("Dridam", "2026", threading)
+        scraper.get_movie("Blast", "2026", threading)
     )
