@@ -180,7 +180,8 @@ class Proxy:
                         timeout=10,
                         headers=headers,
                         stream=True,
-                        cookies=request.cookies
+                        cookies=request.cookies,
+                        verify=False
                     )
                 else:
                     upstream_response = session.get(
@@ -188,7 +189,8 @@ class Proxy:
                         timeout=10,
                         headers=headers,
                         stream=True,
-                        cookies=request.cookies
+                        cookies=request.cookies,
+                        verify=False
                     )
             except Exception as e: return Response(f"Upstream error {e}", status=503)
 
