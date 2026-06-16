@@ -150,7 +150,7 @@ def get_web_stream(type: str, id: str) -> Response:
             # Fallback
             if not returnable_results:
                 tasks: List[Tuple[Callable[[Event, str], str], str]] = [ # type: ignore
-                    (lambda event, f=func: f(Event, tmdb_id), name) # type: ignore
+                    (lambda event, f=func: f(event, tmdb_id), name) # type: ignore
                     for func, name in movie_scrapers
                     if name not in ignore_set # type: ignore
                 ]
