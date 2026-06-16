@@ -7,7 +7,7 @@ from typing import List, Optional, Callable, Tuple
 from app.external.tmdb import Tmdb
 from app.models.responses import WebResponse, ExternalWebResponse
 from app.sources import torrentio as torrentio_module
-from flask import Flask
+from flask import Flask, render_template
 from flask.wrappers import Response
 import os, time
 from app.core.logger import Logger
@@ -95,7 +95,9 @@ def ignore_source(id: str, source: str):
     source_list.append(source)
     ignore_source_cache.set(id, list(set(source_list)))
     web_cache.remove(id)
-    return respond_with({"message": "Current source added to ignore list. Please refresh the streaming page. "})
+    return render_template('message.html', 
+                           title="Source Ignored", 
+                           message="The source has been added to your ignore list.")
 
 @app.route('/web/clear_ignore_source/<id>/<source>.json')
 def clear_ignore_source(id: str, source: str):
@@ -103,7 +105,9 @@ def clear_ignore_source(id: str, source: str):
     source_list.append(source)
     ignore_source_cache.set(id, list(set(source_list)))
     web_cache.remove(id)
-    return respond_with({"message": "Current source added to ignore list. Please refresh the streaming page. "})
+    return render_template('message.html', 
+                           title="Source Cleared", 
+                           message="The source has been processed.")
 
 
 @app.route('/web/stream/<type>/<id>.json')
@@ -116,7 +120,7 @@ def get_web_stream(type: str, id: str) -> Response:
 
     def calculate(ignore_list: List[int]) -> List[WebResponse] | List[ExternalWebResponse]:
         def include_ignore_query(source: str, total_sources: int) -> ExternalWebResponse:
-            if len(ignore_list) - 1 == total_sources:
+            if len(ignore_list) + 1 == total_sources:
                 return ExternalWebResponse(
                     title="Clear source preference?",
                     name="⭕️",
