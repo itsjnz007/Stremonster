@@ -130,6 +130,25 @@ class Tmdb:
             tmdb_id = find_response["tv_results"][0].get("title")
             return tmdb_id
         
+    def get_release_year(self, imdb_id: str) -> Optional[str]:
+        find_response = self.find(imdb_id)
+
+        if not find_response:
+            logger.info(f"No find response for IMDB ID {imdb_id}")
+            return None
+        
+        # Check movie results first
+        if find_response.get("movie_results"):
+            release_date = find_response["movie_results"][0].get("release_date")
+            release_year = release_date.split('-')[0]
+            return release_year
+        
+        # Check TV results next
+        if find_response.get("tv_results"):
+            release_date = find_response["tv_results"][0].get("release_date")
+            release_year = release_date.split('-')[0]
+            return release_year
+        
 
 class TmdbCatalog(Tmdb):
     def __init__(self, cache: TmdbCache):

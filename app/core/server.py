@@ -99,22 +99,28 @@ def get_web_stream(type: str, id: str) -> Response:
         if type == 'movie':
             tmdb_id = tmdb_client.imdb_to_tmdb(id)
             orig_lang = tmdb_client.get_original_lang(id)
+            release_year = tmdb_client.get_release_year(id)
             if not tmdb_id: 
                 logger.warning(f"No TMDB ID found for IMDB ID {id}")
                 return []
-            if orig_lang != "en":
+            if orig_lang in ['ta', 'ml', 'kn', 'hi'] and release_year:
                 title = tmdb_client.get_title(id)
                 if not title:
                     logger.warning(f"No title found for IMDB ID {id}")
                     return []
                 
-                results: List[WebResponse] = thread_pool_web.get_all([
-                    lambda event: flicky_scraper.get_movie(tmdb_id, event),
-                    lambda event: tamilblasters_scraper.get_movie(title, "tamil", event),
-                    lambda event: tamilblasters_scraper.get_movie(title, "malayalam", event),
-                ])
+                results: List[WebResponse] = tamilblasters_scraper.get_movie(title, year=release_year, threadpool=thread_pool_web)
 
-                # results.extend(results_regional)
+                if not results:
+                    result: Optional[WebResponse] = thread_pool_web.get_first([
+                        lambda event: cineby_scraper.get_movie(tmdb_id, event),
+                        lambda event: flicky_scraper.get_movie(tmdb_id, event),
+                        lambda event: vidking_scraper.get_movie(tmdb_id, event),
+                        lambda event: vidsrc_scraper.get_movie(tmdb_id, event),
+                    ])
+                    results = [result] if result else []
+
+
             else:
                 result: Optional[WebResponse] = thread_pool_web.get_first([
                     lambda event: cineby_scraper.get_movie(tmdb_id, event),
