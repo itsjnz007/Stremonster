@@ -251,10 +251,8 @@ class Proxy:
             def generate_media():
                 for chunk in upstream_response.iter_content(chunk_size=1024*64):
                     if chunk: yield chunk
-
-            if upstream_response.status_code not in [200, 202, 203]:
-                logger.warning(f"Proxy content delivered, but upstream error code {upstream_response.status_code} {upstream_response.text}")
-            resp = Response(stream_with_context(generate_media()), status=200)
+                    
+            resp = Response(stream_with_context(generate_media()), status=upstream_response.status_code)
             return Proxy.apply_header(resp)
         except Exception as e: 
             logger.error(f"Proxy error, {e}")
