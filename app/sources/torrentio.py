@@ -9,8 +9,11 @@ from typing import List
 from app.core.torrent import Torrent
 from app.models.responses import TorrentResponse
 from app.core.multithreading import MultiThreading
+from app.core.logger import Logger
 
-BASE_URL = "https://torrentio.strem.fun/qualityfilter=scr,cam,brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,480p,other,unknown%7Climit=3"
+logger = Logger("torrentio")
+
+BASE_URL = "https://torrentio.strem.fun/qualityfilter=scr,cam,brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,480p,other,unknown%7Climit=2"
 
 
 def bucket_streams(torrentio_json: TorrentResponse) -> List[TorrentResponse]:
@@ -33,28 +36,17 @@ def bucket_streams(torrentio_json: TorrentResponse) -> List[TorrentResponse]:
         else:
             continue  # Drop unrecognized formats or low qualities
 
-        # Format item properties to match our internal model design
-        stream_response: TorrentResponse = {
-            "infoHash": stream.get("infoHash"),
-            "name": bucket,
-            "title": "Torrent"
-        }
-        
-        # Preserve additional metadata fields if present in the raw stream payload
-        if "fileIndex" in stream:
-            stream_response["fileIndex"] = stream["fileIndex"] # type: ignore
-        if "behaviorHints" in stream:
-            stream_response["behaviorHints"] = stream["behaviorHints"] # type: ignore
+        stream['title'] = "Torrent"
+        stream['name'] = bucket
+        buckets[bucket].append(stream)
 
-        buckets[bucket].append(stream_response)
-
-    # Interleave order: Top qualities naturally flow to the front of our evaluation pool
     return buckets["4k"] + buckets["1080p"] + buckets["720p"]
 
 
 def get_streams(media_type: str, imdb_id: str, threadpool: MultiThreading, test_speeds: bool = False) -> List[TorrentResponse]:
     """Core retrieval script pulling raw Torrentio indexes and calling our validation engine."""
     url = f"{BASE_URL}/stream/{media_type}/{imdb_id}.json"
+    logger.info(f"GET Torrent for URL {url}")
     try:
         response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=12)
         if response.status_code != 200:
