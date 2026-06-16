@@ -220,7 +220,9 @@ class Proxy:
                         cookies=request.cookies,
                         verify=False
                     )
-            except Exception as e: return Response(f"Upstream error {e}", status=503)
+            except Exception as e: 
+                logger.error(f"Proxy upstream error, {e}")
+                return Response(f"Upstream error {e}", status=503)
 
             content_type = upstream_response.headers.get("content-type", "").lower()
 
@@ -250,10 +252,12 @@ class Proxy:
                 for chunk in upstream_response.iter_content(chunk_size=1024*64):
                     if chunk: yield chunk
 
-            resp = Response(stream_with_context(generate_media()), status=upstream_response.status_code)
+            if upstream_response.status_code not in [200, 202, 203]:
+                logger.warning(f"Proxy content delivered, but upstream error code {upstream_response.status_code} {upstream_response.text}")
+            resp = Response(stream_with_context(generate_media()), status=200)
             return Proxy.apply_header(resp)
         except Exception as e: 
-            logger.error(f"Proxy error: {e}")
+            logger.error(f"Proxy error, {e}")
             return Response(f"Proxy error: {e}")
         finally:
             pass
