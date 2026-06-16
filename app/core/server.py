@@ -89,8 +89,16 @@ def get_catalog(media_type: str, catalog_id: str) -> Response:
         logger.error(f"Error fetching catalog {catalog_id}: {e}")
         return Response("Failed to fetch catalog", status=500)
 
-@app.route('/web/ignore/<id>/<source>.json')
+@app.route('/web/ignore_source/<id>/<source>.json')
 def ignore_source(id: str, source: str):
+    source_list: List[str] = ignore_source_cache.get(id, 60*24) or []
+    source_list.append(source)
+    ignore_source_cache.set(id, list(set(source_list)))
+    web_cache.remove(id)
+    return respond_with({"message": "Current source added to ignore list. Please refresh the streaming page. "})
+
+@app.route('/web/clear_ignore_source/<id>/<source>.json')
+def clear_ignore_source(id: str, source: str):
     source_list: List[str] = ignore_source_cache.get(id, 60*24) or []
     source_list.append(source)
     ignore_source_cache.set(id, list(set(source_list)))
@@ -107,11 +115,18 @@ def get_web_stream(type: str, id: str) -> Response:
     start_time = time.time()
 
     def calculate(ignore_list: List[int]) -> List[WebResponse] | List[ExternalWebResponse]:
-        def include_ignore_query(source: str) -> ExternalWebResponse:
+        def include_ignore_query(source: str, total_sources: int) -> ExternalWebResponse:
+            if len(ignore_list) - 1 == total_sources:
+                return ExternalWebResponse(
+                    title="Clear source preference?",
+                    name="⭕️",
+                    externalUrl=f"{TUNNEL_URL}/web/clear_ignore_source/{id}/{source}.json",
+                    subtitles=[]
+                )
             return ExternalWebResponse(
                 title="Try different web source?",
                 name="⭕️",
-                externalUrl=f"{TUNNEL_URL}/web/ignore/{id}/{source}.json",
+                externalUrl=f"{TUNNEL_URL}/web/ignore_source/{id}/{source}.json",
                 subtitles=[]
             )
         
@@ -158,7 +173,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 if response:
                     result, index = response
                     if result:
-                        returnable_results = [result, include_ignore_query(index)]
+                        returnable_results = [result, include_ignore_query(index, len(movie_scrapers))]
 
 
         else:  # Series
@@ -195,7 +210,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 response = thread_pool_web.get_first(tasks) # type: ignore
                 if response: 
                     result, index = response
-                    returnable_results = [result, include_ignore_query(index)]
+                    returnable_results = [result, include_ignore_query(index, len(series_scrapers))]
 
         return returnable_results
 
