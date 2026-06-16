@@ -13,7 +13,7 @@ from app.core.logger import Logger
 
 logger = Logger("torrentio")
 
-BASE_URL = "https://torrentio.strem.fun/qualityfilter=scr,cam,brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,480p,other,unknown%7Climit=2"
+BASE_URL = "https://torrentio.strem.fun/qualityfilter=scr,cam,brremux,hdrall,dolbyvision,dolbyvisionwithhdr,threed,480p,other,unknown%7Climit=3"
 
 
 def bucket_streams(torrentio_json: TorrentResponse) -> List[TorrentResponse]:

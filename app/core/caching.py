@@ -64,6 +64,18 @@ class Caching:
         except Exception as e:
             logger.error(f"Error getting cache for key '{key}', error: \n{e}")
             return None
+    
+    def remove(self, key: str) -> None:
+        """Removes an item from the cache and updates the disk file."""
+        if not hasattr(self, 'cache'): raise AttributeError('Subclass must define `cache` attribute')
+        if not hasattr(self, 'cache_path'): raise AttributeError('Subclass must define `cache_path` attribute')
+
+        if key in self.cache:
+            del self.cache[key]
+            self._save_to_disk(self.cache_path, self.cache)
+            logger.info(f"Key '{key}' removed from cache.")
+        else:
+            logger.warning(f"Attempted to remove non-existent key: '{key}'")
 
 class TmdbCache(Caching):
     def __init__(self):
@@ -93,6 +105,12 @@ class CatalogCache(Caching):
     def __init__(self):
         super().__init__()
         self.cache_path = self.cache_dir / "catalog.json"
+        self.cache: dict[str, Any] = self._load_from_disk()
+
+class IgnoreSourceCache(Caching):
+    def __init__(self):
+        super().__init__()
+        self.cache_path = self.cache_dir / "ignore_source.json"
         self.cache: dict[str, Any] = self._load_from_disk()
 
 if __name__ == "__main__":

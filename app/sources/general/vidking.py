@@ -15,13 +15,13 @@ class VidkingScraper(Scraper):
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/embed/movie/{tmdb_id}"
-        result = self.get_stream(url)
+        result = self.get_stream(url, stop_event=stop_event, title="Web | Vidking")
         if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url)
         return result
     
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/embed/tv/{tmdb_id}/{season}/{episode}"
-        result = self.get_stream(url, stop_event)
+        result = self.get_stream(url, stop_event, title="Web | Vidking")
         if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url)
         return result
     

@@ -3,16 +3,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from typing import List, Optional
+from typing import List, Optional, Callable, Tuple
 from app.external.tmdb import Tmdb
-from app.models.responses import WebResponse
+from app.models.responses import WebResponse, ExternalWebResponse
 from app.sources import torrentio as torrentio_module
 from flask import Flask
 from flask.wrappers import Response
 import os, time
 from app.core.logger import Logger
-from app.config import MANIFEST_CATALOG, MANIFEST_TORRENTS, MANIFEST_WEB
-from app.core.caching import TmdbCache, WebCache, TorrentCache
+from app.config import MANIFEST_CATALOG, MANIFEST_TORRENTS, MANIFEST_WEB, TUNNEL_URL
+from app.core.caching import TmdbCache, WebCache, TorrentCache, IgnoreSourceCache
 from app.core.multithreading import MultiThreading
 from app.core.proxy import respond_with, Proxy
 from app.external.anilist import AniBridgeV3Resolver
@@ -20,6 +20,7 @@ from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as 
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo
 from app.sources.regional import tamilblasters as tamilblasters
 from app.core.catalog import Catalog
+from threading import Event
 
 logger = Logger("server")
 app = Flask(__name__)
@@ -30,6 +31,7 @@ thread_pool_torrent = MultiThreading(max_workers=3)
 tmdb_cache = TmdbCache()
 web_cache = WebCache()
 torrent_cache = TorrentCache()
+ignore_source_cache = IgnoreSourceCache()
 catalog = Catalog(tmdb_cache)
 
 catalog.build_catalog(pages=1)  # Pre-build catalog on startup
@@ -87,95 +89,129 @@ def get_catalog(media_type: str, catalog_id: str) -> Response:
         logger.error(f"Error fetching catalog {catalog_id}: {e}")
         return Response("Failed to fetch catalog", status=500)
 
+@app.route('/web/ignore/<id>/<source>.json')
+def ignore_source(id: str, source: str):
+    source_list: List[str] = ignore_source_cache.get(id, 60*24) or []
+    source_list.append(source)
+    ignore_source_cache.set(id, list(set(source_list)))
+    web_cache.remove(id)
+    return respond_with({"message": "Current source added to ignore list. Please refresh the streaming page. "})
+
 
 @app.route('/web/stream/<type>/<id>.json')
 def get_web_stream(type: str, id: str) -> Response:
     logger.info(f"GET /web/stream/{type}/{id}.json")
-    if type not in ('movie', 'series'): return respond_with({'error': 'Invalid type'})
+    if type not in ('movie', 'series'): 
+        return respond_with({'error': 'Invalid type'})
     
     start_time = time.time()
 
-    def calculate() -> List[WebResponse]:
+    def calculate(ignore_list: List[int]) -> List[WebResponse] | List[ExternalWebResponse]:
+        def include_ignore_query(source: str) -> ExternalWebResponse:
+            return ExternalWebResponse(
+                title="Try different web source?",
+                name="⭕️",
+                externalUrl=f"{TUNNEL_URL}/web/ignore/{id}/{source}.json",
+                subtitles=[]
+            )
+        
+        # Registries for Scrapers
+        movie_scrapers: List[Tuple[Callable[[Event, str], Optional[WebResponse]], str]] = [
+            (lambda event, tmdb_id: flicky_scraper.get_movie(tmdb_id, event), 'flicky'),
+            (lambda event, tmdb_id: vidking_scraper.get_movie(tmdb_id, event), 'vidking'),
+            (lambda event, tmdb_id: vidsrc_scraper.get_movie(tmdb_id, event), 'vidsrc'),
+            (lambda event, tmdb_id: cineby_scraper.get_movie(tmdb_id, event), 'cineby'),
+        ]
+
+        series_scrapers: List[Tuple[Callable[[Event, str, str, str], Optional[WebResponse]], str]] = [
+            (lambda event, tmdb, s, e: flicky_scraper.get_series(tmdb, s, e, event), 'flicky'),
+            (lambda event, tmdb, s, e: vidking_scraper.get_series(tmdb, s, e, event), 'vidking'),
+            (lambda event, tmdb, s, e: vidsrc_scraper.get_series(tmdb, s, e, event), 'vidsrc'),
+            (lambda event, tmdb, s, e: cineby_scraper.get_series(tmdb, s, e, event), 'cineby'),
+        ]
+
+        returnable_results: List[WebResponse] | List[ExternalWebResponse] = []
+        ignore_set = set(ignore_list)
+
         if type == 'movie':
             tmdb_id = tmdb_client.imdb_to_tmdb(id)
-            orig_lang = tmdb_client.get_original_lang(id)
-            release_year = tmdb_client.get_release_year(id)
-
-            logger.info(f"Original Language: {orig_lang}")
-            logger.info(f"Title: {tmdb_client.get_title(id)}")
-
-            if not tmdb_id: 
+            if not tmdb_id:
                 logger.warning(f"No TMDB ID found for IMDB ID {id}")
                 return []
+            
+            # Regional logic
+            orig_lang = tmdb_client.get_original_lang(id)
+            release_year = tmdb_client.get_release_year(id)
             if orig_lang in ['ta', 'ml', 'kn', 'hi'] and release_year:
                 title = tmdb_client.get_title(id)
-                if not title:
-                    logger.warning(f"No title found for IMDB ID {id}")
-                    return []
-                
-                results: List[WebResponse] = tamilblasters_scraper.get_movie(title, year=release_year, threadpool=thread_pool_web)
+                if title:
+                    returnable_results = tamilblasters_scraper.get_movie(title, year=release_year, threadpool=thread_pool_web)
+            
+            # Fallback
+            if not returnable_results:
+                tasks: List[Tuple[Callable[[Event, str], str], str]] = [ # type: ignore
+                    (lambda event, f=func: f(Event, tmdb_id), name) # type: ignore
+                    for func, name in movie_scrapers
+                    if name not in ignore_set # type: ignore
+                ]
+                response = thread_pool_web.get_first(tasks) # type: ignore
+                if response:
+                    result, index = response
+                    if result:
+                        returnable_results = [result, include_ignore_query(index)]
 
-                if not results:
-                    result: Optional[WebResponse] = thread_pool_web.get_first([
-                        lambda event: flicky_scraper.get_movie(tmdb_id, event),
-                        lambda event: vidking_scraper.get_movie(tmdb_id, event),
-                        lambda event: vidsrc_scraper.get_movie(tmdb_id, event),
-                        lambda event: cineby_scraper.get_movie(tmdb_id, event),
-                    ])
-                    results = [result] if result else []
 
-
-            else:
-                result: Optional[WebResponse] = thread_pool_web.get_first([
-                    lambda event: flicky_scraper.get_movie(tmdb_id, event),
-                    lambda event: vidking_scraper.get_movie(tmdb_id, event),
-                    lambda event: vidsrc_scraper.get_movie(tmdb_id, event),
-                    lambda event: cineby_scraper.get_movie(tmdb_id, event),
-                ])
-                results = [result] if result else []
-        else:
+        else:  # Series
             imdb_id, season, episode = id.split(':')
             tmdb_id = tmdb_client.imdb_to_tmdb(imdb_id)
-            orig_lang = tmdb_client.get_original_lang(imdb_id)
             if not tmdb_id:
                 logger.warning(f"No TMDB ID found for IMDB ID {imdb_id}")
                 return []
+            
+            orig_lang = tmdb_client.get_original_lang(imdb_id)
             if orig_lang == "ja":
                 mal_id, mal_eps = anibride.get_mal_info(imdb_id, season, episode)
                 ani_id, ani_eps = anibride.get_anilist_info(imdb_id, season, episode)
-                result: Optional[WebResponse] = thread_pool_web.get_first([
-                    lambda event: four_animo_scraper.get_series(ani_id, str(ani_eps), event)
-                ])
-                results = [result] if result else []
-                if not results:
-                    result: Optional[WebResponse] = thread_pool_web.get_first([
-                        lambda event: miruro_scraper.get_series(mal_id, str(mal_eps), event),
-                        lambda event: miruro_scraper.get_series(ani_id, str(ani_eps), event),
+                
+                response = thread_pool_web.get_first([(lambda event: four_animo_scraper.get_series(ani_id, str(ani_eps), event), 'task1')])
+                if response: 
+                    result, _ = response
+                    returnable_results = [result]
+
+                if not returnable_results:
+                    response = thread_pool_web.get_first([
+                        (lambda event: miruro_scraper.get_series(mal_id, str(mal_eps), event), 'task1'),
+                        (lambda event: miruro_scraper.get_series(ani_id, str(ani_eps), event), 'task2'),
                     ])
-                    results = [result] if result else []
-
+                    if response: 
+                        result, _ = response
+                        returnable_results = [result]
             else:
-                if not tmdb_id:
-                    logger.warning(f"No TMDB ID found for IMDB ID {imdb_id}")
-                    return []
+                tasks: List[Tuple[Callable[[Event, str, str, str], str], str]] = [
+                    (lambda event, f=func: f(event, tmdb_id, season, episode), name) # type: ignore
+                    for func, name in series_scrapers
+                    if name not in ignore_set # type: ignore
+                ]
+                response = thread_pool_web.get_first(tasks) # type: ignore
+                if response: 
+                    result, index = response
+                    returnable_results = [result, include_ignore_query(index)]
 
-                result: Optional[WebResponse] = thread_pool_web.get_first([
-                    lambda event: flicky_scraper.get_series(tmdb_id, season, episode, event),
-                    lambda event: vidking_scraper.get_series(tmdb_id, season, episode, event),
-                    lambda event: vidsrc_scraper.get_series(tmdb_id, season, episode, event),
-                    lambda event: cineby_scraper.get_series(tmdb_id, season, episode, event),
-                ])
-                results = [result] if result else []
-        return results
+        return returnable_results
 
-    cache = web_cache.get(key=id, upto_mins=5)
+    # Execution flow
+    cache = web_cache.get(key=id, upto_mins=60)
     if cache: 
         logger.info("Returning cached web results...")
         return respond_with(cache)
     
     try:
-        calculated = calculate()
+        # Ensure ignore_list is list of int
+        ignore_list: List[int] = ignore_source_cache.get(id) or []
+        
+        calculated = calculate(ignore_list)
         results = [i for i in calculated if i]
+        
         if results:
             formatted_result = {'streams': results}
             web_cache.set(id, formatted_result)
@@ -184,9 +220,9 @@ def get_web_stream(type: str, id: str) -> Response:
         logger.error(f"Error calculating web streams. Error: {e}")
         return respond_with({"streams": []})
 
-    logger.info(f"Total time taken to fetch web stream: {time.time() - start_time:.2f} seconds")
-    logger.warning(f"No web stream found for {type} with ID {id}")
+    logger.info(f"Total time taken: {time.time() - start_time:.2f}s")
     return respond_with({'streams': []})
+
 
 @app.route('/torrent/stream/<type>/<id>.json')
 def get_torrent_stream(type: str, id: str) -> Response:
