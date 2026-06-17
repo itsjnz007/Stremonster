@@ -190,19 +190,15 @@ def get_web_stream(type: str, id: str) -> Response:
                 mal_id, mal_eps = anibride.get_mal_info(imdb_id, season, episode)
                 ani_id, ani_eps = anibride.get_anilist_info(imdb_id, season, episode)
                 
-                response = thread_pool_web.get_first([(lambda event: four_animo_scraper.get_series(ani_id, str(ani_eps), event), 'task1')])
+                response = thread_pool_web.get_first([
+                    (lambda event: four_animo_scraper.get_series(ani_id, str(ani_eps), event), 'task1'),
+                    (lambda event: miruro_scraper.get_series(mal_id, str(mal_eps), event), 'task1'),
+                    (lambda event: miruro_scraper.get_series(ani_id, str(ani_eps), event), 'task2'),
+                ])
                 if response: 
                     result, _ = response
                     returnable_results = [result]
 
-                if not returnable_results:
-                    response = thread_pool_web.get_first([
-                        (lambda event: miruro_scraper.get_series(mal_id, str(mal_eps), event), 'task1'),
-                        (lambda event: miruro_scraper.get_series(ani_id, str(ani_eps), event), 'task2'),
-                    ])
-                    if response: 
-                        result, _ = response
-                        returnable_results = [result]
             else:
                 tasks: List[Tuple[Callable[[Event, str, str, str], str], str]] = [
                     (lambda event, f=func: f(event, tmdb_id, season, episode), name) # type: ignore
