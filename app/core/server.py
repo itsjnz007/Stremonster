@@ -47,6 +47,7 @@ cineby_scraper = cineby.CinebyScraper()
 # Anime Scrapers
 four_animo_scraper = four_animo.FourAnimoScraper()
 miruro_scraper = miruro.MiruroScraper()
+vidnest_scraper = vidnest.VidnestScraper()
 
 # Regional Scrapers
 tamilblasters_scraper = tamilblasters.TamilBlasters()
@@ -192,8 +193,9 @@ def get_web_stream(type: str, id: str) -> Response:
                 
                 response = thread_pool_web.get_first([
                     (lambda event: four_animo_scraper.get_series(ani_id, str(ani_eps), event), 'task1'),
-                    (lambda event: miruro_scraper.get_series(mal_id, str(mal_eps), event), 'task1'),
-                    (lambda event: miruro_scraper.get_series(ani_id, str(ani_eps), event), 'task2'),
+                    (lambda event: vidnest_scraper.get_series(ani_id, str(ani_eps), event), 'task2'),
+                    (lambda event: miruro_scraper.get_series(mal_id, str(mal_eps), event), 'task3'),
+                    (lambda event: miruro_scraper.get_series(ani_id, str(ani_eps), event), 'task4'),
                 ])
                 if response: 
                     result, _ = response
