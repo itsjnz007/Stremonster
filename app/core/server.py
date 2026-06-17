@@ -91,7 +91,7 @@ def get_catalog(media_type: str, catalog_id: str) -> Response:
 
 @app.route('/web/ignore_source/<id>/<source>.json')
 def ignore_source(id: str, source: str):
-    source_list: List[str] = ignore_source_cache.get(id, 60*24) or []
+    source_list: List[str] = ignore_source_cache.get(id) or []
     source_list.append(source)
     ignore_source_cache.set(id, list(set(source_list)))
     web_cache.remove(id)
@@ -223,7 +223,7 @@ def get_web_stream(type: str, id: str) -> Response:
         return respond_with(cache)
     
     try:
-        # Ensure ignore_list is list of int
+        
         ignore_list: List[int] = ignore_source_cache.get(id) or []
         
         calculated = calculate(ignore_list)
