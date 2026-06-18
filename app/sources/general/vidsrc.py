@@ -10,7 +10,7 @@ from threading import Event
 
 class VidsrcScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="vidking")
+        super().__init__(headless=True, source="vidsrc")
         self.base_url = "https://www.vidsrc.wtf"
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
