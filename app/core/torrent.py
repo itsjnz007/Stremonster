@@ -13,8 +13,9 @@ from app.core.logger import Logger
 from app.models.responses import TorrentResponse
 from app.core.multithreading import MultiThreading
 from app.config import CACHE_DIR
+import logging
 
-logger = Logger('torrent')
+logger = Logger('torrent', level=logging.DEBUG)
 
 class Torrent:
     def __init__(self, threadpool: MultiThreading, connection_speed: int = 200) -> None:
@@ -62,7 +63,7 @@ class Torrent:
         if speed_kb_s < 2000.0:return ("ultra fast", 5)
         return ("extreme", 6)
 
-    def test_torrent(self, info_hash: str, quality: str, timeout: int = 7) -> float:
+    def test_torrent(self, info_hash: str, quality: str, fileIdx: int = -1, timeout: int = 7) -> float:
         """Synchronously connects to an infohash and returns its maximum download speed in KB/s."""
         with self._qualities_lock:
             if quality in self._completed_qualities:
@@ -93,6 +94,22 @@ class Torrent:
                         return 0.0
                 time.sleep(0.1)
 
+            # --- ADDED: File prioritization ---
+            if fileIdx >= 0:
+                torrent_info = handle.get_torrent_info()
+                num_files = torrent_info.num_files()
+                
+                if fileIdx < num_files:
+                    # Prioritize the selected file index and set others to 0 (do not download)
+                    for i in range(num_files):
+                        if i == fileIdx:
+                            handle.file_priority(i, 7)  # Highest priority
+                        else:
+                            handle.file_priority(i, 0)  # Skip downloading
+                else:
+                    logger.warning(f"File index {fileIdx} out of range for torrent {info_hash[:8]} (has {num_files} files).")
+            # -----------------------------------
+
             logger.info(f"✓ Link Alive for {info_hash[:8]}. Sampling speeds...")
             speeds: List[float] = []
             start_time: float = time.time()
@@ -119,8 +136,21 @@ class Torrent:
             logger.error(f"Error testing hash {info_hash}: {e}")
         finally:
             try:
-                ses.remove_torrent(handle)
-                shutil.rmtree(torrent_params.save_path, ignore_errors=True)
+                start = time.perf_counter()
+
+                if handle and handle.is_valid():
+                    t = time.perf_counter()
+                    logger.debug(f"Removing Torrent")
+                    ses.remove_torrent(handle)
+                    logger.debug(f"remove_torrent={time.perf_counter()-t:.3f}s")
+
+                if os.path.exists(torrent_params.save_path):
+                    t = time.perf_counter()
+                    shutil.rmtree(torrent_params.save_path, ignore_errors=True)
+                    logger.debug(f"rmtree={time.perf_counter()-t:.3f}s")
+
+                logger.debug(f"finally total={time.perf_counter()-start:.3f}s")
+
             except Exception as e:
                 logger.error(f"Error removing cache: {e}")
 
@@ -165,7 +195,15 @@ class Torrent:
             logger.info(f"🚀 Processing Interleaved Wave {wave_idx}/{len(execution_waves)}")
             
             tasks: List[Callable[..., Any]] = [
-                lambda event, s=stream: (s, self.test_torrent(str(s.get("infoHash", "")), str(s.get("name", "Unknown")))) or 0.0 # type: ignore
+                lambda _, s=stream: ( # type: ignore
+                    s, 
+                    self.test_torrent(
+                        str(s.get("infoHash", "")), 
+                        str(s.get("name", "Unknown")), 
+                        fileIdx=int(s.get("fileIdx", -1)) # <-- EXTRACTED AND PASSED FILEIDX
+
+                    )
+                ) or 0.0  # type: ignore
                 for stream in filtered_wave_streams
             ]
             
