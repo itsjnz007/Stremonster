@@ -66,7 +66,7 @@ class TamilBlasters(Scraper):
                 lambda event, r=m: self.get_stream(
                     r.url, 
                     event, 
-                    title=f"Web{' | ' + ' + '.join(lang.title() for lang in r.languages) if r.languages else ''}"
+                    title=f"Web | Tamilblasters{' | ' + ' + '.join(lang.title() for lang in r.languages) if r.languages else ''}"
                 ) for m in results
             ]) if r
         ]   
