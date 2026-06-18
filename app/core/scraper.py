@@ -4,15 +4,14 @@ import threading, logging
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from typing import Optional, Any
 from playwright.async_api import Browser, async_playwright, Request
 from app.models.responses import *
 import re, time
 from app.core.logger import Logger
 from urllib.parse import urlparse
 from threading import Event
-from typing import Optional, Any, Callable, Awaitable
-from playwright.async_api import Page
+from typing import Optional, Callable, Awaitable
+from playwright.async_api import Page, Playwright
 
 STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
@@ -26,6 +25,13 @@ AD_BLOCK_LIST = [
 ]
 
 class Scraper:
+    _playwright: Optional[Playwright] = None
+    _browser: Optional[Browser] = None
+    _loop: Optional[asyncio.AbstractEventLoop] = None
+    _loop_thread: Optional[threading.Thread] = None
+    _loop_ready = threading.Event()
+    _browser_lock = threading.Lock()
+    
     def __init__(self, headless: bool = True, 
                  source: str = "scraper", 
                  timeout: int = 30000, 
@@ -45,56 +51,55 @@ class Scraper:
         self.log_requests = log_requests
         self.page_hook = page_hook
 
-        self._playwright: Any = None
-        self.browser: Optional[Browser] = None
-        # self.context: Optional[BrowserContext] = None
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
-        self._loop_thread: Optional[threading.Thread] = None
-        self._loop_ready = threading.Event()
-        self._browser_lock = threading.Lock()
+        # Scraper._playwright: Any = None
+        # Scraper._browser: Optional[Browser] = None
+        # Scraper._loop: Optional[asyncio.AbstractEventLoop] = None
+        # Scraper._loop_thread: Optional[threading.Thread] = None
+        # Scraper._loop_ready = threading.Event()
+        # Scraper._browser_lock = threading.Lock()
 
     def _start_loop(self):
-        self._loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self._loop)
-        self._loop_ready.set()
-        self._loop.run_forever()
+        Scraper._loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(Scraper._loop)
+        Scraper._loop_ready.set()
+        Scraper._loop.run_forever()
 
     def _ensure_loop(self):
-        if self._loop and self._loop.is_running():
+        if Scraper._loop and Scraper._loop.is_running():
             return
 
-        self._loop_ready.clear()
-        self._loop_thread = threading.Thread(
+        Scraper._loop_ready.clear()
+        Scraper._loop_thread = threading.Thread(
             target=self._start_loop,
             daemon=True,
             name=f"playwright-loop-{self.source}",
         )
-        self._loop_thread.start()
-        if not self._loop_ready.wait(timeout=10):
+        Scraper._loop_thread.start()
+        if not Scraper._loop_ready.wait(timeout=10):
             raise RuntimeError("Playwright event loop failed to start")
 
     async def _start_browser_async(self):
-        self._playwright = await async_playwright().start()
-        self.browser = await self._playwright.chromium.launch(headless=self.headless)
-        # if self.browser:
-        #     self.context = await self.browser.new_context()
+        Scraper._playwright = await async_playwright().start()
+        Scraper._browser = await Scraper._playwright.chromium.launch(headless=self.headless)
+        # if Scraper._browser:
+        #     self.context = await Scraper._browser.new_context()
         self.logger.info("Browser instance successfully launched in background")
 
     def _ensure_browser(self):
         self._ensure_loop()
-        if self.browser is not None:
+        if Scraper._browser is not None:
             # if self.context:
             #     return
             return
 
-        with self._browser_lock:
-            if self.browser is not None:
+        with Scraper._browser_lock:
+            if Scraper._browser is not None:
                 # if self.context:
                 #     return
                 return
 
-            assert self._loop is not None
-            future = asyncio.run_coroutine_threadsafe(self._start_browser_async(), self._loop)
+            assert Scraper._loop is not None
+            future = asyncio.run_coroutine_threadsafe(self._start_browser_async(), Scraper._loop)
             future.result(timeout=30)
 
     async def _get_stream_async(self, url: str, stop_event: Optional[Event] = None,
@@ -102,9 +107,9 @@ class Scraper:
                                 name: Optional[str] = None) -> Optional[WebResponse]:
         if stop_event and stop_event.is_set(): return
         domain = urlparse(url).netloc
-        assert self.browser is not None
+        assert Scraper._browser is not None
         # assert self.context is not None
-        context = await self.browser.new_context()
+        context = await Scraper._browser.new_context()
         page = await context.new_page()
 
         stream_url: Optional[str] = None
@@ -202,42 +207,47 @@ class Scraper:
                    title: Optional[str] = None,
                    name: Optional[str] = None) -> Optional[WebResponse]:
         self._ensure_browser()
-        assert self._loop is not None
+        assert Scraper._loop is not None
 
         self.logger.info(f"GET stream: {url}")
 
-        future = asyncio.run_coroutine_threadsafe(self._get_stream_async(url, stop_event, title=title, name=name), self._loop)
+        future = asyncio.run_coroutine_threadsafe(self._get_stream_async(url, stop_event, title=title, name=name), Scraper._loop)
         try:
             return future.result(timeout=(self.timeout / 1000) + 15)
         except Exception as e:
             self.logger.error(f"Scraping error: {e}")
             return None
 
-    async def _shutdown_async(self):
-        if self.browser is not None:
+    @classmethod
+    async def _shutdown_async(cls):
+        if Scraper._browser is not None:
             try:
                 # if context is not None: await context.close()
-                await self.browser.close()
+                await Scraper._browser.close()
             except Exception:
                 pass
-            self.context = None
-            self.browser = None
+            # self.context = None
+            Scraper._browser = None
 
-        if self._playwright is not None:
+        if Scraper._playwright is not None:
             try:
-                await self._playwright.stop()
+                await Scraper._playwright.stop()
             except Exception:
                 pass
-            self._playwright = None
+            Scraper._playwright = None
 
-    def shutdown(self):
-        self.logger.info("Closing browser and cleaning system processes...")
-        if self._loop and self._loop.is_running():
-            asyncio.run_coroutine_threadsafe(self._shutdown_async(), self._loop).result(timeout=30)
-            self._loop.call_soon_threadsafe(self._loop.stop)
-            if self._loop_thread is not None:
-                self._loop_thread.join(timeout=5)
-        self.logger.info("🧹 Clean shutdown complete.")
+    @classmethod
+    def shutdown(cls):
+        print("Closing browser and cleaning system processes...")
+        if Scraper._loop and Scraper._loop.is_running():
+            asyncio.run_coroutine_threadsafe(cls._shutdown_async(), Scraper._loop).result(timeout=30)
+            Scraper._loop.call_soon_threadsafe(Scraper._loop.stop)
+            if Scraper._loop_thread is not None:
+                Scraper._loop_thread.join(timeout=5)
+        print("🧹 Clean shutdown complete.")
+
+import atexit
+atexit.register(Scraper.shutdown)
 
 
 if __name__ == "__main__":
