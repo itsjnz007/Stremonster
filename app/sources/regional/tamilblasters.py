@@ -9,14 +9,15 @@ from app.core.parsers import Parsers
 from app.models.metadata import Metadata
 import asyncio
 from app.core.multithreading import MultiThreading
+from app.core.scraper import Scraper
 
 parsers = Parsers()
 
 class TamilBlasters(Scraper):
     async def search_page(self, url: str) -> list[Metadata]:
         try:
-            assert self.browser is not None
-            context = await self.browser.new_context()
+            assert Scraper._browser is not None
+            context = await Scraper._browser.new_context()
             page = await context.new_page()
             await page.goto(url)
             raw_data = await page.evaluate("""
