@@ -109,7 +109,7 @@ class Proxy:
     def get_proxy_url(stream_url: str, origin: str, content_type: Optional[str] = None, cookies: Optional[dict[str, str] | RequestsCookieJar] = None) -> str:
 
         if not content_type: content_type = Proxy.get_stream_type(stream_url=stream_url, origin=origin)
-        stream_type = "stream.mp4" if content_type is "video/mp4" else "stream.m3u8"
+        stream_type = "stream.mp4" if content_type == "video/mp4" else "stream.m3u8"
 
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
