@@ -96,13 +96,12 @@ class Proxy:
             content_type = r.headers.get('Content-Type')
             if content_type: 
                 if content_type in ("mpegurl", "application/vnd.apple.mpegurl", "video/mp2t", "video/mp4"): return content_type
-            if ".mp4" in stream_url: return "video/mp4"
-            if ".m3u8" in stream_url: return "mpegurl"
-            else:
-                logger.error("Content-type unavailable in the obtained header. Returning default type.")
-                return "mpegurl"
-
-        logger.error(f"Unable to fetch content-type. Error code {r.status_code}. Returning default type.")
+        else: logger.error(f"Unable to fetch content-type. Error code {r.status_code}. ")
+        
+        if ".mp4" in stream_url: return "video/mp4"
+        if ".m3u8" in stream_url: return "mpegurl"
+        
+        logger.error("Content-type unavailable in the obtained header. Returning default type.")
         return "mpegurl"
 
     @staticmethod
