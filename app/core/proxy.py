@@ -42,15 +42,15 @@ class Proxy:
     Optimized for Android ExoPlayer compatibility by preserving clean explicit 
     extensions and handling precise mime-types.
     """
-    @staticmethod
-    def is_valid(stream_url: str) -> bool:
-        try:
-            response = requests.head(stream_url, timeout=10, allow_redirects=True)
-            if response.status_code in [200, 203, 206]: return True 
-        except Exception as e:
-            logger.error(f"Error checking URL validity. Error: {e}")
+    # @staticmethod
+    # def is_valid(stream_url: str) -> bool:
+    #     try:
+    #         response = requests.head(stream_url, timeout=10, allow_redirects=True)
+    #         if response.status_code in [200, 203, 206]: return True 
+    #     except Exception as e:
+    #         logger.error(f"Error checking URL validity. Error: {e}")
 
-        return False
+    #     return False
 
     @staticmethod
     def get_external_proxy_url(stream_url: str, origin: str) -> str:
@@ -76,11 +76,11 @@ class Proxy:
             "https://megacloud.animanga.fun/proxy"
             f"?url={encoded_url}&headers={encoded_headers}"
         )
-
+    
     @staticmethod
-    def get_proxy_url(stream_url: str, origin: str, type: str = "stream.m3u8", cookies: Optional[dict[str, str] | RequestsCookieJar] = None) -> str:
-
-        headers = {"ffuser-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
+    def get_stream_type(stream_url: str, origin: str):
+        headers = {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
             "accept": "*/*",
             "accept-language": "en-US,en;q=0.5",
             "sec-fetch-dest": "empty",
@@ -88,6 +88,36 @@ class Proxy:
             "sec-fetch-site": "cross-site",
             "origin": origin,
             "referer": f"{origin}/"
+        }
+
+        r = session.head(stream_url, headers=headers, timeout=10)
+
+        if r.status_code in (200, 203, 206): 
+            content_type = r.headers.get('Content-Type')
+            if content_type: return content_type
+            else:
+                logger.error("Content-type unavailable in the obtained header. Returning default type.")
+                return "mpegurl"
+
+        logger.error(f"Unable to fetch content-type. Error code {r.status_code}. Returning default type.")
+        return "mpegurl"
+
+    @staticmethod
+    def get_proxy_url(stream_url: str, origin: str, content_type: Optional[str] = None, cookies: Optional[dict[str, str] | RequestsCookieJar] = None) -> str:
+
+        if not content_type: content_type = Proxy.get_stream_type(stream_url=stream_url, origin=origin)
+        stream_type = "stream.mp4" if content_type is "video/mp4" else "stream.m3u8"
+
+        headers = {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
+            "accept": "*/*",
+            "accept-language": "en-US,en;q=0.5",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "origin": origin,
+            "referer": f"{origin}/",
+            "content-type": content_type
         }
 
         if cookies:
@@ -102,19 +132,23 @@ class Proxy:
 
         headers_str = json.dumps(headers)
 
-        # logger.debug(f"Generated Proxied Endpoint: {proxied_url}")
-        proxied_url = Proxy.add_proxy(stream_url, headers_str, type)
+        proxied_url = Proxy.add_proxy(stream_url, headers_str, stream_type)
         return proxied_url
 
-    @staticmethod
-    def proxy_m3u8() -> Response | tuple[dict[str, str], int]:
-        """Proxy endpoint for M3U8 playlists"""
-        return Proxy.proxy()
+    # @staticmethod
+    # def proxy_m3u8() -> Response | tuple[dict[str, str], int]:
+    #     """Proxy endpoint for M3U8 playlists"""
+    #     return Proxy.proxy()
 
-    @staticmethod
-    def proxy_stream_ts() -> Response | tuple[dict[str, str], int]:
-        """Proxy endpoint for TS segments"""
-        return Proxy.proxy()
+    # @staticmethod
+    # def proxy_stream_ts() -> Response | tuple[dict[str, str], int]:
+    #     """Proxy endpoint for TS segments"""
+    #     return Proxy.proxy()
+    
+    # @staticmethod
+    # def proxy_stream_mp4() -> Response | tuple[dict[str, str], int]:
+    #     """Proxy endpoint for mp4 url"""
+    #     return Proxy.proxy()
     
     @staticmethod
     def add_proxy(url: str, headers: str, stream_type: str = "stream.ts") -> str:
@@ -232,7 +266,7 @@ class Proxy:
                 or "mpegurl" in content_type
             )
 
-            if is_m3u8 and upstream_response.status_code in (200, 206):
+            if is_m3u8 and upstream_response.status_code in (200, 203, 206):
 
                 content = upstream_response.content
 
@@ -245,7 +279,7 @@ class Proxy:
                 resp = Response(
                     updated_content,
                     status=upstream_response.status_code,
-                    mimetype="application/vnd.apple.mpegurl"
+                    mimetype="mpegurl"
                 )
                 return Proxy.apply_header(resp)
             
@@ -253,7 +287,11 @@ class Proxy:
                 for chunk in upstream_response.iter_content(chunk_size=1024*64):
                     if chunk: yield chunk
 
-            resp = Response(stream_with_context(generate_media()), status=upstream_response.status_code)
+            resp = Response(
+                stream_with_context(generate_media()), 
+                status=upstream_response.status_code,
+                mimetype=headers.get("content-type", "video/mp2t")
+            )
             return Proxy.apply_header(resp)
         except Exception as e: 
             logger.error(f"Proxy error, {e}")

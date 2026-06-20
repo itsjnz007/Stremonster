@@ -273,12 +273,16 @@ def get_torrent_stream(type: str, id: str) -> Response:
 @app.route("/stream.m3u8")
 def proxy_m3u8():
     """Proxy endpoint for M3U8 playlists - ends with .m3u8 for Android compatibility"""
-    return Proxy.proxy_m3u8()
+    return Proxy.proxy()
 
 @app.route("/stream.ts")
 def proxy_stream_ts():
     """Proxy endpoint for TS segments - ends with .ts for Android compatibility"""
-    return Proxy.proxy_stream_ts()
+    return Proxy.proxy()
+
+@app.route("/stream.mp4")
+def proxy_stream_mp4():
+    return Proxy.proxy()
 
 @app.route("/proxy")
 def proxy() -> Response | tuple[dict[str, str], int]:
