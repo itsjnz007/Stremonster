@@ -90,11 +90,14 @@ class Proxy:
             "referer": f"{origin}/"
         }
 
-        r = session.head(stream_url, headers=headers, timeout=10)
+        r = session.head(stream_url, headers=headers, timeout=10, stream=True)
 
         if r.status_code in (200, 203, 206): 
             content_type = r.headers.get('Content-Type')
-            if content_type: return content_type
+            if content_type: 
+                if content_type in ("mpegurl", "application/vnd.apple.mpegurl", "video/mp2t", "video/mp4"): return content_type
+            if ".mp4" in stream_url: return "video/mp4"
+            if ".m3u8" in stream_url: return "mpegurl"
             else:
                 logger.error("Content-type unavailable in the obtained header. Returning default type.")
                 return "mpegurl"
