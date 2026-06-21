@@ -95,7 +95,8 @@ class Proxy:
         if r.status_code in (200, 203, 206): 
             content_type = r.headers.get('Content-Type')
             if content_type: 
-                if content_type in ("mpegurl", "application/vnd.apple.mpegurl", "video/mp2t", "video/mp4"): return content_type
+                # if content_type in ("mpegurl", "application/vnd.apple.mpegurl", "video/mp2t", "video/mp4"): 
+                return content_type
         else: 
             logger.error(f"Unable to fetch content-type. Error code {r.status_code}. ")
             return
@@ -250,7 +251,7 @@ class Proxy:
                         headers=headers,
                         stream=True,
                         cookies=request.cookies,
-                        verify=False
+                        # verify=False
                     )
                 else:
                     upstream_response = session.get(
@@ -259,7 +260,7 @@ class Proxy:
                         headers=headers,
                         stream=True,
                         cookies=request.cookies,
-                        verify=False
+                        # verify=False
                     )
             except Exception as e: 
                 logger.error(f"Proxy upstream error, {e}")
@@ -267,9 +268,12 @@ class Proxy:
 
             content_type = upstream_response.headers.get("content-type", "").lower()
 
+            print(content_type)
+
             is_m3u8 = (
                 ".m3u8" in media_url
                 or "mpegurl" in content_type
+                or "application/vnd.apple.mpegurl" in content_type
             )
 
             if is_m3u8 and upstream_response.status_code in (200, 203, 206):
@@ -285,7 +289,8 @@ class Proxy:
                 resp = Response(
                     updated_content,
                     status=upstream_response.status_code,
-                    mimetype="mpegurl"
+                    # mimetype="application/vnd.apple.mpegurl"
+                    mimetype=content_type
                 )
                 return Proxy.apply_header(resp)
             
@@ -296,7 +301,8 @@ class Proxy:
             resp = Response(
                 stream_with_context(generate_media()), 
                 status=upstream_response.status_code,
-                mimetype=headers.get("content-type", "video/mp2t")
+                content_type=content_type
+                # mimetype=headers.get("content-type", "video/mp2t")
             )
             return Proxy.apply_header(resp)
         except Exception as e: 
