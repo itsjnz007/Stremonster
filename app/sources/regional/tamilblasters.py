@@ -79,5 +79,5 @@ if __name__ == "__main__":
     scraper = TamilBlasters()
     threading = MultiThreading()
     print(
-        scraper.get_movie("Blast", "2026", threading)
+        scraper.get_movie("Bison: Kaalamaadan", "2026", threading)
     )
