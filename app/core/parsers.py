@@ -111,7 +111,8 @@ if __name__ == "__main__":
     database = [
         Metadata(title="Lokah: Chapter One", url="", year="2026", languages=["Tamil", "Hindi"]),
         Metadata(title="Kara", url="", year=None, languages=["Tamil"]),
-        Metadata(title="Karaa", url="", year="2026", languages=["Hindi"])
+        Metadata(title="Karaa", url="", year="2026", languages=["Hindi"]),
+        Metadata(title="Bison Kaalamaadan", url="", year="2025")
     ]
 
     # Test Case 1: Match "Lokah chapter 1" (2026 matches)
@@ -122,3 +123,5 @@ if __name__ == "__main__":
 
     # Test Case 3: "Karaa" (2026) vs 2025 input (Mismatch, should be None)
     print(f"Match 3: {parsers.find_all_matches('karaa', '2025', database)}")
+
+    print(f"Match 4: {parsers.find_all_matches('Bison: Kaalamaadan', '2025', database)}")

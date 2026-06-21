@@ -17,7 +17,10 @@ class VidnestScraper(Scraper):
     def get_series(self, anilist_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/anime/{anilist_id}/{episode}/sub"
         result = self.get_stream(url, stop_event, title="Web | Vidnest (Anime)")
-        if result: result['url'] = Proxy.get_proxy_url(result['url'], origin=self.base_url)
+        if result: 
+            proxy_result = Proxy.get_proxy_url(result['url'], origin=self.base_url)
+            if not proxy_result: return
+            result['url'] = proxy_result
         return result
     
 if __name__ == "__main__":

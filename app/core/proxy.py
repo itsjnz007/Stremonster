@@ -52,33 +52,33 @@ class Proxy:
 
     #     return False
 
-    @staticmethod
-    def get_external_proxy_url(stream_url: str, origin: str) -> str:
-        if 'proxy' in stream_url: return stream_url
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-            "accept": "*/*",
-            "accept-language": "en-US,en;q=0.5",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "origin": origin,
-            "referer": origin.rstrip("/") + "/"
-        }
+    # @staticmethod
+    # def get_external_proxy_url(stream_url: str, origin: str) -> str:
+    #     if 'proxy' in stream_url: return stream_url
+    #     headers = {
+    #         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
+    #         "accept": "*/*",
+    #         "accept-language": "en-US,en;q=0.5",
+    #         "sec-fetch-dest": "empty",
+    #         "sec-fetch-mode": "cors",
+    #         "sec-fetch-site": "cross-site",
+    #         "origin": origin,
+    #         "referer": origin.rstrip("/") + "/"
+    #     }
 
-        encoded_url = quote(stream_url, safe="")
-        encoded_headers = quote(
-            json.dumps(headers, separators=(",", ":")),
-            safe=""
-        )
+    #     encoded_url = quote(stream_url, safe="")
+    #     encoded_headers = quote(
+    #         json.dumps(headers, separators=(",", ":")),
+    #         safe=""
+    #     )
 
-        return (
-            "https://megacloud.animanga.fun/proxy"
-            f"?url={encoded_url}&headers={encoded_headers}"
-        )
+    #     return (
+    #         "https://megacloud.animanga.fun/proxy"
+    #         f"?url={encoded_url}&headers={encoded_headers}"
+    #     )
     
     @staticmethod
-    def get_stream_type(stream_url: str, origin: str):
+    def get_stream_type(stream_url: str, origin: str) -> Optional[str]:
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
             "accept": "*/*",
@@ -96,7 +96,9 @@ class Proxy:
             content_type = r.headers.get('Content-Type')
             if content_type: 
                 if content_type in ("mpegurl", "application/vnd.apple.mpegurl", "video/mp2t", "video/mp4"): return content_type
-        else: logger.error(f"Unable to fetch content-type. Error code {r.status_code}. ")
+        else: 
+            logger.error(f"Unable to fetch content-type. Error code {r.status_code}. ")
+            return
         
         if ".mp4" in stream_url: return "video/mp4"
         if ".m3u8" in stream_url: return "mpegurl"
@@ -105,9 +107,11 @@ class Proxy:
         return "mpegurl"
 
     @staticmethod
-    def get_proxy_url(stream_url: str, origin: str, content_type: Optional[str] = None, cookies: Optional[dict[str, str] | RequestsCookieJar] = None) -> str:
+    def get_proxy_url(stream_url: str, origin: str, content_type: Optional[str] = None, cookies: Optional[dict[str, str] | RequestsCookieJar] = None) -> Optional[str]:
 
-        if not content_type: content_type = Proxy.get_stream_type(stream_url=stream_url, origin=origin)
+        if not content_type: 
+            content_type = Proxy.get_stream_type(stream_url=stream_url, origin=origin)
+            if not content_type: return
         stream_type = "stream.mp4" if content_type == "video/mp4" else "stream.m3u8"
 
         headers = {
