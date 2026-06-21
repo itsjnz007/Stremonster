@@ -148,6 +148,13 @@ def get_web_stream(type: str, id: str) -> Response:
             (lambda event, tmdb, s, e: cineby_scraper.get_series(tmdb, s, e, event), 'cineby'),
         ]
 
+        anime_series_scrapers: List[Tuple[Callable[[Event, str, str, str, str], Optional[WebResponse]], str]] = [
+            (lambda event, ani_id, ani_eps, mal_id, mal_eps: four_animo_scraper.get_series(ani_id, str(ani_eps), event), '4anime'),
+            (lambda event, ani_id, ani_eps, mal_id, mal_eps: vidnest_scraper.get_series(ani_id, str(ani_eps), event), 'vidnest'),
+            (lambda event, ani_id, ani_eps, mal_id, mal_eps: miruro_scraper.get_series(mal_id, str(mal_eps), event), 'miruro'),
+            (lambda event, ani_id, ani_eps, mal_id, mal_eps: miruro_scraper.get_series(ani_id, str(ani_eps), event), 'miruro'),
+        ]
+
         returnable_results: List[WebResponse] | List[ExternalWebResponse] = []
         ignore_set = set(ignore_list)
 
@@ -190,16 +197,22 @@ def get_web_stream(type: str, id: str) -> Response:
             if orig_lang == "ja":
                 mal_id, mal_eps = anibride.get_mal_info(imdb_id, season, episode)
                 ani_id, ani_eps = anibride.get_anilist_info(imdb_id, season, episode)
-                
-                response = thread_pool_web.get_first([
-                    (lambda event: four_animo_scraper.get_series(ani_id, str(ani_eps), event), 'task1'),
-                    (lambda event: vidnest_scraper.get_series(ani_id, str(ani_eps), event), 'task2'),
-                    (lambda event: miruro_scraper.get_series(mal_id, str(mal_eps), event), 'task3'),
-                    (lambda event: miruro_scraper.get_series(ani_id, str(ani_eps), event), 'task4'),
-                ])
+
+                tasks: List[Tuple[Callable[[Event, str, str, str, str], str], str]] = [ # type: ignore
+                    (lambda event, f=func: f(event, ani_id, ani_eps, mal_id, mal_eps), name) # type: ignore
+                    for func, name in anime_series_scrapers
+                    if name not in ignore_set # type: ignore
+                ]
+                # response = thread_pool_web.get_first([
+                #     (lambda event: four_animo_scraper.get_series(ani_id, str(ani_eps), event), 'task1'),
+                #     (lambda event: vidnest_scraper.get_series(ani_id, str(ani_eps), event), 'task2'),
+                #     (lambda event: miruro_scraper.get_series(mal_id, str(mal_eps), event), 'task3'),
+                #     (lambda event: miruro_scraper.get_series(ani_id, str(ani_eps), event), 'task4'),
+                # ])
+                response = thread_pool_web.get_first(tasks) # type: ignore
                 if response: 
-                    result, _ = response
-                    returnable_results = [result]
+                    result, index = response
+                    returnable_results = [result, include_ignore_query(index, len(series_scrapers))]
 
             else:
                 tasks: List[Tuple[Callable[[Event, str, str, str], str], str]] = [

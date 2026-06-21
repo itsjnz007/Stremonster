@@ -251,7 +251,7 @@ class Proxy:
                         headers=headers,
                         stream=True,
                         cookies=request.cookies,
-                        # verify=False
+                        verify=False
                     )
                 else:
                     upstream_response = session.get(
@@ -260,7 +260,7 @@ class Proxy:
                         headers=headers,
                         stream=True,
                         cookies=request.cookies,
-                        # verify=False
+                        verify=False
                     )
             except Exception as e: 
                 logger.error(f"Proxy upstream error, {e}")
@@ -268,7 +268,7 @@ class Proxy:
 
             content_type = upstream_response.headers.get("content-type", "").lower()
 
-            print(content_type)
+            # print(content_type)
 
             is_m3u8 = (
                 ".m3u8" in media_url
