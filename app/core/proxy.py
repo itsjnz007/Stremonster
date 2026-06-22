@@ -16,18 +16,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logger = Logger("proxy")
 session = requests.Session()
 
-# # Configure retry strategy
-# retry_strategy = Retry(
-#     total=3,  # Total number of retries
-#     backoff_factor=0.5,  # Wait 0.5s, 1s, 2s between retries
-#     status_forcelist=[500, 502, 503, 504, 403],  # Retry on these status codes
-#     allowed_methods=["GET", "POST"]
-# )
-
-# adapter = HTTPAdapter(max_retries=retry_strategy)
-# session.mount("http://", adapter)
-# session.mount("https://", adapter)
-# ----------------------------
 
 def respond_with(data: dict[str, Any]) -> Response:
     resp = jsonify(data)
@@ -77,6 +65,8 @@ class Proxy:
     #         f"?url={encoded_url}&headers={encoded_headers}"
     #     )
     
+
+
     @staticmethod
     def get_stream_type(stream_url: str, origin: str) -> Optional[str]:
         headers = {
@@ -90,22 +80,46 @@ class Proxy:
             "referer": f"{origin}/"
         }
 
-        r = session.head(stream_url, headers=headers, timeout=10, stream=True)
+        try:
+            r = session.head(stream_url, headers=headers, timeout=10, allow_redirects=True)
+        except Exception as e:
+            logger.error(f"Network error while probing stream URL: {e}")
+            return None
 
-        if r.status_code in (200, 203, 206): 
-            content_type = r.headers.get('Content-Type')
-            if content_type: 
-                # if content_type in ("mpegurl", "application/vnd.apple.mpegurl", "video/mp2t", "video/mp4"): 
-                return content_type
-        else: 
-            logger.error(f"Unable to fetch content-type. Error code {r.status_code}. ")
-            return
+        # 1. Handle standard error codes
+        if r.status_code not in (200, 203, 206): 
+            logger.error(f"Unable to fetch content-type. Error code {r.status_code}.")
+            return None
+            
+        # 2. DETECT DEAD/EMPTY SOURCES (The fix for your issue)
+        # If the server returns a 200 but explicitly says Content-Length is 0 (a ghost/dead token)
+        content_length = r.headers.get('content-length')
+        if content_length and int(content_length) == 0:
+            logger.warning(f"Source returned 200 OK but Content-Length is 0. URL is likely dead/invalid: {stream_url}")
+            return None
+
+        # 3. Extract and validate Content-Type
+        content_type = r.headers.get('content-type', "").lower()
+        if content_type:
+            if "mpegurl" in content_type or "apple.mpegurl" in content_type:
+                return "application/vnd.apple.mpegurl"
+            elif "dash+xml" in content_type:
+                return "application/dash+xml"
+            elif "mp4" in content_type:
+                return "video/mp4"
+            elif "mp2t" in content_type:
+                return "video/mp2t"
+
+        # 4. Fallback to URL extension parsing if Content-Type is vague
+        if ".mp4" in stream_url.lower(): 
+            return "video/mp4"
+        if ".m3u8" in stream_url.lower(): 
+            return "application/vnd.apple.mpegurl"
+        if ".mpd" in stream_url.lower(): 
+            return "application/dash+xml"
         
-        if ".mp4" in stream_url: return "video/mp4"
-        if ".m3u8" in stream_url: return "mpegurl"
-        
-        logger.error("Content-type unavailable in the obtained header. Returning default type.")
-        return "mpegurl"
+        logger.error("Content-type unavailable or unrecognized. Rejecting source.")
+        return None
 
     @staticmethod
     def get_proxy_url(stream_url: str, origin: str, content_type: Optional[str] = None, cookies: Optional[dict[str, str] | RequestsCookieJar] = None) -> Optional[str]:
@@ -141,21 +155,7 @@ class Proxy:
 
         proxied_url = Proxy.add_proxy(stream_url, headers_str, stream_type)
         return proxied_url
-
-    # @staticmethod
-    # def proxy_m3u8() -> Response | tuple[dict[str, str], int]:
-    #     """Proxy endpoint for M3U8 playlists"""
-    #     return Proxy.proxy()
-
-    # @staticmethod
-    # def proxy_stream_ts() -> Response | tuple[dict[str, str], int]:
-    #     """Proxy endpoint for TS segments"""
-    #     return Proxy.proxy()
     
-    # @staticmethod
-    # def proxy_stream_mp4() -> Response | tuple[dict[str, str], int]:
-    #     """Proxy endpoint for mp4 url"""
-    #     return Proxy.proxy()
     
     @staticmethod
     def add_proxy(url: str, headers: str, stream_type: str = "stream.ts") -> str:
@@ -225,8 +225,9 @@ class Proxy:
         return "\n".join(rewritten)
     
     @staticmethod
-    def apply_header(response: Response):
+    def apply_headers(response: Response):
         response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers['Access-Control-Allow-Headers'] = '*'
         response.headers["Cache-Control"] = "no-cache"
         response.headers["Connection"] = "close"
         response.headers["Accept-Ranges"] = "bytes"
@@ -292,7 +293,7 @@ class Proxy:
                     # mimetype="application/vnd.apple.mpegurl"
                     mimetype=content_type
                 )
-                return Proxy.apply_header(resp)
+                return Proxy.apply_headers(resp)
             
             def generate_media():
                 for chunk in upstream_response.iter_content(chunk_size=1024*64):
@@ -304,7 +305,7 @@ class Proxy:
                 content_type=content_type
                 # mimetype=headers.get("content-type", "video/mp2t")
             )
-            return Proxy.apply_header(resp)
+            return Proxy.apply_headers(resp)
         except Exception as e: 
             logger.error(f"Proxy error, {e}")
             return Response(f"Proxy error: {e}")
