@@ -303,19 +303,12 @@ class Proxy:
                 for chunk in upstream_response.iter_content(chunk_size=1024*64):
                     if chunk: yield chunk
 
-            status_code = upstream_response.status_code
-            is_partial = status_code in (206, 200) and "Content-Range" in upstream_response.headers
-
             resp = Response(
                 stream_with_context(generate_media()), 
-                status=status_code,
-                content_type=content_type
+                status=upstream_response.status_code,
+                content_type=content_type,
+                headers=upstream_response.headers
             )
-
-            if is_partial and "Content-Range" in upstream_response.headers:
-                resp.headers["Content-Range"] = upstream_response.headers["Content-Range"]
-                if "Content-Length" in upstream_response.headers:
-                    resp.headers["Content-Length"] = upstream_response.headers["Content-Length"]
             
             return Proxy.apply_headers(resp)
         except Exception as e: 
