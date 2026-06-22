@@ -240,16 +240,21 @@ class Proxy:
             media_url = request.args.get("url")
             if not media_url: raise Exception("No media_url found")
 
-            headers_str = request.args.get("headers", "{}")
-            try: headers = json.loads(headers_str)
+            request_headers = dict(request.headers)
+
+            arg_headers_str = request.args.get("headers", "{}")
+            try: arg_headers = json.loads(arg_headers_str)
             except Exception as e: return Response(f"Unable to parse headers_str. Error: {e}", status=503)
+
+            # request_headers.update(arg_headers)
+            if "Range" in request_headers: arg_headers['Range'] = request_headers['Range']
 
             try:
                 if request.method == "POST":
                     upstream_response = session.post(
                         media_url,
                         timeout=30,
-                        headers=headers,
+                        headers=arg_headers,
                         stream=True,
                         cookies=request.cookies,
                         verify=False
@@ -258,7 +263,7 @@ class Proxy:
                     upstream_response = session.get(
                         media_url,
                         timeout=30,
-                        headers=headers,
+                        headers=arg_headers,
                         stream=True,
                         cookies=request.cookies,
                         verify=False
@@ -283,14 +288,13 @@ class Proxy:
 
                 updated_content = Proxy.parse_segment(
                     content,
-                    headers,
+                    arg_headers,
                     media_url
                 )
 
                 resp = Response(
                     updated_content,
                     status=upstream_response.status_code,
-                    # mimetype="application/vnd.apple.mpegurl"
                     mimetype=content_type
                 )
                 return Proxy.apply_headers(resp)
@@ -299,13 +303,20 @@ class Proxy:
                 for chunk in upstream_response.iter_content(chunk_size=1024*64):
                     if chunk: yield chunk
 
+            status_code = upstream_response.status_code
+            is_partial = status_code in (206, 200) and "Content-Range" in upstream_response.headers
+
             resp = Response(
                 stream_with_context(generate_media()), 
-                status=upstream_response.status_code,
-                content_type=content_type,
-                headers=headers
-                # mimetype=headers.get("content-type", "video/mp2t")
+                status=status_code,
+                content_type=content_type
             )
+
+            if is_partial and "Content-Range" in upstream_response.headers:
+                resp.headers["Content-Range"] = upstream_response.headers["Content-Range"]
+                if "Content-Length" in upstream_response.headers:
+                    resp.headers["Content-Length"] = upstream_response.headers["Content-Length"]
+            
             return Proxy.apply_headers(resp)
         except Exception as e: 
             logger.error(f"Proxy error, {e}")
