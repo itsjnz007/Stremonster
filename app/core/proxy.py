@@ -302,7 +302,8 @@ class Proxy:
             resp = Response(
                 stream_with_context(generate_media()), 
                 status=upstream_response.status_code,
-                content_type=content_type
+                content_type=content_type,
+                headers=headers
                 # mimetype=headers.get("content-type", "video/mp2t")
             )
             return Proxy.apply_headers(resp)
