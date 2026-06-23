@@ -11,7 +11,7 @@ from threading import Event
 
 class CinebyScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="cineby")
+        super().__init__(headless=False, source="cineby")
         self.base_url = "https://cineby.at"
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
@@ -34,15 +34,15 @@ class CinebyScraper(Scraper):
     
 
 if __name__ == "__main__":
-    # test_movie_id = "687163"  # John Wick: Chapter 4
-    test_movie_id = "1257957" # bison: kaalamaadan
+    test_movie_id = "687163"  # John Wick: Chapter 4
+    # test_movie_id = "1257957" # bison: kaalamaadan
     test_series_id = "1399"    # Game of Thrones
 
     scraper = CinebyScraper()
     
-    print(f"Testing movie ID {test_movie_id}...")
-    movie_response = scraper.get_movie(test_movie_id)
-    print(f"Movie response: {movie_response}")
+    # print(f"Testing movie ID {test_movie_id}...")
+    # movie_response = scraper.get_movie(test_movie_id)
+    # print(f"Movie response: {movie_response}")
 
     series_response = scraper.get_series(test_series_id, "1", "1")
     print(f"Series response: {series_response}")

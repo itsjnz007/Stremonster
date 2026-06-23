@@ -4,11 +4,11 @@ from urllib.parse import quote, urlparse
 import requests
 from app.core.logger import Logger
 from typing import Any
-import json, re
+import json, re, urllib3
 from typing import Optional
 from requests.cookies import RequestsCookieJar
 
-# urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # from requests.adapters import HTTPAdapter
 # from urllib3.util.retry import Retry
 
@@ -257,7 +257,7 @@ class Proxy:
                         headers=arg_headers,
                         stream=True,
                         cookies=request.cookies,
-                        # verify=False
+                        verify=False
                     )
                 else:
                     upstream_response = session.get(
@@ -266,7 +266,7 @@ class Proxy:
                         headers=arg_headers,
                         stream=True,
                         cookies=request.cookies,
-                        # verify=False
+                        verify=False
                     )
             except Exception as e: 
                 logger.error(f"Proxy upstream error, {e}")
