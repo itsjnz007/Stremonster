@@ -9,10 +9,7 @@ from typing import Optional
 from requests.cookies import RequestsCookieJar
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-# from requests.adapters import HTTPAdapter
-# from urllib3.util.retry import Retry
 
-# --- Add this setup block ---
 logger = Logger("proxy")
 session = requests.Session()
 
@@ -138,7 +135,7 @@ class Proxy:
             # "sec-fetch-site": "cross-site",
             "origin": origin,
             "referer": f"{origin}/",
-            "content-type": content_type
+            # "content-type": content_type
         }
 
         if cookies:
@@ -241,9 +238,14 @@ class Proxy:
             media_url = request.args.get("url")
             if not media_url: raise Exception("No media_url found")
 
+            logger.debug(f"media_url: {media_url}")
+
             request_headers = dict(request.headers)
 
+            logger.debug(f"request_headers: {request_headers}")
+
             arg_headers_str = request.args.get("headers", "{}")
+            
             try: arg_headers = json.loads(arg_headers_str)
             except Exception as e: return Response(f"Unable to parse headers_str. Error: {e}", status=503)
 
@@ -274,8 +276,6 @@ class Proxy:
                 return Response(f"Upstream error {e}", status=503)
 
             content_type = upstream_response.headers.get("content-type", "").lower()
-
-            # print(content_type)
 
             is_m3u8 = (
                 ".m3u8" in media_url
