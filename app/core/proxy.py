@@ -227,8 +227,9 @@ class Proxy:
     @staticmethod
     def apply_headers(response: Response):
         response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers['Access-Control-Allow-Headers'] = '*'
-        response.headers["Cache-Control"] = "no-cache"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, HEAD"
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response.headers["Connection"] = "close"
         response.headers["Accept-Ranges"] = "bytes"
         return response
