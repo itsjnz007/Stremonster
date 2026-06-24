@@ -97,16 +97,16 @@ def ignore_source(id: str, source: str):
     ignore_source_cache.set(id, list(set(source_list)))
     web_cache.remove(id)
     return render_template('message.html', 
-                           title="Source Ignored", 
-                           message="The source has been added to your ignore list.")
+                           title=f"{source.title()} removed", 
+                           message=f"{source.title()} has been added to the ignore list for this video.")
 
 @app.route('/web/clear_ignore_source/<id>.json')
 def clear_ignore_source(id: str):
     ignore_source_cache.set(id, [])
     web_cache.remove(id)
     return render_template('message.html', 
-                           title="Source Cleared", 
-                           message="The source has been processed.")
+                           title="Preferences Cleared", 
+                           message="Using all the available sources.")
 
 
 @app.route('/web/stream/<type>/<id>.json')
