@@ -11,11 +11,11 @@ from threading import Event
 
 class CinebyScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=False, source="cineby")
-        self.base_url = "https://cineby.at"
+        super().__init__(headless=True, source="cineby")
+        self.base_url = "https://cineby.cc"
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        url = f"{self.base_url}/movie/{tmdb_id}?play=true"
+        url = f"{self.base_url}/watch/{tmdb_id}"
         result = self.get_stream(url, stop_event, title="Web | Cineby")
         if result: 
             proxy_result = Proxy.get_proxy_url(result['url'], origin=self.base_url)
@@ -24,7 +24,7 @@ class CinebyScraper(Scraper):
         return result
     
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}?play=true"
+        url = f"{self.base_url}/watch/{tmdb_id}?s={season}&e={episode}"
         result = self.get_stream(url, stop_event, title="Web | Cineby")
         if result: 
             proxy_result = Proxy.get_proxy_url(result['url'], origin=self.base_url)
@@ -34,8 +34,7 @@ class CinebyScraper(Scraper):
     
 
 if __name__ == "__main__":
-    test_movie_id = "687163"  # John Wick: Chapter 4
-    # test_movie_id = "1257957" # bison: kaalamaadan
+    test_movie_id = "936075"  # Michael Jackson
     test_series_id = "1399"    # Game of Thrones
 
     scraper = CinebyScraper()

@@ -33,8 +33,8 @@ class VidkingScraper(Scraper):
     
 
 if __name__ == "__main__":
-    # test_movie_id = "687163"  # John Wick: Chapter 4
-    test_movie_id = "1257957" # bison: kaalamaadan
+    test_movie_id = "687163"  # John Wick: Chapter 4
+    # test_movie_id = "1257957" # bison: kaalamaadan
     # test_series_id = "1399"    # Game of Thrones
 
     scraper = VidkingScraper()

@@ -13,7 +13,7 @@ from threading import Event
 from typing import Optional, Callable, Awaitable
 from playwright.async_api import Page, Playwright
 
-STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/)\S*'
+STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/mp4)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
 AD_BLOCK_LIST = [
     "**/adsense/**",
