@@ -1,5 +1,5 @@
 from typing import TypedDict
-
+from dataclasses import dataclass
 
 class WebResponse(TypedDict):
     """Information about the scraped stream."""
@@ -19,3 +19,8 @@ class TorrentResponse(TypedDict):
     title: str
     name: str
     infoHash: str
+
+@dataclass
+class Segment:
+    url: str
+    duration: float
