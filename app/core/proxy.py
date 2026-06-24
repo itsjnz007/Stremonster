@@ -7,10 +7,11 @@ from typing import Any
 import json, re, urllib3
 from typing import Optional
 from requests.cookies import RequestsCookieJar
+import logging
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-logger = Logger("proxy")
+logger = Logger("proxy", logging.INFO)
 session = requests.Session()
 
 
@@ -235,21 +236,20 @@ class Proxy:
     def proxy() -> Response:
         try:
             logger.debug(f"Proxying: {request.url}")
+
             media_url = request.args.get("url")
             if not media_url: raise Exception("No media_url found")
-
             logger.debug(f"media_url: {media_url}")
 
             request_headers = dict(request.headers)
-
             logger.debug(f"request_headers: {request_headers}")
 
             arg_headers_str = request.args.get("headers", "{}")
             
             try: arg_headers = json.loads(arg_headers_str)
             except Exception as e: return Response(f"Unable to parse headers_str. Error: {e}", status=503)
+            logger.debug(f"arg_headers: {arg_headers}")
 
-            # request_headers.update(arg_headers)
             if "Range" in request_headers: arg_headers['Range'] = request_headers['Range']
 
             try:
@@ -259,7 +259,7 @@ class Proxy:
                         timeout=30,
                         headers=arg_headers,
                         stream=True,
-                        cookies=request.cookies,
+                        # cookies=request.cookies,
                         verify=False
                     )
                 else:
@@ -268,12 +268,15 @@ class Proxy:
                         timeout=30,
                         headers=arg_headers,
                         stream=True,
-                        cookies=request.cookies,
+                        # cookies=request.cookies,
                         verify=False
                     )
             except Exception as e: 
                 logger.error(f"Proxy upstream error, {e}")
                 return Response(f"Upstream error {e}", status=503)
+            
+            if upstream_response.status_code not in (200, 203, 206):
+                logger.error(f"Upstream error {upstream_response.status_code} {upstream_response.text}")
 
             content_type = upstream_response.headers.get("content-type", "").lower()
 
