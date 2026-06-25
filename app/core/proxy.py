@@ -66,7 +66,7 @@ class Proxy:
 
 
     @staticmethod
-    def get_stream_type(stream_url: str, origin: str) -> Optional[str]:
+    def get_stream_type(stream_url: str, origin: str = "https://web.stremio.com") -> Optional[str]:
         headers = {
             # "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
             # "accept": "*/*",
@@ -86,7 +86,7 @@ class Proxy:
 
         # 1. Handle standard error codes
         if r.status_code not in (200, 203, 206): 
-            logger.error(f"Unable to fetch content-type. Error code {r.status_code}.")
+            logger.error(f"Unable to fetch content-type. Error code {r.status_code} {r.text}")
             return None
             
         # 2. DETECT DEAD/EMPTY SOURCES (The fix for your issue)

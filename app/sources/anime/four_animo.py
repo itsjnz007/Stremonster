@@ -40,6 +40,7 @@ class FourAnimoScraper(Scraper):
             proxy_result = Proxy.get_proxy_url(result['url'], origin=self.base_url)
             if not proxy_result: return
             result['url'] = proxy_result
+            result['origin'] = self.base_url
         return result
         
 

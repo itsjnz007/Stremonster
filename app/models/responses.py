@@ -6,6 +6,7 @@ class WebResponse(TypedDict):
     title: str
     name: str
     url: str
+    origin: str
     subtitles: list[str]
 
 class ExternalWebResponse(TypedDict):

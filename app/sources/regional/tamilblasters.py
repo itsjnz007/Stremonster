@@ -70,7 +70,9 @@ class TamilBlasters(Scraper):
                 ) for m in results
             ]) if r
         ]   
-        for response in responses: response['url'] = Proxy.get_proxy_url(response['url'], origin=self.base_url)
+        for response in responses: 
+            response['url'] = Proxy.get_proxy_url(response['url'], origin=self.base_url)
+            response['origin'] = self.base_url
 
         return responses
         
