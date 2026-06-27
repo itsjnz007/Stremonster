@@ -223,7 +223,7 @@ def get_web_stream(type: str, id: str) -> Response:
 
     try:
         # Execution flow
-        cache: Optional[dict[str, List[dict[str, str]]]] = web_cache.get(key=id, upto_mins=60)
+        cache: Optional[dict[str, List[dict[str, str]]]] = web_cache.get(key=id, upto_mins=60*6)
         if cache: 
             first_stream = cache.get('streams', [])[0]
             if Proxy().get_stream_type(first_stream.get('url', ''), first_stream.get('origin', 'https://web.stremio.com')):
