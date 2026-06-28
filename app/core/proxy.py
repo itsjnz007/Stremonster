@@ -1,13 +1,10 @@
 from app.config import TUNNEL_URL
 from flask import Response, request, jsonify, stream_with_context
 from urllib.parse import quote, urlparse
-import requests
 from app.core.logger import Logger
-from typing import Any
-import json, re, urllib3
-from typing import Optional
+import json, re, urllib3, logging, time, requests
+from typing import Optional, Any
 from requests.cookies import RequestsCookieJar
-import logging
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -235,7 +232,7 @@ class Proxy:
     @staticmethod
     def proxy() -> Response:
         try:
-            logger.debug(f"Proxying: {request.url}")
+            start_time = time.time()
 
             media_url = request.args.get("url")
             if not media_url: raise Exception("No media_url found")
@@ -301,6 +298,7 @@ class Proxy:
                     status=upstream_response.status_code,
                     mimetype=content_type
                 )
+                logger.info(f"{time.time() - start_time}ms | Parsing m3u8 {request.url}")
                 return Proxy.apply_headers(resp)
             
             def generate_media():
@@ -314,6 +312,7 @@ class Proxy:
                 headers=upstream_response.headers
             )
             
+            logger.info(f"{time.time() - start_time}ms | Proxying url {request.url}")
             return Proxy.apply_headers(resp)
         except Exception as e: 
             logger.error(f"Proxy error, {e}")
