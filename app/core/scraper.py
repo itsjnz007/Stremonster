@@ -80,9 +80,17 @@ class Scraper:
 
     async def _start_browser_async(self):
         Scraper._playwright = await async_playwright().start()
-        Scraper._browser = await Scraper._playwright.chromium.launch(headless=self.headless)
-        # if Scraper._browser:
-        #     self.context = await Scraper._browser.new_context()
+        Scraper._browser = await Scraper._playwright.chromium.launch(
+            headless=self.headless,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-features=IsolateOrigins,site-per-process",
+            ],
+            ignore_default_args=["--enable-automation"],
+        )
         self.logger.info("Browser instance successfully launched in background")
 
     def _ensure_browser(self):
@@ -109,7 +117,12 @@ class Scraper:
         domain = urlparse(url).netloc
         assert Scraper._browser is not None
         # assert self.context is not None
-        context = await Scraper._browser.new_context()
+        context = await Scraper._browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+            viewport={"width": 1920, "height": 1080},
+            locale="en-US",
+            java_script_enabled=True,
+        )
         page = await context.new_page()
 
         stream_url: Optional[str] = None

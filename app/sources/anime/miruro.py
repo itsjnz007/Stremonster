@@ -11,7 +11,7 @@ from threading import Event
 class MiruroScraper(Scraper):
     def __init__(self):
         super().__init__(headless=True, source="miruro",
-                          stream_url_pattern= r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/seg)\S*')
+                          stream_url_pattern= r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/seg)\S*',log_requests=True)
         self.base_url = "https://www.miruro.tv"
     
     def get_series(self, animal_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
@@ -27,5 +27,9 @@ class MiruroScraper(Scraper):
 
 if __name__ == "__main__":
     scraper = MiruroScraper()
-    response = scraper.get_series("166613", "12")
+    imdb_id = "tt21209804"
+    from app.external.anilist import AniBridgeV3Resolver
+    anilist = AniBridgeV3Resolver()
+    anilist_id, eps = anilist.get_anilist_info(imdb_id, "1", "8")
+    response = scraper.get_series(anilist_id, str(eps))
     print(response)
