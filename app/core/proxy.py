@@ -65,18 +65,18 @@ class Proxy:
     @staticmethod
     def get_stream_type(stream_url: str, origin: str = "https://web.stremio.com") -> Optional[str]:
         headers = {
-            # "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-            # "accept": "*/*",
-            # "accept-language": "en-US,en;q=0.5",
-            # "sec-fetch-dest": "empty",
-            # "sec-fetch-mode": "cors",
-            # "sec-fetch-site": "cross-site",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
+            "accept": "*/*",
+            "accept-language": "en-US,en;q=0.5",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
             "origin": origin,
             "referer": f"{origin}/"
         }
 
         try:
-            r = session.head(stream_url, headers=headers, timeout=10, allow_redirects=True)
+            r = session.get(stream_url, headers=headers, timeout=10, allow_redirects=True)
         except Exception as e:
             logger.error(f"Network error while probing stream URL: {e}")
             return None
@@ -125,12 +125,12 @@ class Proxy:
         stream_type = "stream.mp4" if content_type == "video/mp4" else "stream.m3u8"
 
         headers = {
-            # "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-            # "accept": "*/*",
-            # "accept-language": "en-US,en;q=0.5",
-            # "sec-fetch-dest": "empty",
-            # "sec-fetch-mode": "cors",
-            # "sec-fetch-site": "cross-site",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
+            "accept": "*/*",
+            "accept-language": "en-US,en;q=0.5",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
             "origin": origin,
             "referer": f"{origin}/",
             # "content-type": content_type
