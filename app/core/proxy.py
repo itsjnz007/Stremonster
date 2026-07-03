@@ -309,11 +309,14 @@ class Proxy:
                 for chunk in upstream_response.iter_content(chunk_size=1024*64):
                     if chunk: yield chunk
 
+            excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
+            headers = {k: v for k, v in upstream_response.headers.items() if k.lower() not in excluded_headers}
+
             resp = Response(
                 stream_with_context(generate_media()), 
                 status=upstream_response.status_code,
                 content_type=content_type,
-                headers=upstream_response.headers
+                headers=headers
             )
 
             upstream_response.close()
