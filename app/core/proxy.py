@@ -224,6 +224,10 @@ class Proxy:
     
     @staticmethod
     def apply_headers(response: Response):
+        excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
+        for header in excluded_headers:
+            response.headers.pop(header, None)
+
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Headers"] = "*"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, HEAD"
@@ -299,9 +303,10 @@ class Proxy:
                 resp = Response(
                     updated_content,
                     status=upstream_response.status_code,
-                    mimetype=content_type
+                    mimetype=content_type,
+                    headers=upstream_response.headers,
                 )
-                # upstream_response.close()
+                
                 logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Parsing m3u8 {request.url}")
                 return Proxy.apply_headers(resp)
             
@@ -309,17 +314,13 @@ class Proxy:
                 for chunk in upstream_response.iter_content(chunk_size=1024*64):
                     if chunk: yield chunk
 
-            excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
-            headers = {k: v for k, v in upstream_response.headers.items() if k.lower() not in excluded_headers}
-
             resp = Response(
                 stream_with_context(generate_media()), 
                 status=upstream_response.status_code,
                 content_type=content_type,
-                headers=headers
+                headers=upstream_response.headers,
             )
 
-            # upstream_response.close()
             logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Proxying url {request.url}")
             return Proxy.apply_headers(resp)
         except Exception as e: 
