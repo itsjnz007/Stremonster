@@ -301,7 +301,7 @@ class Proxy:
                     status=upstream_response.status_code,
                     mimetype=content_type
                 )
-                upstream_response.close()
+                # upstream_response.close()
                 logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Parsing m3u8 {request.url}")
                 return Proxy.apply_headers(resp)
             
@@ -319,7 +319,7 @@ class Proxy:
                 headers=headers
             )
 
-            upstream_response.close()
+            # upstream_response.close()
             logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Proxying url {request.url}")
             return Proxy.apply_headers(resp)
         except Exception as e: 
