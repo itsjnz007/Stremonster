@@ -121,7 +121,10 @@ class Proxy:
 
         if not content_type: 
             content_type = Proxy.get_stream_type(stream_url=stream_url, origin=origin)
-            if not content_type: return
+            if not content_type: 
+                logger.error("Unable to determine content-type for proxying. Rejecting source.")
+                return
+            logger.info(f"Detected content-type: {content_type}")
         stream_type = "stream.mp4" if content_type == "video/mp4" else "stream.m3u8"
 
         headers = {
@@ -299,7 +302,7 @@ class Proxy:
                     mimetype=content_type
                 )
                 upstream_response.close()
-                logger.info(f"{time.time() - start_time}ms | Parsing m3u8 {request.url}")
+                logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Parsing m3u8 {request.url}")
                 return Proxy.apply_headers(resp)
             
             def generate_media():
@@ -314,7 +317,7 @@ class Proxy:
             )
 
             upstream_response.close()
-            logger.info(f"{time.time() - start_time}ms | Proxying url {request.url}")
+            logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Proxying url {request.url}")
             return Proxy.apply_headers(resp)
         except Exception as e: 
             logger.error(f"Proxy error, {e}")
