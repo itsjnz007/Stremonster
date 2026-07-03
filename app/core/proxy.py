@@ -76,7 +76,7 @@ class Proxy:
         }
 
         try:
-            r = session.get(stream_url, headers=headers, timeout=10, allow_redirects=True)
+            r = session.head(stream_url, headers=headers, timeout=10, allow_redirects=True)
         except Exception as e:
             logger.error(f"Network error while probing stream URL: {e}")
             return None
@@ -298,6 +298,7 @@ class Proxy:
                     status=upstream_response.status_code,
                     mimetype=content_type
                 )
+                upstream_response.close()
                 logger.info(f"{time.time() - start_time}ms | Parsing m3u8 {request.url}")
                 return Proxy.apply_headers(resp)
             
@@ -311,7 +312,8 @@ class Proxy:
                 content_type=content_type,
                 headers=upstream_response.headers
             )
-            
+
+            upstream_response.close()
             logger.info(f"{time.time() - start_time}ms | Proxying url {request.url}")
             return Proxy.apply_headers(resp)
         except Exception as e: 
