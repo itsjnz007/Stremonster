@@ -76,7 +76,7 @@ class Proxy:
         }
 
         try:
-            r = session.head(stream_url, headers=headers, timeout=10, allow_redirects=True)
+            r = session.head(stream_url, headers=headers, timeout=5, allow_redirects=True)
         except Exception as e:
             logger.error(f"Network error while probing stream URL: {e}")
             return None

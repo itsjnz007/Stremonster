@@ -141,14 +141,14 @@ def get_web_stream(type: str, id: str) -> Response:
             (lambda event, tmdb_id: vidsrc_scraper.get_movie(tmdb_id, event), 'vidsrc'),
             (lambda event, tmdb_id: flicky_scraper.get_movie(tmdb_id, event), 'flicky'),
             (lambda event, tmdb_id: cineby_scraper.get_movie(tmdb_id, event), 'cineby'),
-            (lambda event, tmdb_id: vidking_scraper.get_movie(tmdb_id, event), 'vidking'),
+            # (lambda event, tmdb_id: vidking_scraper.get_movie(tmdb_id, event), 'vidking'),
         ]
 
         series_scrapers: List[Tuple[Callable[[Event, str, str, str], Optional[WebResponse]], str]] = [
             (lambda event, tmdb, s, e: vidsrc_scraper.get_series(tmdb, s, e, event), 'vidsrc'),
             (lambda event, tmdb, s, e: flicky_scraper.get_series(tmdb, s, e, event), 'flicky'),
             (lambda event, tmdb, s, e: cineby_scraper.get_series(tmdb, s, e, event), 'cineby'),
-            (lambda event, tmdb, s, e: vidking_scraper.get_series(tmdb, s, e, event), 'vidking'),
+            # (lambda event, tmdb, s, e: vidking_scraper.get_series(tmdb, s, e, event), 'vidking'),
         ]
 
         anime_series_scrapers: List[Tuple[Callable[[Event, str, str, str, str], Optional[WebResponse]], str]] = [
