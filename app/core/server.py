@@ -240,7 +240,7 @@ def get_web_stream(type: str, id: str) -> Response:
         if calculated:
             source, streams = calculated
             if streams and source: streams.append(get_ignore_query(source=source)) # type: ignore
-            elif ignore_set: streams.append(get_reset_query()) # type: ignore
+            elif ignored_set: streams.append(get_reset_query()) # type: ignore
             formatted_result = {'streams': streams}
             web_cache.set(id, formatted_result)
             logger.info(f"Responding with: {formatted_result}")
