@@ -12,10 +12,12 @@ from threading import Event
 class CinebyScraper(Scraper):
     def __init__(self):
         super().__init__(headless=True, source="cineby")
-        self.base_url = "https://cineby.cc"
+        # self.base_url = "https://cineby.cc"
+        self.base_url = "https://peachify.top"
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        url = f"{self.base_url}/watch/{tmdb_id}"
+        # url = f"{self.base_url}/watch/{tmdb_id}"
+        url = f"{self.base_url}/embed/movie/{tmdb_id}"
         result = self.get_stream(url, stop_event, title="Web | Cineby")
         if result: 
             proxy_result = Proxy.get_proxy_url(result['url'], origin=self.base_url)
@@ -25,7 +27,8 @@ class CinebyScraper(Scraper):
         return result
     
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        url = f"{self.base_url}/watch/{tmdb_id}?s={season}&e={episode}"
+        # url = f"{self.base_url}/watch/{tmdb_id}?s={season}&e={episode}"
+        url = f"{self.base_url}/embed/tv/{tmdb_id}/{season}/{episode}"
         result = self.get_stream(url, stop_event, title="Web | Cineby")
         if result: 
             proxy_result = Proxy.get_proxy_url(result['url'], origin=self.base_url)

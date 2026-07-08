@@ -119,7 +119,7 @@ class Scraper:
         # assert self.context is not None
         context = await Scraper._browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-            viewport={"width": 1920, "height": 1080},
+            viewport={"width": 854, "height": 480},
             locale="en-US",
             java_script_enabled=True,
         )
