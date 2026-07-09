@@ -284,7 +284,8 @@ class Proxy:
 
         logger.info(f"Streaming from cache: {stream_url} with headers: {media_headers}")
 
-        return Proxy.proxy(media_url=stream_url, media_headers=media_headers)
+        # return Proxy.proxy(media_url=stream_url, media_headers=media_headers)
+        return Response(status=302, headers={"Location": stream_url})
 
     @staticmethod
     def proxy(media_url: Optional[str] = None, media_headers: Optional[str] = None) -> Response:
@@ -317,7 +318,8 @@ class Proxy:
                         headers=arg_headers,
                         stream=True,
                         # cookies=request.cookies,
-                        verify=False
+                        verify=False,
+                        allow_redirects=True,
                     )
                 else:
                     upstream_response = session.get(
@@ -326,7 +328,8 @@ class Proxy:
                         headers=arg_headers,
                         stream=True,
                         # cookies=request.cookies,
-                        verify=False
+                        verify=False,
+                        allow_redirects=True,
                     )
             except Exception as e: 
                 logger.error(f"Proxy upstream error, {e}")
