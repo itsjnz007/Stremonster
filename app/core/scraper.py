@@ -2,6 +2,8 @@ import sys
 import asyncio
 import threading, logging
 from pathlib import Path
+
+from app.core.proxy import Proxy
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from playwright.async_api import Browser, async_playwright, Request
@@ -32,7 +34,9 @@ class Scraper:
     _loop_ready = threading.Event()
     _browser_lock = threading.Lock()
     
-    def __init__(self, headless: bool = True, 
+    def __init__(self, 
+                 base_url: str,
+                 headless: bool = True, 
                  source: str = "scraper", 
                  timeout: int = 30000, 
                  subtitle_timeout: float = 0, 
@@ -50,6 +54,7 @@ class Scraper:
         self.subtitle_url_pattern = subtitle_url_pattern
         self.log_requests = log_requests
         self.page_hook = page_hook
+        self.base_url = base_url
 
         # Scraper._playwright: Any = None
         # Scraper._browser: Optional[Browser] = None
@@ -226,7 +231,13 @@ class Scraper:
 
         future = asyncio.run_coroutine_threadsafe(self._get_stream_async(url, stop_event, title=title, name=name), Scraper._loop)
         try:
-            return future.result(timeout=(self.timeout / 1000) + 15)
+            result = future.result(timeout=(self.timeout / 1000) + 15)
+            if result: 
+                proxy_result = Proxy.get_proxy_url(result['url'], origin=self.base_url)
+                if not proxy_result: return
+                result['url'] = proxy_result
+                result['origin'] = self.base_url
+            return result
         except Exception as e:
             self.logger.error(f"Scraping error: {e}")
             return None
@@ -266,6 +277,6 @@ atexit.register(Scraper.shutdown)
 if __name__ == "__main__":
     test_url = "https://flickystream.su/player/movie/687163"
 
-    scraper = Scraper(headless=True, source="flickystream")
+    scraper = Scraper(headless=True, source="flickystream", base_url="https://flickystream.su")
     response = scraper.get_stream(test_url)
     print(f"Response: {response}")

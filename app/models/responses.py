@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Optional, TypedDict
 from dataclasses import dataclass
 
 class WebResponse(TypedDict):
@@ -6,8 +6,8 @@ class WebResponse(TypedDict):
     title: str
     name: str
     url: str
-    origin: str
     subtitles: list[str]
+    origin: Optional[str]
 
 class ExternalWebResponse(TypedDict):
     """Information about the scraped stream."""

@@ -207,7 +207,7 @@ class Torrent:
                 for stream in filtered_wave_streams
             ]
             
-            wave_results: List[Any] = self.threadpool.get_all(tasks)
+            wave_results: List[Any] = [r for r in self.threadpool.get_all(tasks)]
             for r in wave_results:
                 if isinstance(r, tuple) and len(r) == 2: # type: ignore
                     results.append(cast(Tuple[TorrentResponse, float], r))

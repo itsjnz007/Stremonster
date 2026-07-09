@@ -29,20 +29,27 @@ class MultiThreading:
             return task(self.stop_event)
         return wrapper
 
-    def get_all(self, tasks: Iterable[Callable[[threading.Event], Any]], delay_between: float = 2.0) -> List[Any]:
+    def run_in_background(self, task: Callable[[Any], Any], delay: float = 0.0) -> Future[Any]:
+        """Run a single task in the background and return its Future immediately."""
         self.stop_event.clear()
-        # Wrap each task with a cumulative delay
+        delayed_task = self._delayed_task(task, delay)
+        return self.executor.submit(delayed_task)
+
+    def get_all(self, tasks: Iterable[Callable[[Any], Any]], delay_between: float = 2.0):
+        self.stop_event.clear()
         delayed_tasks = [
-            self._delayed_task(task, i * delay_between) 
+            self._delayed_task(task, i * delay_between)
             for i, task in enumerate(tasks)
         ]
-        
+
         futures: List[Future[Any]] = [self.executor.submit(task) for task in delayed_tasks]
-        results: List[Any] = []
         for future in as_completed(futures):
-            try: results.append(future.result())
-            except Exception as e: self.logger.error(f"Task failed: {e}")
-        return results
+            try:
+                result = future.result()
+                if result is not None:
+                    yield result
+            except Exception as e:
+                self.logger.error(f"Task failed: {e}")
 
     def get_first(
         self, 
@@ -113,7 +120,13 @@ if __name__ == "__main__":
         lambda e: dummy_task(e, "Fast", 0.1),
         lambda e: dummy_task(e, "Slow", 0.5),
     ]
-    all_results: List[Any] = pool.get_all(tasks_all, delay_between=0.1)
-    print(f"All results: {all_results}")
+    print("Streaming results as they arrive:")
+    for result in pool.get_all(tasks_all, delay_between=0.1):
+        print(result)
+
+    print("\n--- Testing run_in_background ---")
+    future = pool.run_in_background(lambda e: dummy_task(e, "Background", 0.2), delay=0.1)
+    print("Returned immediately. Waiting for result...")
+    print(future.result())
 
     pool.executor.shutdown(wait=True)

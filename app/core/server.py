@@ -3,13 +3,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from typing import List, Optional, Callable, Tuple
+import os, time
+from typing import Any, List, Optional, Callable, Tuple, Iterator
 from app.external.tmdb import Tmdb
 from app.models.responses import WebResponse, ExternalWebResponse
 from app.sources import torrentio as torrentio_module
-from flask import Flask, render_template
+from flask import Flask
 from flask.wrappers import Response
-import os, time
 from app.core.logger import Logger
 from app.config import MANIFEST_CATALOG, MANIFEST_TORRENTS, MANIFEST_WEB, TUNNEL_URL
 from app.core.caching import TmdbCache, WebCache, TorrentCache, IgnoreSourceCache
@@ -20,7 +20,6 @@ from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as 
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo
 from app.sources.regional import tamilblasters as tamilblasters
 from app.core.catalog import Catalog
-from threading import Event
 
 logger = Logger("server")
 app = Flask(__name__)
@@ -90,23 +89,23 @@ def get_catalog(media_type: str, catalog_id: str) -> Response:
         logger.error(f"Error fetching catalog {catalog_id}: {e}")
         return Response("Failed to fetch catalog", status=500)
 
-@app.route('/web/ignore_source/<id>/<source>.json')
-def ignore_source(id: str, source: str):
-    source_list: List[str] = ignore_source_cache.get(id) or []
-    source_list.append(source)
-    ignore_source_cache.set(id, list(set(source_list)))
-    web_cache.remove(id)
-    return render_template('message.html', 
-                           title=f"{source.title()} removed", 
-                           message=f"{source.title()} has been added to the ignore list for this video.")
+# @app.route('/web/ignore_source/<id>/<source>.json')
+# def ignore_source(id: str, source: str):
+#     source_list: List[str] = ignore_source_cache.get(id) or []
+#     source_list.append(source)
+#     ignore_source_cache.set(id, list(set(source_list)))
+#     web_cache.remove(id)
+#     return render_template('message.html', 
+#                            title=f"{source.title()} removed", 
+#                            message=f"{source.title()} has been added to the ignore list for this video.")
 
-@app.route('/web/clear_ignore_source/<id>.json')
-def clear_ignore_source(id: str):
-    ignore_source_cache.set(id, [])
-    web_cache.remove(id)
-    return render_template('message.html', 
-                           title="Preferences Cleared", 
-                           message="Using all the available sources.")
+# @app.route('/web/clear_ignore_source/<id>.json')
+# def clear_ignore_source(id: str):
+#     ignore_source_cache.set(id, [])
+#     web_cache.remove(id)
+#     return render_template('message.html', 
+#                            title="Preferences Cleared", 
+#                            message="Using all the available sources.")
 
 
 @app.route('/web/stream/<type>/<id>.json')
@@ -117,45 +116,60 @@ def get_web_stream(type: str, id: str) -> Response:
     
     start_time = time.time()
 
-    def get_ignore_query(source: str) -> ExternalWebResponse:
-        return ExternalWebResponse(
-            title="Try different web source?",
-            name="⭕️",
-            externalUrl=f"{TUNNEL_URL}/web/ignore_source/{id}/{source}.json",
-            subtitles=[]
+    def build_unified_stream_url() -> str:
+        if not TUNNEL_URL:
+            raise Exception("TUNNEL_URL is not set. Please set it in the config.")
+        return TUNNEL_URL + f"/stream?id={id}"
+    
+    def build_stremio_format_response(stream_url: str) -> Response:
+        return respond_with(
+            {"streams": [
+                    WebResponse(
+                        title = "",
+                        name = "Play",
+                        url = stream_url,
+                        subtitles = [],
+                        origin = None
+                    )
+                ]
+            }
         )
-                
+
+    def calculate() -> List[WebResponse] | None:
+        def process_results(tasks: List[Callable[[Any], Optional[WebResponse]]]) -> List[WebResponse] | None:
+            results_iter = thread_pool_web.get_all(tasks)
+            first_result = next(results_iter, None)
+            if first_result:
+                web_cache.set(id, first_result)
+                def drain_remaining(iterator: Iterator[Optional[WebResponse]]) -> None:
+                    for response in iterator:
+                        if response:
+                            web_cache.append(id, response)
+
+                thread_pool_web.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator))
+                if not TUNNEL_URL: raise Exception("TUNNEL_URL is not set. Please set it in the config.")
+                first_result['url'] = build_unified_stream_url()
+                return [first_result]
             
-    def get_reset_query() -> ExternalWebResponse:
-        return ExternalWebResponse(
-            title="Clear source preference?",
-            name="⭕️",
-            externalUrl=f"{TUNNEL_URL}/web/clear_ignore_source/{id}.json",
-            subtitles=[]
-        )
-
-    def calculate(ignored_sources: set[str]) -> Tuple[Optional[str], List[WebResponse]] | None:
-
-        # Registries for Scrapers
-        movie_scrapers: List[Tuple[Callable[[Event, str], Optional[WebResponse]], str]] = [
-            (lambda event, tmdb_id: vidsrc_scraper.get_movie(tmdb_id, event), 'vidsrc'),
-            (lambda event, tmdb_id: flicky_scraper.get_movie(tmdb_id, event), 'flicky'),
-            (lambda event, tmdb_id: cineby_scraper.get_movie(tmdb_id, event), 'cineby'),
-            # (lambda event, tmdb_id: vidking_scraper.get_movie(tmdb_id, event), 'vidking'),
+        movie_scrapers: List[Tuple[Callable[[str], Optional[WebResponse]], str]] = [
+            (lambda tmdb_id: vidsrc_scraper.get_movie(tmdb_id), 'vidsrc'),
+            (lambda tmdb_id: flicky_scraper.get_movie(tmdb_id), 'flicky'),
+            (lambda tmdb_id: cineby_scraper.get_movie(tmdb_id), 'cineby'),
+            (lambda tmdb_id: vidking_scraper.get_movie(tmdb_id), 'vidking'),
         ]
 
-        series_scrapers: List[Tuple[Callable[[Event, str, str, str], Optional[WebResponse]], str]] = [
-            (lambda event, tmdb, s, e: vidsrc_scraper.get_series(tmdb, s, e, event), 'vidsrc'),
-            (lambda event, tmdb, s, e: flicky_scraper.get_series(tmdb, s, e, event), 'flicky'),
-            (lambda event, tmdb, s, e: cineby_scraper.get_series(tmdb, s, e, event), 'cineby'),
-            # (lambda event, tmdb, s, e: vidking_scraper.get_series(tmdb, s, e, event), 'vidking'),
+        series_scrapers: List[Tuple[Callable[[str, str, str], Optional[WebResponse]], str]] = [
+            (lambda tmdb, s, e: vidsrc_scraper.get_series(tmdb, s, e), 'vidsrc'),
+            (lambda tmdb, s, e: flicky_scraper.get_series(tmdb, s, e), 'flicky'),
+            (lambda tmdb, s, e: cineby_scraper.get_series(tmdb, s, e), 'cineby'),
+            (lambda tmdb, s, e: vidking_scraper.get_series(tmdb, s, e), 'vidking'),
         ]
 
-        anime_series_scrapers: List[Tuple[Callable[[Event, str, str, str, str], Optional[WebResponse]], str]] = [
-            (lambda event, ani_id, ani_eps, mal_id, mal_eps: four_animo_scraper.get_series(ani_id, str(ani_eps), event), '4anime'),
-            (lambda event, ani_id, ani_eps, mal_id, mal_eps: vidnest_scraper.get_series(ani_id, str(ani_eps), event), 'vidnest'),
-            (lambda event, ani_id, ani_eps, mal_id, mal_eps: miruro_scraper.get_series(mal_id, str(mal_eps), event), 'miruro'),
-            (lambda event, ani_id, ani_eps, mal_id, mal_eps: miruro_scraper.get_series(ani_id, str(ani_eps), event), 'miruro'),
+        anime_series_scrapers: List[Tuple[Callable[[str, str, str, str], Optional[WebResponse]], str]] = [
+            (lambda ani_id, ani_eps, mal_id, mal_eps: four_animo_scraper.get_series(ani_id, str(ani_eps)), '4anime'),
+            (lambda ani_id, ani_eps, mal_id, mal_eps: vidnest_scraper.get_series(ani_id, str(ani_eps)), 'vidnest'),
+            (lambda ani_id, ani_eps, mal_id, mal_eps: miruro_scraper.get_series(mal_id, str(mal_eps)), 'miruro'),
+            (lambda ani_id, ani_eps, mal_id, mal_eps: miruro_scraper.get_series(ani_id, str(ani_eps)), 'miruro'),
         ]
 
         returnable_results: List[WebResponse] | List[ExternalWebResponse] = []
@@ -172,20 +186,15 @@ def get_web_stream(type: str, id: str) -> Response:
             if orig_lang in ['ta', 'ml', 'kn', 'hi'] and release_year:
                 title = tmdb_client.get_title(id)
                 if title:
-                    return None, tamilblasters_scraper.get_movie(title, year=release_year, threadpool=thread_pool_web)
+                    return tamilblasters_scraper.get_movie(title, year=release_year, threadpool=thread_pool_web)
             
             # Fallback
             if not returnable_results:
-                tasks: List[Tuple[Callable[[Event, str], str], str]] = [ # type: ignore
-                    (lambda event, f=func: f(event, tmdb_id), name) # type: ignore
-                    for func, name in movie_scrapers
-                    if name not in ignored_sources # type: ignore
+                tasks_movie: List[Callable[[str], Optional[WebResponse]]] = [
+                    lambda _, f=func: f(tmdb_id or "unknown")
+                    for func, _ in movie_scrapers
                 ]
-                response = thread_pool_web.get_first(tasks) # type: ignore
-                if response: 
-                    stream, source = response
-                    return source, [stream] # type: ignore
-
+                return process_results(tasks_movie)
 
         else:  # Series
             imdb_id, season, episode = id.split(':')
@@ -199,59 +208,49 @@ def get_web_stream(type: str, id: str) -> Response:
                 mal_id, mal_eps = anibride.get_mal_info(imdb_id, season, episode)
                 ani_id, ani_eps = anibride.get_anilist_info(imdb_id, season, episode)
 
-                tasks: List[Tuple[Callable[[Event, str, str, str, str], str], str]] = [ # type: ignore
-                    (lambda event, f=func: f(event, ani_id, ani_eps, mal_id, mal_eps), name) # type: ignore
-                    for func, name in anime_series_scrapers
-                    if name not in ignored_sources # type: ignore
+                tasks_anime_series: List[Callable[[Tuple[str, str, str, str]], Optional[WebResponse]]] = [
+                    lambda _, f=func: f(ani_id, str(ani_eps), mal_id, str(mal_eps))
+                    for func, _ in anime_series_scrapers
                 ]
-
-                response = thread_pool_web.get_first(tasks) # type: ignore
-                if response: 
-                    stream, source = response
-                    return source, [stream] # type: ignore
+                
+                return process_results(tasks_anime_series)
 
             else:
-                tasks: List[Tuple[Callable[[Event, str, str, str], str], str]] = [
-                    (lambda event, f=func: f(event, tmdb_id, season, episode), name) # type: ignore
-                    for func, name in series_scrapers
-                    if name not in ignored_sources # type: ignore
+                tasks_series: List[Callable[[Tuple[str, str, str]], Optional[WebResponse]]] = [
+                    lambda _, f=func: f(tmdb_id or "unknown", season, episode)
+                    for func, _ in series_scrapers
                 ]
-                response = thread_pool_web.get_first(tasks) # type: ignore
-                if response: 
-                    stream, source = response
-                    return source, [stream] # type: ignore
+                return process_results(tasks_series)
 
     try:
-        # Execution flow
-        cache: Optional[dict[str, List[dict[str, str]]]] = web_cache.get(key=id, upto_mins=60*6)
+        cache = web_cache.get(id, 120)
         if cache: 
-            first_stream = cache.get('streams', [])[0]
-            if Proxy().get_stream_type(first_stream.get('url', ''), first_stream.get('origin', 'https://web.stremio.com')):
-                logger.info("Returning cached web results...")
-                return respond_with(cache)
-        
-            logger.info("Cache invalid, recalculating...")
-    
-        
-        ignored_list: List[str] = ignore_source_cache.get(id) or []
-        ignored_set = set(ignored_list)
-        
-        calculated = calculate(ignored_set)
-        if calculated:
-            source, streams = calculated
-            if streams and source: streams.append(get_ignore_query(source=source)) # type: ignore
-            elif ignored_set: streams.append(get_reset_query()) # type: ignore
-            formatted_result = {'streams': streams}
-            web_cache.set(id, formatted_result)
+            stream_index = cache.get("current_index")
+            streams = cache.get("streams", [])
+            if not streams or stream_index is None or stream_index >= len(streams):
+                logger.error(f"Cache for {id} is invalid or empty...")
+                return respond_with({'streams': []})
+            logger.info("Returning cached web result...")
+            formatted_result = build_stremio_format_response(streams[stream_index]['url'])
             logger.info(f"Responding with: {formatted_result}")
-            return respond_with(formatted_result)
-        elif ignored_set: return respond_with({"streams": [get_reset_query()]})
+            return formatted_result
+
+        logger.info("Cache invalid, recalculating...")
+        
+        streams = calculate()
+        if streams:
+            formatted_result = build_stremio_format_response(streams[0]['url'])
+            logger.info(f"Responding with: {formatted_result}")
+            return formatted_result
+        
     except Exception as e:
         logger.error(f"Error calculating web streams. Error: {e}")
         return respond_with({"streams": []})
 
     logger.info(f"Total time taken: {time.time() - start_time:.2f}s")
     return respond_with({'streams': []})
+
+
 
 
 @app.route('/torrent/stream/<type>/<id>.json')
@@ -284,6 +283,10 @@ def get_torrent_stream(type: str, id: str) -> Response:
     logger.warning(f"No torrent stream found for {type} with ID {id}")
     return respond_with({'streams': []})
         
+@app.route('/stream')
+def stream() -> Response:
+    logger.info(f"GET /stream")
+    return Proxy.stream()
 
 @app.route("/stream.m3u8")
 def proxy_m3u8():

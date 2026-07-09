@@ -2,39 +2,43 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from app.core.proxy import Proxy
 from app.core.scraper import Scraper
 from app.models.responses import WebResponse
 from typing import Optional
 from threading import Event
+from playwright.async_api import Page
+
+
+async def click_play_button(page: Page) -> None:
+    """Click the play button on the page."""
+    try:
+        # Wait for the button to be visible
+        await page.wait_for_selector("button svg path[d='M8 5v14l11-7z']", timeout=5000)
+        
+        # Find and click the play button
+        play_button = await page.query_selector("button:has(svg path[d='M8 5v14l11-7z'])")
+        if play_button:
+            await play_button.click()
+    except Exception as e:
+        print(f"Could not click play button: {e}")
 
 
 class CinebyScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="cineby")
+        super().__init__(headless=False, source="cineby", base_url="https://player.videasy.to", page_hook=click_play_button)
         # self.base_url = "https://cineby.cc"
-        self.base_url = "https://peachify.top"
+        # self.base_url = "https://cineby.at"
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        # url = f"{self.base_url}/watch/{tmdb_id}"
-        url = f"{self.base_url}/embed/movie/{tmdb_id}"
+        url = f"{self.base_url}/movie/{tmdb_id}"
+        # url = f"{self.base_url}/movie/{tmdb_id}?play=true"
         result = self.get_stream(url, stop_event, title="Web | Cineby")
-        if result: 
-            proxy_result = Proxy.get_proxy_url(result['url'], origin=self.base_url)
-            if not proxy_result: return
-            result['url'] = proxy_result
-            result['origin'] = self.base_url
         return result
     
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        # url = f"{self.base_url}/watch/{tmdb_id}?s={season}&e={episode}"
-        url = f"{self.base_url}/embed/tv/{tmdb_id}/{season}/{episode}"
+        url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}"
+        # url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}?play=true"
         result = self.get_stream(url, stop_event, title="Web | Cineby")
-        if result: 
-            proxy_result = Proxy.get_proxy_url(result['url'], origin=self.base_url)
-            if not proxy_result: return
-            result['url'] = proxy_result
-            result['origin'] = self.base_url
         return result
     
 

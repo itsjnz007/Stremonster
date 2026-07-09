@@ -2,7 +2,6 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from app.core.proxy import Proxy
 from app.core.scraper import Scraper
 from app.models.responses import WebResponse
 from typing import Optional
@@ -10,34 +9,21 @@ from threading import Event
 
 class VidkingScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="vidking")
-        self.base_url = "https://vidking.net"
+        super().__init__(headless=True, source="vidking", base_url="https://vidking.net")
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/embed/movie/{tmdb_id}"
         result = self.get_stream(url, stop_event=stop_event, title="Web | Vidking")
-        if result: 
-            proxy_result = Proxy.get_proxy_url(result['url'], origin=self.base_url)
-            if not proxy_result: return
-            result['url'] = proxy_result
-            result['origin'] = self.base_url
         return result
     
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/embed/tv/{tmdb_id}/{season}/{episode}"
         result = self.get_stream(url, stop_event, title="Web | Vidking")
-        if result: 
-            proxy_result = Proxy.get_proxy_url(result['url'], origin=self.base_url)
-            if not proxy_result: return
-            result['url'] = proxy_result
-            result['origin'] = self.base_url
         return result
     
 
 if __name__ == "__main__":
-    test_movie_id = "687163"  # John Wick: Chapter 4
-    # test_movie_id = "1257957" # bison: kaalamaadan
-    # test_series_id = "1399"    # Game of Thrones
+    test_movie_id = "687163"
 
     scraper = VidkingScraper()
     

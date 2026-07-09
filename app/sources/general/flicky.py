@@ -2,7 +2,6 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from app.core.proxy import Proxy
 from app.core.scraper import Scraper
 from app.models.responses import WebResponse
 from typing import Optional
@@ -11,27 +10,17 @@ from threading import Event
 
 class FlickyScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="flicky")
-        self.base_url = "https://flickystream.su"
+        super().__init__(headless=True, source="flicky", base_url="https://flickystream.su")
+        # self.base_url = "https://flickystream.su"
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/player/movie/{tmdb_id}"
         result = self.get_stream(url, stop_event, title="Web | Flicky")
-        if result: 
-            proxy_result = Proxy.get_proxy_url(result['url'], origin=self.base_url)
-            if not proxy_result: return
-            result['url'] = proxy_result
-            result['origin'] = self.base_url
         return result
     
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/player/tv/{tmdb_id}/{season}/{episode}"
         result = self.get_stream(url, stop_event, title="Web | Flicky")
-        if result: 
-            proxy_result = Proxy.get_proxy_url(result['url'], origin=self.base_url)
-            if not proxy_result: return
-            result['url'] = proxy_result
-            result['origin'] = self.base_url
         return result
     
 
@@ -45,5 +34,5 @@ if __name__ == "__main__":
     movie_response = scraper.get_movie(test_movie_id)
     print(f"Movie response: {movie_response}")
 
-    series_response = scraper.get_series(test_series_id, "1", "14")
-    print(f"Series response: {series_response}")
+    # series_response = scraper.get_series(test_series_id, "1", "14")
+    # print(f"Series response: {series_response}")

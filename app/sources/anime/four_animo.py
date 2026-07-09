@@ -2,7 +2,6 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from app.core.proxy import Proxy
 from app.core.scraper import Scraper
 from app.models.responses import WebResponse
 from typing import Optional
@@ -30,17 +29,13 @@ class FourAnimoScraper(Scraper):
 
         super().__init__(headless=True, source="4animo",
                           stream_url_pattern= r'https?://[^\s]+\?t=[^\s&]+&type=[^\s]+',
-                          page_hook=play_button_hook)
-        self.base_url = "https://cdn.4animo.xyz"
+                          page_hook=play_button_hook,
+                          base_url="https://cdn.4animo.xyz"
+                          )
     
     def get_series(self, anilist_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/api/embed/hd-1/ani/{anilist_id}/{episode}/sub?k=1&autoPlay=1"
         result = self.get_stream(url, stop_event, title="Web | 4animo (Anime)")
-        if result: 
-            proxy_result = Proxy.get_proxy_url(result['url'], origin=self.base_url)
-            if not proxy_result: return
-            result['url'] = proxy_result
-            result['origin'] = self.base_url
         return result
         
 

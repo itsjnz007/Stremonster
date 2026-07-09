@@ -1,33 +1,64 @@
 import sys
+import os
+import json
+import threading, copy
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import json, os
-from pathlib import Path
+
 from datetime import datetime, timezone
+from typing import Any, ClassVar
+
+from app.models.responses import WebResponse
+
 from app.config import CACHE_DIR
 from app.core.logger import Logger
-from typing import Any
 
 
 logger = Logger('caching')
 
 class Caching:
+    _write_lock: ClassVar[threading.Lock] = threading.Lock()
+    cache: ClassVar[dict[str, Any]]
+    cache_path: ClassVar[Path]
+
     def __init__(self):
         self.cache_dir = Path(CACHE_DIR)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.cache: dict[str, Any]
-        self.cache_path: Path
+        self._initialize_cache()
+
+    def _initialize_cache(self) -> None:
+        if not hasattr(self.__class__, 'cache'):
+            raise AttributeError('Subclass must define `cache` attribute')
+
+        cache = getattr(self.__class__, 'cache', None)
+        if cache is None:
+            self.__class__.cache = {}
+            return
+
+        if not cache:
+            self.__class__.cache = self._load_from_disk()
+
+    def _get_cache(self) -> dict[str, Any]:
+        if not hasattr(self.__class__, 'cache'):
+            raise AttributeError('Subclass must define `cache` attribute')
+        return self.__class__.cache
+
+    def _get_cache_path(self) -> Path:
+        if not hasattr(self.__class__, 'cache_path'):
+            raise AttributeError('Subclass must define `cache_path` attribute')
+        return self.__class__.cache_path
 
     def _load_from_disk(self) -> dict[str, Any]:
         """Load cache from JSON file if it exists."""
-        if not hasattr(self, 'cache_path'): raise AttributeError('Subclass must define `cache_path` attribute')
+        path = self._get_cache_path()
         try:
-            if self.cache_path.exists():
-                with open(self.cache_path, 'r', encoding='utf-8') as f: 
+            if path.exists():
+                with open(path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     return data
-        except Exception as e: logger.error(f"Error loading cache from disk: {e}")
+        except Exception as e:
+            logger.error(f"Error loading cache from disk: {e}")
         return {}
 
     def _save_to_disk(self, path: Path, data: dict[str, Any]):
@@ -41,82 +72,102 @@ class Caching:
             print(f"Error saving cache to disk: {e}")
 
     def set(self, key: str, value: Any) -> None:
-        if not hasattr(self, 'cache'): raise AttributeError('Subclass must define `cache` attribute')
-        if not hasattr(self, 'cache_path'): raise AttributeError('Subclass must define `cache_path` attribute')
-
+        cache = self._get_cache()
         timestamp = datetime.now(timezone.utc).isoformat()
-        # cache = self._load_from_disk()
-        self.cache[key] = {"value": value, "ts": timestamp}
-        self._save_to_disk(self.cache_path, self.cache)
+        cache[key] = {"value": copy.deepcopy(value), "ts": timestamp}
+        self._save_to_disk(self._get_cache_path(), cache)
 
     def get(self, key: str, upto_mins: int = 0) -> Any | None:
-        if not hasattr(self, 'cache'): raise AttributeError('Subclass must define `cache` attribute')
-        # cache = self._load_from_disk()
-        entry = self.cache.get(key)
-        if entry is None: return None
+        entry = self._get_cache().get(key)
+        if entry is None:
+            return None
 
         now = datetime.now(timezone.utc)
         try:
             ts_dt = datetime.fromisoformat(entry['ts'])
-            if ts_dt.tzinfo is None: ts_dt = ts_dt.replace(tzinfo=timezone.utc)
-            if upto_mins > 0 and (now - ts_dt).total_seconds() / 60.0 > upto_mins: return None
+            if ts_dt.tzinfo is None:
+                ts_dt = ts_dt.replace(tzinfo=timezone.utc)
+            if upto_mins > 0 and (now - ts_dt).total_seconds() / 60.0 > upto_mins:
+                return None
             return entry['value']
         except Exception as e:
             logger.error(f"Error getting cache for key '{key}', error: \n{e}")
             return None
-    
+
     def remove(self, key: str) -> None:
         """Removes an item from the cache and updates the disk file."""
-        if not hasattr(self, 'cache'): raise AttributeError('Subclass must define `cache` attribute')
-        if not hasattr(self, 'cache_path'): raise AttributeError('Subclass must define `cache_path` attribute')
-
-        if key in self.cache:
-            del self.cache[key]
-            self._save_to_disk(self.cache_path, self.cache)
+        cache = self._get_cache()
+        if key in cache:
+            del cache[key]
+            self._save_to_disk(self._get_cache_path(), cache)
             logger.info(f"Key '{key}' removed from cache.")
         else:
             logger.warning(f"Attempted to remove non-existent key: '{key}'")
 
 class TmdbCache(Caching):
-    def __init__(self):
-        super().__init__()
-        self.cache_path = self.cache_dir / "tmdb.json"
-        self.cache: dict[str, Any] = self._load_from_disk()
+    cache_path: ClassVar[Path] = Path(CACHE_DIR) / "tmdb.json"
+    cache: ClassVar[dict[str, Any]] = {}
 
 class WebCache(Caching):
-    def __init__(self):
-        super().__init__()
-        self.cache_path = self.cache_dir / "web_results.json"
-        self.cache: dict[str, Any] = self._load_from_disk()
+    cache_path: ClassVar[Path] = Path(CACHE_DIR) / "web_results.json"
+    cache: ClassVar[dict[str, Any]] = {}
+
+    def set(self, key: str, value: WebResponse) -> None:
+        """Set a WebResponse for a given key."""
+        with self._write_lock:
+            cache = self._get_cache()
+            timestamp = datetime.now(timezone.utc).isoformat()
+            cache[key] = {"value": {"current_index": 0, "streams": [copy.deepcopy(value)]}, "ts": timestamp}
+            self._save_to_disk(self._get_cache_path(), cache)
+
+    def append(self, key: str, web_response: WebResponse) -> None:
+        """Append a WebResponse to the list of streams for a given key."""
+        with self._write_lock:
+            cache = self._get_cache()
+            timestamp = datetime.now(timezone.utc).isoformat()
+            if key not in cache:
+                cache[key] = {"value": {"current_index": 0, "streams": []}, "ts": timestamp}
+
+            cache[key]["value"]["streams"].append(copy.deepcopy(web_response))
+            cache[key]["ts"] = timestamp  # Update timestamp on append
+            self._save_to_disk(self._get_cache_path(), cache)
+    
+    def switch_source(self, key: str) -> None:
+        """Switch to the next source in the list for a given key."""
+        logger.info(f"Switching source for key: '{key}'")
+        with self._write_lock:
+            cache = self._get_cache()
+            if key not in cache or not cache[key]["value"]["streams"]:
+                logger.warning(f"No streams available to switch for key: '{key}'")
+                return
+
+            current_index = cache[key]["value"]["current_index"]
+            total_streams = len(cache[key]["value"]["streams"])
+            new_index = (current_index + 1) % total_streams
+            cache[key]["value"]["current_index"] = new_index
+            cache[key]["ts"] = datetime.now(timezone.utc).isoformat()  # Update timestamp on switch
+            self._save_to_disk(self._get_cache_path(), cache)
 
 class TorrentCache(Caching):
-    def __init__(self):
-        super().__init__()
-        self.cache_path = self.cache_dir / "torrent_results.json"
-        self.cache: dict[str, Any] = self._load_from_disk()
+    cache_path: ClassVar[Path] = Path(CACHE_DIR) / "torrent_results.json"
+    cache: ClassVar[dict[str, Any]] = {}
 
 class TvdbCache(Caching):
-    def __init__(self):
-        super().__init__()
-        self.cache_path = self.cache_dir / "tvdb.json"
-        self.cache: dict[str, Any] = self._load_from_disk()
+    cache_path: ClassVar[Path] = Path(CACHE_DIR) / "tvdb.json"
+    cache: ClassVar[dict[str, Any]] = {}
 
 class CatalogCache(Caching):
-    def __init__(self):
-        super().__init__()
-        self.cache_path = self.cache_dir / "catalog.json"
-        self.cache: dict[str, Any] = self._load_from_disk()
+    cache_path: ClassVar[Path] = Path(CACHE_DIR) / "catalog.json"
+    cache: ClassVar[dict[str, Any]] = {}
 
 class IgnoreSourceCache(Caching):
-    def __init__(self):
-        super().__init__()
-        self.cache_path = self.cache_dir / "ignore_source.json"
-        self.cache: dict[str, Any] = self._load_from_disk()
+    cache_path: ClassVar[Path] = Path(CACHE_DIR) / "ignore_source.json"
+    cache: ClassVar[dict[str, Any]] = {}
 
 if __name__ == "__main__":
     web_cache = WebCache()
     tmdb_cache = TmdbCache()
-    web_cache.set('1234', {'1234': '1234'})
+    # web_cache.set('1234', {'1234': '1234'})
     tmdb_cache.set('4567', {'4567': '4567'})
     print(web_cache.get('1234'))
     print(tmdb_cache.get('4567'))

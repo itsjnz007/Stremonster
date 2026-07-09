@@ -2,7 +2,6 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from app.core.proxy import Proxy
 from app.core.scraper import Scraper
 from app.models.responses import WebResponse
 from app.core.parsers import Parsers
@@ -50,8 +49,7 @@ class TamilBlasters(Scraper):
             return []
 
     def __init__(self):
-        super().__init__(headless=True, source="tamilblasters", log_requests=False, timeout=10000)
-        self.base_url = "https://www.1tamilblasters.republican"
+        super().__init__(headless=True, source="tamilblasters", log_requests=False, timeout=10000, base_url="https://www.1tamilblasters.republican")
     
     def get_movie(self, title: str, year: str, threadpool: MultiThreading) -> list[WebResponse]:
         self.title, self.year = title, year
@@ -70,9 +68,9 @@ class TamilBlasters(Scraper):
                 ) for m in results
             ]) if r
         ]   
-        for response in responses: 
-            response['url'] = Proxy.get_proxy_url(response['url'], origin=self.base_url)
-            response['origin'] = self.base_url
+        # for response in responses: 
+        #     response['url'] = Proxy.get_proxy_url(response['url'], origin=self.base_url)
+        #     response['origin'] = self.base_url
 
         return responses
         
@@ -81,5 +79,5 @@ if __name__ == "__main__":
     scraper = TamilBlasters()
     threading = MultiThreading()
     print(
-        scraper.get_movie("Bison: Kaalamaadan", "2026", threading)
+        scraper.get_movie("Dark", "2026", threading)
     )
