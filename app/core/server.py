@@ -123,7 +123,7 @@ def get_web_stream(type: str, id: str) -> Response:
     
     def build_web_response(stream_url: str) -> WebResponse:
         return WebResponse(
-            title = "",
+            title = "Web",
             name = "Play",
             url = stream_url,
             subtitles = [],
