@@ -121,18 +121,13 @@ def get_web_stream(type: str, id: str) -> Response:
             raise Exception("TUNNEL_URL is not set. Please set it in the config.")
         return TUNNEL_URL + f"/stream?id={id}"
     
-    def build_stremio_format_response(stream_url: str) -> Response:
-        return respond_with(
-            {"streams": [
-                    WebResponse(
-                        title = "",
-                        name = "Play",
-                        url = stream_url,
-                        subtitles = [],
-                        origin = None
-                    )
-                ]
-            }
+    def build_web_response(stream_url: str) -> WebResponse:
+        return WebResponse(
+            title = "",
+            name = "Play",
+            url = stream_url,
+            subtitles = [],
+            origin = None
         )
 
     def calculate() -> List[WebResponse] | None:
@@ -148,8 +143,8 @@ def get_web_stream(type: str, id: str) -> Response:
 
                 thread_pool_web.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator))
                 if not TUNNEL_URL: raise Exception("TUNNEL_URL is not set. Please set it in the config.")
-                first_result['url'] = build_unified_stream_url()
-                return [first_result]
+                # first_result['url'] = build_unified_stream_url()
+                return [build_web_response(build_unified_stream_url())]
             
         movie_scrapers: List[Tuple[Callable[[str], Optional[WebResponse]], str]] = [
             (lambda tmdb_id: vidsrc_scraper.get_movie(tmdb_id), 'vidsrc'),
@@ -231,17 +226,17 @@ def get_web_stream(type: str, id: str) -> Response:
                 logger.error(f"Cache for {id} is invalid or empty...")
                 return respond_with({'streams': []})
             logger.info("Returning cached web result...")
-            formatted_result = build_stremio_format_response(streams[stream_index]['url'])
+            formatted_result = {"streams": [build_web_response(streams[stream_index]['url'])]}
             logger.info(f"Responding with: {formatted_result}")
-            return formatted_result
+            return respond_with(formatted_result)
 
         logger.info("Cache invalid, recalculating...")
         
         streams = calculate()
         if streams:
-            formatted_result = build_stremio_format_response(streams[0]['url'])
-            logger.info(f"Responding with: {formatted_result}")
-            return formatted_result
+            # formatted_result = build_stremio_format_response(streams[0]['url'])
+            # logger.info(f"Responding with: {formatted_result}")
+            return respond_with({'streams': streams})
         
     except Exception as e:
         logger.error(f"Error calculating web streams. Error: {e}")
