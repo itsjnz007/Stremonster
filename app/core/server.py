@@ -226,7 +226,8 @@ def get_web_stream(type: str, id: str) -> Response:
                 logger.error(f"Cache for {id} is invalid or empty...")
                 return respond_with({'streams': []})
             logger.info("Returning cached web result...")
-            formatted_result = {"streams": [build_web_response(streams[stream_index]['url'])]}
+            # formatted_result = {"streams": [build_web_response(streams[stream_index]['url'])]}
+            formatted_result = {'streams': [build_web_response(build_unified_stream_url())]}
             logger.info(f"Responding with: {formatted_result}")
             return respond_with(formatted_result)
 
