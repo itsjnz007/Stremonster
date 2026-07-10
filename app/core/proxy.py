@@ -1,6 +1,6 @@
 from app.config import TUNNEL_URL
 from flask import Response, request, jsonify, stream_with_context
-from urllib.parse import parse_qs, quote, urlparse
+from urllib.parse import quote, urlparse
 from app.core.logger import Logger
 import json, re, urllib3, logging, time, requests
 from typing import Optional, Any
@@ -276,23 +276,15 @@ class Proxy:
         stream: str = current_stream.get("url")
         if not stream: return Response("Stream URL not found", status=404)
 
-        parsed_stream = urlparse(stream)
-        query_params = parse_qs(parsed_stream.query)
-        stream_url = query_params.get("url", [None])[0]
-        media_headers = query_params.get("headers", [None])[0]
-        if not stream_url: return Response("Stream URL not found in query parameters", status=404)
-
-        logger.info(f"Streaming from cache: {stream_url} with headers: {media_headers}")
-
-        # return Proxy.proxy(media_url=stream_url, media_headers=media_headers)
-        return Response(status=302, headers={"Location": stream_url})
+        logger.info(f"Redirecting to proxied stream URL: {stream}")
+        return Response(status=302, headers={"Location": stream})
 
     @staticmethod
-    def proxy(media_url: Optional[str] = None, media_headers: Optional[str] = None) -> Response:
+    def proxy() -> Response:
         try:
             start_time = time.time()
 
-            if not media_url: media_url = request.args.get("url")
+            media_url = request.args.get("url")
             if not media_url: raise Exception("No media_url found")
             logger.debug(f"media_url: {media_url}")
 
@@ -301,7 +293,7 @@ class Proxy:
             request_headers = dict(request.headers)
             logger.debug(f"request_headers: {request_headers}")
 
-            if not media_headers: media_headers = request.args.get("headers", "{}")
+            media_headers = request.args.get("headers", "{}")
             if not media_headers: raise Exception("No media_headers found")
 
             try: arg_headers = json.loads(media_headers)
