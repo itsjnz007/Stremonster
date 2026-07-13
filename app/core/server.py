@@ -8,7 +8,7 @@ from typing import Any, List, Optional, Callable, Tuple, Iterator
 from app.external.tmdb import Tmdb
 from app.models.responses import WebResponse, ExternalWebResponse
 from app.sources import torrentio as torrentio_module
-from flask import Flask
+from flask import Flask, request
 from flask.wrappers import Response
 from app.core.logger import Logger
 from app.config import MANIFEST_CATALOG, MANIFEST_TORRENTS, MANIFEST_WEB, TUNNEL_URL
@@ -115,11 +115,13 @@ def get_web_stream(type: str, id: str) -> Response:
         return respond_with({'error': 'Invalid type'})
     
     start_time = time.time()
+    user_agent = request.headers.get('User-Agent')
+    logger.debug(f"User-Agent: {user_agent}")
 
-    # def build_unified_stream_url() -> str:
-    #     if not TUNNEL_URL:
-    #         raise Exception("TUNNEL_URL is not set. Please set it in the config.")
-    #     return TUNNEL_URL + f"/stream?id={id}"
+    def build_unified_stream_url() -> str:
+        if not TUNNEL_URL:
+            raise Exception("TUNNEL_URL is not set. Please set it in the config.")
+        return TUNNEL_URL + f"/stream?id={id}"
     
     def build_web_response(stream_url: str) -> WebResponse:
         return WebResponse(
@@ -144,7 +146,8 @@ def get_web_stream(type: str, id: str) -> Response:
                 thread_pool_web.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator))
                 if not TUNNEL_URL: raise Exception("TUNNEL_URL is not set. Please set it in the config.")
                 # first_result['url'] = build_unified_stream_url()
-                return [build_web_response(first_result['url'])]
+                if not user_agent: return [build_web_response(first_result['url'])]
+                else: return [build_web_response(build_unified_stream_url())]
             
         movie_scrapers: List[Tuple[Callable[[str], Optional[WebResponse]], str]] = [
             (lambda tmdb_id: vidsrc_scraper.get_movie(tmdb_id), 'vidsrc'),
@@ -227,7 +230,8 @@ def get_web_stream(type: str, id: str) -> Response:
                 return respond_with({'streams': []})
             logger.info("Returning cached web result...")
             # formatted_result = {"streams": [build_web_response(streams[stream_index]['url'])]}
-            formatted_result = {'streams': [build_web_response(streams[stream_index]['url'])]}
+            if not user_agent: formatted_result = {'streams': [build_web_response(streams[stream_index]['url'])]}
+            else: formatted_result = {'streams': [build_web_response(build_unified_stream_url())]}
             logger.info(f"Responding with: {formatted_result}")
             return respond_with(formatted_result)
 
