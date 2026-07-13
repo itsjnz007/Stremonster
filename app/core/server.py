@@ -116,10 +116,10 @@ def get_web_stream(type: str, id: str) -> Response:
     
     start_time = time.time()
 
-    def build_unified_stream_url() -> str:
-        if not TUNNEL_URL:
-            raise Exception("TUNNEL_URL is not set. Please set it in the config.")
-        return TUNNEL_URL + f"/stream?id={id}"
+    # def build_unified_stream_url() -> str:
+    #     if not TUNNEL_URL:
+    #         raise Exception("TUNNEL_URL is not set. Please set it in the config.")
+    #     return TUNNEL_URL + f"/stream?id={id}"
     
     def build_web_response(stream_url: str) -> WebResponse:
         return WebResponse(
@@ -144,7 +144,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 thread_pool_web.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator))
                 if not TUNNEL_URL: raise Exception("TUNNEL_URL is not set. Please set it in the config.")
                 # first_result['url'] = build_unified_stream_url()
-                return [build_web_response(build_unified_stream_url())]
+                return [build_web_response(first_result['url'])]
             
         movie_scrapers: List[Tuple[Callable[[str], Optional[WebResponse]], str]] = [
             (lambda tmdb_id: vidsrc_scraper.get_movie(tmdb_id), 'vidsrc'),
@@ -227,7 +227,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 return respond_with({'streams': []})
             logger.info("Returning cached web result...")
             # formatted_result = {"streams": [build_web_response(streams[stream_index]['url'])]}
-            formatted_result = {'streams': [build_web_response(build_unified_stream_url())]}
+            formatted_result = {'streams': [build_web_response(streams[stream_index]['url'])]}
             logger.info(f"Responding with: {formatted_result}")
             return respond_with(formatted_result)
 
