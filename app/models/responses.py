@@ -1,6 +1,9 @@
 from typing import Optional, TypedDict
 from dataclasses import dataclass
 
+class BehaviorHints(TypedDict):
+    bingeGroup: Optional[str]
+
 class WebResponse(TypedDict):
     """Information about the scraped stream."""
     title: str
@@ -8,6 +11,7 @@ class WebResponse(TypedDict):
     url: str
     subtitles: list[str]
     origin: Optional[str]
+    behaviorHints: Optional[BehaviorHints]
 
 class ExternalWebResponse(TypedDict):
     """Information about the scraped stream."""

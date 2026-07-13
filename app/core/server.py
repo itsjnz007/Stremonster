@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import os, time
 from typing import Any, List, Optional, Callable, Tuple, Iterator
 from app.external.tmdb import Tmdb
-from app.models.responses import WebResponse, ExternalWebResponse
+from app.models.responses import BehaviorHints, WebResponse, ExternalWebResponse
 from app.sources import torrentio as torrentio_module
 from flask import Flask, request
 from flask.wrappers import Response
@@ -124,12 +124,14 @@ def get_web_stream(type: str, id: str) -> Response:
         return TUNNEL_URL + f"/stream?id={id}"
     
     def build_web_response(stream_url: str) -> WebResponse:
+        imdb_id = id.split(':')[0] if type == 'series' else id
         return WebResponse(
             title = "Web",
             name = "Play",
             url = stream_url,
             subtitles = [],
-            origin = None
+            origin = None,
+            behaviorHints = BehaviorHints(bingeGroup=imdb_id)
         )
 
     def calculate() -> List[WebResponse] | None:
