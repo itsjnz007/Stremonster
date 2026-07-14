@@ -271,6 +271,8 @@ class Proxy:
         streams = cache.get("streams", [])
         if not streams:
             return Response("No streams found", status=404)
+        
+        print(streams)
 
         current_stream = streams[current_index]
         stream: str = current_stream.get("url")

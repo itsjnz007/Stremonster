@@ -112,15 +112,15 @@ class WebCache(Caching):
     cache_path: ClassVar[Path] = Path(CACHE_DIR) / "web_results.json"
     cache: ClassVar[dict[str, Any]] = {}
 
-    def set(self, key: str, value: WebResponse) -> None:
+    def set(self, key: str, value: list[WebResponse]) -> None:
         """Set a WebResponse for a given key."""
         with self._write_lock:
             cache = self._get_cache()
             timestamp = datetime.now(timezone.utc).isoformat()
-            cache[key] = {"value": {"current_index": 0, "streams": [copy.deepcopy(value)]}, "ts": timestamp}
+            cache[key] = {"value": {"current_index": 0, "streams": copy.deepcopy(value)}, "ts": timestamp}
             self._save_to_disk(self._get_cache_path(), cache)
 
-    def append(self, key: str, web_response: WebResponse) -> None:
+    def extend(self, key: str, web_responses: list[WebResponse]) -> None:
         """Append a WebResponse to the list of streams for a given key."""
         with self._write_lock:
             cache = self._get_cache()
@@ -128,7 +128,7 @@ class WebCache(Caching):
             if key not in cache:
                 cache[key] = {"value": {"current_index": 0, "streams": []}, "ts": timestamp}
 
-            cache[key]["value"]["streams"].append(copy.deepcopy(web_response))
+            cache[key]["value"]["streams"].extend(copy.deepcopy(web_responses))
             cache[key]["ts"] = timestamp  # Update timestamp on append
             self._save_to_disk(self._get_cache_path(), cache)
     

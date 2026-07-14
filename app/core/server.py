@@ -26,7 +26,7 @@ logger = Logger("server")
 app = Flask(__name__)
 
 thread_pool_web = MultiThreading(max_workers=4)
-thread_pool_torrent = MultiThreading(max_workers=2)
+thread_pool_torrent = MultiThreading(max_workers=3)
 
 tmdb_cache = TmdbCache()
 web_cache = WebCache()
@@ -35,7 +35,6 @@ ignore_source_cache = IgnoreSourceCache()
 catalog = Catalog(tmdb_cache)
 
 catalog.build_catalog(pages=1)  # Pre-build catalog on startup
-
 anibride = AniBridgeV3Resolver()
 
 # General Scrapers
@@ -143,8 +142,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 web_cache.set(id, first_result)
                 def drain_remaining(iterator: Iterator[Optional[List[WebResponse]]]) -> None:
                     for response in iterator:
-                        if response:
-                            [web_cache.append(id, r) for r in response]
+                        if response: web_cache.extend(id, response)
 
                 thread_pool_web.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator))
                 if not TUNNEL_URL: raise Exception("TUNNEL_URL is not set. Please set it in the config.")
