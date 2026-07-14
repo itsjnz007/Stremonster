@@ -223,7 +223,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 return process_results(tasks_series)
 
     try:
-        cache = web_cache.get(id, 120)
+        cache = web_cache.get(id, 60*2)
         if cache: 
             stream_index = cache.get("current_index")
             streams = cache.get("streams", [])
@@ -269,7 +269,7 @@ def get_torrent_stream(type: str, id: str) -> Response:
             logger.info(f"Total time taken to fetch web stream: {time.time() - start_time:.2f} seconds")
             return torrentio_module.get_series(id, thread_pool_torrent, True)
         
-    cache = torrent_cache.get(key=id, upto_mins=60*24)
+    cache = torrent_cache.get(key=id, upto_mins=60*2)
     if cache:
         logger.info("Returning cached torrent result...")
         return respond_with(cache)
