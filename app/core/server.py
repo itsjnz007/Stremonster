@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import os, time
+import os, time, requests
 from typing import Any, List, Optional, Callable, Tuple, Iterator
 from app.external.tmdb import Tmdb
 from app.models.responses import BehaviorHints, WebResponse, ExternalWebResponse
@@ -307,6 +307,40 @@ def proxy_stream_mp4():
 @app.route("/proxy")
 def proxy() -> Response | tuple[dict[str, str], int]:
     return Proxy.proxy()
+
+
+ENGINEFS = "http://127.0.0.1:11470"
+
+@app.route("/stream-torrent/<path:path>.mkv")
+def engine(path: str) -> Response:
+    upstream = f"{ENGINEFS}/{path}"
+
+    resp = requests.get(
+        upstream,
+        params=request.args,
+        headers={
+            "Range": request.headers.get("Range", "")
+        },
+        stream=True
+    )
+
+    excluded = {
+        "content-encoding",
+        "transfer-encoding",
+        "connection"
+    }
+
+    headers = [
+        (k, v)
+        for k, v in resp.headers.items()
+        if k.lower() not in excluded
+    ]
+
+    return Response(
+        resp.iter_content(64 * 1024),
+        status=resp.status_code,
+        headers=headers
+    )
 
 
 if __name__ == "__main__":
