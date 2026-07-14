@@ -20,6 +20,7 @@ from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as 
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo
 from app.sources.regional import tamilblasters as tamilblasters
 from app.core.catalog import Catalog
+from app.core.torrent import Torrent
 
 logger = Logger("server")
 app = Flask(__name__)
@@ -135,41 +136,56 @@ def get_web_stream(type: str, id: str) -> Response:
         )
 
     def calculate() -> List[WebResponse] | None:
-        def process_results(tasks: List[Callable[[Any], Optional[WebResponse]]]) -> List[WebResponse] | None:
+        def process_results(tasks: List[Callable[[Any], Optional[List[WebResponse]]]]) -> List[WebResponse] | None:
             results_iter = thread_pool_web.get_all(tasks)
             first_result = next(results_iter, None)
             if first_result:
                 web_cache.set(id, first_result)
-                def drain_remaining(iterator: Iterator[Optional[WebResponse]]) -> None:
+                def drain_remaining(iterator: Iterator[Optional[List[WebResponse]]]) -> None:
                     for response in iterator:
                         if response:
-                            web_cache.append(id, response)
+                            [web_cache.append(id, r) for r in response]
 
                 thread_pool_web.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator))
                 if not TUNNEL_URL: raise Exception("TUNNEL_URL is not set. Please set it in the config.")
                 # first_result['url'] = build_unified_stream_url()
                 if not user_agent: return [build_web_response(first_result['url'])]
                 else: return [build_web_response(build_unified_stream_url())]
+
+        def get_torrentio_movie_response(tmdb_id: str) -> Optional[List[WebResponse]]:
+            results = torrentio_module.get_movie(id, thread_pool_torrent, True)
+            if not results:
+                logger.warning(f"No torrentio movie results for TMDB ID {tmdb_id}")
+                return None
+            return [Torrent.to_web_response(i) for i in results]
+
+        def get_torrentio_series_response(tmdb: str, season: str, episode: str) -> Optional[List[WebResponse]]:
+            results = torrentio_module.get_series(id, thread_pool_torrent, True)
+            if not results:
+                return None
+            return [Torrent.to_web_response(i) for i in results]
             
-        movie_scrapers: List[Tuple[Callable[[str], Optional[WebResponse]], str]] = [
-            (lambda tmdb_id: vidsrc_scraper.get_movie(tmdb_id), 'vidsrc'),
-            (lambda tmdb_id: flicky_scraper.get_movie(tmdb_id), 'flicky'),
-            (lambda tmdb_id: cineby_scraper.get_movie(tmdb_id), 'cineby'),
-            (lambda tmdb_id: vidking_scraper.get_movie(tmdb_id), 'vidking'),
+        movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
+            # (lambda tmdb_id: vidsrc_scraper.get_movie(tmdb_id), 'vidsrc'),
+            # (lambda tmdb_id: flicky_scraper.get_movie(tmdb_id), 'flicky'),
+            # (lambda tmdb_id: cineby_scraper.get_movie(tmdb_id), 'cineby'),
+            # (lambda tmdb_id: [result] if (result := vidking_scraper.get_movie(tmdb_id)) else None, 'vidking'),
+            (get_torrentio_movie_response, 'torrentio'),
         ]
 
-        series_scrapers: List[Tuple[Callable[[str, str, str], Optional[WebResponse]], str]] = [
-            (lambda tmdb, s, e: vidsrc_scraper.get_series(tmdb, s, e), 'vidsrc'),
-            (lambda tmdb, s, e: flicky_scraper.get_series(tmdb, s, e), 'flicky'),
-            (lambda tmdb, s, e: cineby_scraper.get_series(tmdb, s, e), 'cineby'),
-            (lambda tmdb, s, e: vidking_scraper.get_series(tmdb, s, e), 'vidking'),
+        series_scrapers: List[Tuple[Callable[[str, str, str], Optional[List[WebResponse]]], str]] = [
+            # (lambda tmdb, s, e: vidsrc_scraper.get_series(tmdb, s, e), 'vidsrc'),
+            # (lambda tmdb, s, e: flicky_scraper.get_series(tmdb, s, e), 'flicky'),
+            # (lambda tmdb, s, e: cineby_scraper.get_series(tmdb, s, e), 'cineby'),
+            # (lambda tmdb, s, e: vidking_scraper.get_series(tmdb, s, e), 'vidking'),
+            (get_torrentio_series_response, 'torrentio'),
         ]
 
-        anime_series_scrapers: List[Tuple[Callable[[str, str, str, str], Optional[WebResponse]], str]] = [
-            (lambda ani_id, ani_eps, mal_id, mal_eps: four_animo_scraper.get_series(ani_id, str(ani_eps)), '4anime'),
-            (lambda ani_id, ani_eps, mal_id, mal_eps: vidnest_scraper.get_series(ani_id, str(ani_eps)), 'vidnest'),
-            (lambda ani_id, ani_eps, mal_id, mal_eps: miruro_scraper.get_series(mal_id, str(mal_eps)), 'miruro'),
-            (lambda ani_id, ani_eps, mal_id, mal_eps: miruro_scraper.get_series(ani_id, str(ani_eps)), 'miruro'),
+        anime_series_scrapers: List[Tuple[Callable[[str, str, str, str], Optional[List[WebResponse]]], str]] = [
+            (lambda ani_id, ani_eps, mal_id, mal_eps: [result] if (result := four_animo_scraper.get_series(ani_id, str(ani_eps))) else None, '4anime'),
+            (lambda ani_id, ani_eps, mal_id, mal_eps: [result] if (result := vidnest_scraper.get_series(ani_id, str(ani_eps))) else None, 'vidnest'),
+            (lambda ani_id, ani_eps, mal_id, mal_eps: [result] if (result := miruro_scraper.get_series(mal_id, str(mal_eps))) else None, 'miruro'),
+            (lambda ani_id, ani_eps, mal_id, mal_eps: [result] if (result := miruro_scraper.get_series(ani_id, str(ani_eps))) else None, 'miruro'),
         ]
 
         returnable_results: List[WebResponse] | List[ExternalWebResponse] = []
@@ -190,7 +206,7 @@ def get_web_stream(type: str, id: str) -> Response:
             
             # Fallback
             if not returnable_results:
-                tasks_movie: List[Callable[[str], Optional[WebResponse]]] = [
+                tasks_movie: List[Callable[[str], Optional[List[WebResponse]]]] = [
                     lambda _, f=func: f(tmdb_id or "unknown")
                     for func, _ in movie_scrapers
                 ]
@@ -208,7 +224,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 mal_id, mal_eps = anibride.get_mal_info(imdb_id, season, episode)
                 ani_id, ani_eps = anibride.get_anilist_info(imdb_id, season, episode)
 
-                tasks_anime_series: List[Callable[[Tuple[str, str, str, str]], Optional[WebResponse]]] = [
+                tasks_anime_series: List[Callable[[Tuple[str, str, str, str]], Optional[List[WebResponse]]]] = [
                     lambda _, f=func: f(ani_id, str(ani_eps), mal_id, str(mal_eps))
                     for func, _ in anime_series_scrapers
                 ]
@@ -216,7 +232,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 return process_results(tasks_anime_series)
 
             else:
-                tasks_series: List[Callable[[Tuple[str, str, str]], Optional[WebResponse]]] = [
+                tasks_series: List[Callable[[Tuple[str, str, str]], Optional[List[WebResponse]]]] = [
                     lambda _, f=func: f(tmdb_id or "unknown", season, episode)
                     for func, _ in series_scrapers
                 ]
@@ -337,7 +353,7 @@ def engine(path: str) -> Response:
     ]
 
     return Response(
-        resp.iter_content(64 * 1024),
+        resp.iter_content(32 * 1024),
         status=resp.status_code,
         headers=headers
     )

@@ -25,6 +25,7 @@ class TorrentResponse(TypedDict):
     name: str
     infoHash: str
 
+
 @dataclass
 class Segment:
     url: str

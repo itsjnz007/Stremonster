@@ -10,9 +10,9 @@ import libtorrent as lt  # type: ignore[import-untyped]
 from typing import List, Tuple, Dict, Any, Deque, Callable, cast
 from collections import deque
 from app.core.logger import Logger
-from app.models.responses import TorrentResponse
+from app.models.responses import TorrentResponse, WebResponse
 from app.core.multithreading import MultiThreading
-from app.config import CACHE_DIR
+from app.config import CACHE_DIR, TUNNEL_URL
 import logging
 
 logger = Logger('torrent', level=logging.DEBUG)
@@ -233,6 +233,19 @@ class Torrent:
         if self._session:
             logger.info("Pausing libtorrent session for fast teardown...")
             self._session.pause()
+
+    @staticmethod
+    def to_web_response(response: TorrentResponse) -> WebResponse:
+        """Placeholder conversion to a web response."""
+        return WebResponse(
+            title=response.get("title", "Unknown"),
+            name=response.get("name", "Unknown"),
+            url=f"{TUNNEL_URL}/stream-torrent/{response.get('infoHash', '')}/{response.get('fileIdx', '0')}.mkv",
+            subtitles=[],
+            origin=None,
+            behaviorHints=None
+        )
+
 
 if __name__ == "__main__":
     TEST_DATA: list[TorrentResponse] = [
