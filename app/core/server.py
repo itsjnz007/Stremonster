@@ -164,18 +164,18 @@ def get_web_stream(type: str, id: str) -> Response:
             return [Torrent.to_web_response(i) for i in results]
             
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
-            # (lambda tmdb_id: vidsrc_scraper.get_movie(tmdb_id), 'vidsrc'),
-            # (lambda tmdb_id: flicky_scraper.get_movie(tmdb_id), 'flicky'),
-            # (lambda tmdb_id: cineby_scraper.get_movie(tmdb_id), 'cineby'),
-            # (lambda tmdb_id: [result] if (result := vidking_scraper.get_movie(tmdb_id)) else None, 'vidking'),
+            (lambda tmdb_id: [result] if (result := vidsrc_scraper.get_movie(tmdb_id)) else None, 'vidsrc'),
+            (lambda tmdb_id: [result] if (result := flicky_scraper.get_movie(tmdb_id)) else None, 'flicky'),
+            (lambda tmdb_id: [result] if (result := cineby_scraper.get_movie(tmdb_id)) else None, 'cineby'),
+            (lambda tmdb_id: [result] if (result := vidking_scraper.get_movie(tmdb_id)) else None, 'vidking'),
             (get_torrentio_movie_response, 'torrentio'),
         ]
 
         series_scrapers: List[Tuple[Callable[[str, str, str], Optional[List[WebResponse]]], str]] = [
-            # (lambda tmdb, s, e: vidsrc_scraper.get_series(tmdb, s, e), 'vidsrc'),
-            # (lambda tmdb, s, e: flicky_scraper.get_series(tmdb, s, e), 'flicky'),
-            # (lambda tmdb, s, e: cineby_scraper.get_series(tmdb, s, e), 'cineby'),
-            # (lambda tmdb, s, e: vidking_scraper.get_series(tmdb, s, e), 'vidking'),
+            (lambda tmdb, s, e: [result] if (result := vidsrc_scraper.get_series(tmdb, s, e)) else None, 'vidsrc'),
+            (lambda tmdb, s, e: [result] if (result := flicky_scraper.get_series(tmdb, s, e)) else None, 'flicky'),
+            (lambda tmdb, s, e: [result] if (result := cineby_scraper.get_series(tmdb, s, e)) else None, 'cineby'),
+            (lambda tmdb, s, e: [result] if (result := vidking_scraper.get_series(tmdb, s, e)) else None, 'vidking'),
             (get_torrentio_series_response, 'torrentio'),
         ]
 
