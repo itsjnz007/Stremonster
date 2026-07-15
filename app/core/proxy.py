@@ -312,7 +312,7 @@ class Proxy:
                 if request.method == "POST":
                     upstream_response = session.post(
                         media_url,
-                        timeout=30,
+                        timeout=10,
                         headers=arg_headers,
                         stream=True,
                         # cookies=request.cookies,
@@ -322,7 +322,7 @@ class Proxy:
                 else:
                     upstream_response = session.get(
                         media_url,
-                        timeout=30,
+                        timeout=10,
                         headers=arg_headers,
                         stream=True,
                         # cookies=request.cookies,
