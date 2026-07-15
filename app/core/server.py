@@ -123,10 +123,10 @@ def get_web_stream(type: str, id: str) -> Response:
             raise Exception("TUNNEL_URL is not set. Please set it in the config.")
         return TUNNEL_URL + f"/stream?id={id}"
     
-    def build_web_response(stream_url: str) -> WebResponse:
+    def build_web_response(stream_url: str, title: str = "Unknown") -> WebResponse:
         imdb_id = id.split(':')[0] if type == 'series' else id
         return WebResponse(
-            title = "Web",
+            title = "Streaming from " + title,
             name = "Play",
             url = stream_url,
             subtitles = [],
@@ -147,8 +147,8 @@ def get_web_stream(type: str, id: str) -> Response:
                 thread_pool_web.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator))
                 if not TUNNEL_URL: raise Exception("TUNNEL_URL is not set. Please set it in the config.")
                 # first_result['url'] = build_unified_stream_url()
-                if not user_agent: return [build_web_response(first_result['url'])]
-                else: return [build_web_response(build_unified_stream_url())]
+                if not user_agent: return [build_web_response(first_result['url'], title=first_result.get('title', 'Unknown'))]
+                else: return [build_web_response(build_unified_stream_url(), title=first_result.get('title', 'Unknown'))]
 
         def get_torrentio_movie_response(tmdb_id: str) -> Optional[List[WebResponse]]:
             results = torrentio_module.get_movie(id, thread_pool_torrent, True)
@@ -248,8 +248,8 @@ def get_web_stream(type: str, id: str) -> Response:
                 return respond_with({'streams': []})
             logger.info("Returning cached web result...")
             # formatted_result = {"streams": [build_web_response(streams[stream_index]['url'])]}
-            if not user_agent: formatted_result = {'streams': [build_web_response(streams[stream_index]['url'])]}
-            else: formatted_result = {'streams': [build_web_response(build_unified_stream_url())]}
+            if not user_agent: formatted_result = {'streams': [build_web_response(streams[stream_index]['url'], title=streams[stream_index].get('title', 'Unknown'))]}
+            else: formatted_result = {'streams': [build_web_response(build_unified_stream_url(), title=streams[stream_index].get('title', 'Unknown'))]}
             logger.info(f"Responding with: {formatted_result}")
             return respond_with(formatted_result)
 
