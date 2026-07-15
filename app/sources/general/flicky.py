@@ -30,9 +30,9 @@ if __name__ == "__main__":
 
     scraper = FlickyScraper()
     
-    print(f"Testing movie ID {test_movie_id}...")
-    movie_response = scraper.get_movie(test_movie_id)
-    print(f"Movie response: {movie_response}")
+    # print(f"Testing movie ID {test_movie_id}...")
+    # movie_response = scraper.get_movie(test_movie_id)
+    # print(f"Movie response: {movie_response}")
 
-    # series_response = scraper.get_series(test_series_id, "1", "14")
-    # print(f"Series response: {series_response}")
+    series_response = scraper.get_series(test_series_id, "5", "2")
+    print(f"Series response: {series_response}")

@@ -7,3 +7,4 @@ requests
 playwright
 dotenv
 filelock
+gunicorn
