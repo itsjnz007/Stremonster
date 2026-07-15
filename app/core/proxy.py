@@ -184,7 +184,7 @@ class Proxy:
     
     
     @staticmethod
-    def add_proxy(url: str, headers: str, stream_type: str = "stream.ts") -> str:
+    def add_proxy(url: str, headers: str, stream_type: str = "stream.ts", request_id: Optional[str] = None) -> str:
 
         if not TUNNEL_URL: raise Exception("TUNNEL_URL not set")
 
@@ -192,16 +192,18 @@ class Proxy:
         else: headers_str = str(headers)
 
         url_str = str(url)
-
-        return (
+        proxy_url = (
             f"{TUNNEL_URL}/{stream_type}"
             + "?url=" + quote(url_str, safe="")
             + "&headers=" + quote(headers_str, safe="")
         )
+        if request_id:
+            proxy_url += f"&id={quote(request_id, safe='')}"
+        return proxy_url
 
 
     @staticmethod
-    def parse_segment(content: bytes, headers: str, master_url: str) -> str:
+    def parse_segment(content: bytes, headers: str, master_url: str, id: Optional[str] = None) -> str:
         text = content.decode("utf-8", errors="ignore")
         rewritten: list[str] = []
 
@@ -236,7 +238,7 @@ class Proxy:
                     # Replace the URI inside the tag with the proxied version
                     def replace_uri(match: re.Match[str]):
                         full_url = resolve_url(match.group(2))
-                        proxied_url = Proxy.add_proxy(full_url, headers, stream_type)
+                        proxied_url = Proxy.add_proxy(full_url, headers, stream_type, request_id=id)
                         return f'{match.group(1)}{proxied_url}{match.group(3)}'
                     
                     rewritten.append(uri_pattern.sub(replace_uri, line))
@@ -246,7 +248,7 @@ class Proxy:
             
             # Handle segment URLs (lines not starting with #)
             else:
-                rewritten.append(Proxy.add_proxy(resolve_url(line), headers, stream_type))
+                rewritten.append(Proxy.add_proxy(resolve_url(line), headers, stream_type, request_id=id))
 
         return "\n".join(rewritten)
     
@@ -279,7 +281,7 @@ class Proxy:
         print(streams)
 
         current_stream = streams[current_index]
-        stream: str = current_stream.get("url")
+        stream: str = current_stream.get("url") + f"&id={id}"
         if not stream: return Response("Stream URL not found", status=404)
 
         logger.info(f"Redirecting to proxied stream URL: {stream}")
@@ -295,6 +297,7 @@ class Proxy:
             logger.debug(f"media_url: {media_url}")
 
             request_id = request.args.get("id")
+            logger.debug(f"request_id: {request_id}")
 
             request_headers = dict(request.headers)
             logger.debug(f"request_headers: {request_headers}")
@@ -353,7 +356,8 @@ class Proxy:
                 updated_content = Proxy.parse_segment(
                     content,
                     arg_headers,
-                    media_url
+                    media_url,
+                    id=request_id,
                 )
 
                 resp = Response(
