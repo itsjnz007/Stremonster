@@ -24,6 +24,7 @@ class TorrentResponse(TypedDict):
     title: str
     name: str
     infoHash: str
+    bandwidth: Optional[float]
 
 
 @dataclass

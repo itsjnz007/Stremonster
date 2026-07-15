@@ -222,6 +222,7 @@ class Torrent:
         for quality, (stream, speed) in quality_map.items():
             category, _ = self.get_speed_category(speed)
             stream["title"] = f"Torrent ({category.title()})"
+            stream["bandwidth"] = speed
             final_streams.append(stream)
 
         # REMOVED: shutil.rmtree(self.temp_dir)

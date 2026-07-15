@@ -155,12 +155,14 @@ def get_web_stream(type: str, id: str) -> Response:
             if not results:
                 logger.warning(f"No torrentio movie results for TMDB ID {tmdb_id}")
                 return None
+            results = sorted(results, key=lambda x: float(x.get('bandwidth') or 0), reverse=True)
             return [Torrent.to_web_response(i) for i in results]
 
         def get_torrentio_series_response(tmdb: str, season: str, episode: str) -> Optional[List[WebResponse]]:
             results = torrentio_module.get_series(id, thread_pool_torrent, True)
             if not results:
                 return None
+            results = sorted(results, key=lambda x: float(x.get('bandwidth') or 0), reverse=True)
             return [Torrent.to_web_response(i) for i in results]
             
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
