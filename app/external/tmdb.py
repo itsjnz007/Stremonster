@@ -25,7 +25,14 @@ class Tmdb:
         self.api_key = api_key
 
     def find(self, imdb_id: str) -> Optional[dict[str, Any]]:
-        find_cache = self.cache.get(imdb_id)
+        find_root = self.cache.get("find")
+        if find_root and imdb_id in find_root:
+            logger.debug(f"Found cached find response for IMDB ID {imdb_id}")
+            find_cache = find_root[imdb_id]
+        else:
+            find_cache = None
+
+        logger.debug(f"find_cache: {find_cache}")
 
         if find_cache:
             logger.debug(f"Found cached find response for IMDB ID {imdb_id}")
