@@ -156,15 +156,15 @@ def get_web_stream(type: str, id: str) -> Response:
                 logger.warning(f"No torrentio movie results for TMDB ID {tmdb_id}")
                 return None
             results = sorted(results, key=lambda x: float(x.get('bandwidth') or 0), reverse=True)
-            return [Torrent.to_web_response(i) for i in results]
+            return [Torrent.to_web_response(i, id) for i in results]
 
         def get_torrentio_series_response(tmdb: str, season: str, episode: str) -> Optional[List[WebResponse]]:
             results = torrentio_module.get_series(id, thread_pool_torrent, True)
             if not results:
                 return None
             results = sorted(results, key=lambda x: float(x.get('bandwidth') or 0), reverse=True)
-            return [Torrent.to_web_response(i) for i in results]
-            
+            return [Torrent.to_web_response(i, id) for i in results]
+
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
             (lambda tmdb_id: [result] if (result := vidsrc_scraper.get_movie(tmdb_id)) else None, 'vidsrc'),
             (lambda tmdb_id: [result] if (result := flicky_scraper.get_movie(tmdb_id)) else None, 'flicky'),
@@ -331,6 +331,9 @@ ENGINEFS = "http://127.0.0.1:11470"
 def engine(path: str) -> Response:
     upstream = f"{ENGINEFS}/{path}"
 
+    request_id = request.args.get("id")
+    start_time = time.time()
+
     resp = requests.get(
         upstream,
         params=request.args,
@@ -339,6 +342,13 @@ def engine(path: str) -> Response:
         },
         stream=True
     )
+
+    response_time = time.time() - start_time
+    
+    # If stream is slow and request_id is available, switch source
+    if response_time > 5 and request_id:
+        logger.warning(f"Slow stream detected ({response_time:.2f}s) for ID {request_id}, switching source...")
+        web_cache.switch_source(request_id)
 
     excluded = {
         "content-encoding",

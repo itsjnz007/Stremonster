@@ -236,12 +236,12 @@ class Torrent:
             self._session.pause()
 
     @staticmethod
-    def to_web_response(response: TorrentResponse) -> WebResponse:
+    def to_web_response(response: TorrentResponse, id: str) -> WebResponse:
         """Placeholder conversion to a web response."""
         return WebResponse(
             title=response.get("title", "Unknown"),
             name=response.get("name", "Unknown"),
-            url=f"{TUNNEL_URL}/stream-torrent/{response.get('infoHash', '')}/{response.get('fileIdx', '0')}.mkv",
+            url=f"{TUNNEL_URL}/stream-torrent/{response.get('infoHash', '')}/{response.get('fileIdx', '0')}.mkv?id={id}",
             subtitles=[],
             origin=None,
             behaviorHints=None
