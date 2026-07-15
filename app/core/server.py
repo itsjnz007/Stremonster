@@ -137,18 +137,18 @@ def get_web_stream(type: str, id: str) -> Response:
     def calculate() -> List[WebResponse] | None:
         def process_results(tasks: List[Callable[[Any], Optional[List[WebResponse]]]]) -> List[WebResponse] | None:
             results_iter = thread_pool_web.get_all(tasks)
-            first_result = next(results_iter, None)
+            first_result: Optional[List[WebResponse]] = next(results_iter, None)
             if first_result:
-                web_cache.set(id, [first_result])
+                logger.debug(f"First result obtained, caching and draining remaining results for ID {id}, first result: {first_result}")
+                web_cache.set(id, first_result)
                 def drain_remaining(iterator: Iterator[Optional[List[WebResponse]]]) -> None:
                     for response in iterator:
                         if response: web_cache.extend(id, response)
 
                 thread_pool_web.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator))
                 if not TUNNEL_URL: raise Exception("TUNNEL_URL is not set. Please set it in the config.")
-                # first_result['url'] = build_unified_stream_url()
-                if not user_agent: return [build_web_response(first_result['url'], title=first_result.get('title', 'Unknown'))]
-                else: return [build_web_response(build_unified_stream_url(), title=first_result.get('title', 'Unknown'))]
+                if not user_agent: return [build_web_response(first_result[0]['url'], title=first_result[0].get('title', 'Unknown'))]
+                else: return [build_web_response(build_unified_stream_url(), title=first_result[0].get('title', 'Unknown'))]
 
         def get_torrentio_movie_response(tmdb_id: str) -> Optional[List[WebResponse]]:
             results = torrentio_module.get_movie(id, thread_pool_torrent, True)
