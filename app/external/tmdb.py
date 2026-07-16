@@ -55,7 +55,6 @@ class Tmdb:
             response = session.get(url, params=params)
             response.raise_for_status()
             res = response.json()
-            print(res)
             # Cache the complete find API response
             self.cache.set("find", {imdb_id: res})
             return res
