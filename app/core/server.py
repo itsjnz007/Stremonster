@@ -118,21 +118,21 @@ def get_web_stream(type: str, id: str) -> Response:
     user_agent = request.headers.get('User-Agent')
     logger.debug(f"User-Agent: {user_agent}")
 
-    def build_unified_stream_url() -> str:
+    def build_unified_stream_url(fileIdx: int) -> str:
         if not TUNNEL_URL:
             raise Exception("TUNNEL_URL is not set. Please set it in the config.")
-        return TUNNEL_URL + f"/stream?id={id}"
+        return TUNNEL_URL + f"/stream?id={id}&fileIdx={fileIdx}"
     
-    def build_web_response(stream_url: str, title: str = "Unknown") -> WebResponse:
+    def build_web_response(streams: List[WebResponse], unified: bool = False) -> List[WebResponse]:
         imdb_id = id.split(':')[0] if type == 'series' else id
-        return WebResponse(
-            title = "Streaming from " + title,
+        return [WebResponse(
+            title = "Streaming from\n" + streams[idx]['title'],
             name = "Play",
-            url = stream_url,
-            subtitles = [],
-            origin = None,
+            url = streams[idx]['url'] if not unified else build_unified_stream_url(idx),
+            subtitles = streams[idx]['subtitles'],
+            origin = streams[idx]['origin'],
             behaviorHints = BehaviorHints(bingeGroup=imdb_id)
-        )
+        ) for idx in range(len(streams))]
 
     def calculate() -> List[WebResponse] | None:
         def process_results(tasks: List[Callable[[Any], Optional[List[WebResponse]]]]) -> List[WebResponse] | None:
@@ -147,8 +147,8 @@ def get_web_stream(type: str, id: str) -> Response:
 
                 thread_pool_web.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator))
                 if not TUNNEL_URL: raise Exception("TUNNEL_URL is not set. Please set it in the config.")
-                if not user_agent: return [build_web_response(first_result[0]['url'], title=first_result[0].get('title', 'Unknown'))]
-                else: return [build_web_response(build_unified_stream_url(), title=first_result[0].get('title', 'Unknown'))]
+                if not user_agent: return build_web_response(first_result)
+                else: return build_web_response(first_result, unified=True)
 
         def get_torrentio_movie_response(tmdb_id: str) -> Optional[List[WebResponse]]:
             results = torrentio_module.get_movie(id, thread_pool_torrent, True)
@@ -205,7 +205,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 if title:
                     results = tamilblasters_scraper.get_movie(title, year=release_year, threadpool=thread_pool_web)
                     web_cache.set(id, results)
-                    return results
+                    return build_web_response(results)
             
             # Fallback
             if not returnable_results:
@@ -241,32 +241,31 @@ def get_web_stream(type: str, id: str) -> Response:
                 ]
                 return process_results(tasks_series)
 
-    try:
-        cache = web_cache.get(id, 60*2)
-        if cache: 
-            stream_index = cache.get("current_index")
-            streams = cache.get("streams", [])
-            if not streams or stream_index is None or stream_index >= len(streams):
-                logger.error(f"Cache for {id} is invalid or empty...")
-                return respond_with({'streams': []})
-            logger.info("Returning cached web result...")
-            # formatted_result = {"streams": [build_web_response(streams[stream_index]['url'])]}
-            if not user_agent: formatted_result = {'streams': [build_web_response(streams[stream_index]['url'], title=streams[stream_index].get('title', 'Unknown'))]}
-            else: formatted_result = {'streams': [build_web_response(build_unified_stream_url(), title=streams[stream_index].get('title', 'Unknown'))]}
-            logger.info(f"Responding with: {formatted_result}")
-            return respond_with(formatted_result)
+    # try:
+    cache = web_cache.get(id, 60*2)
+    if cache: 
+        stream_index = cache.get("current_index")
+        streams = cache.get("streams", [])
+        if not streams or stream_index is None or stream_index >= len(streams):
+            logger.error(f"Cache for {id} is invalid or empty...")
+            return respond_with({'streams': []})
+        logger.info("Returning cached web result...")
+        if not user_agent: formatted_result = {'streams': build_web_response(streams[stream_index])}
+        else: formatted_result = {'streams': build_web_response(streams[stream_index], unified=True)}
+        logger.info(f"Responding with: {formatted_result}")
+        return respond_with(formatted_result)
 
-        logger.info("Cache invalid, recalculating...")
+    logger.info("Cache invalid, recalculating...")
+    
+    streams = calculate()
+    if streams:
+        # formatted_result = build_stremio_format_response(streams[0]['url'])
+        # logger.info(f"Responding with: {formatted_result}")
+        return respond_with({'streams': streams})
         
-        streams = calculate()
-        if streams:
-            # formatted_result = build_stremio_format_response(streams[0]['url'])
-            # logger.info(f"Responding with: {formatted_result}")
-            return respond_with({'streams': streams})
-        
-    except Exception as e:
-        logger.error(f"Error calculating web streams. Error: {e}")
-        return respond_with({"streams": []})
+    # except Exception as e:
+    #     logger.error(f"Error calculating web streams. Error: {e}")
+    #     return respond_with({"streams": []})
 
     logger.info(f"Total time taken: {time.time() - start_time:.2f}s")
     return respond_with({'streams': []})

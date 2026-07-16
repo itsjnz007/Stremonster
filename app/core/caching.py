@@ -117,7 +117,7 @@ class WebCache(Caching):
         with self._write_lock:
             cache = self._get_cache()
             timestamp = datetime.now(timezone.utc).isoformat()
-            cache[key] = {"value": {"current_index": 0, "streams": copy.deepcopy(value)}, "ts": timestamp}
+            cache[key] = {"value": {"current_index": 0, "streams": copy.deepcopy([value])}, "ts": timestamp}
             self._save_to_disk(self._get_cache_path(), cache)
 
     def extend(self, key: str, web_responses: list[WebResponse]) -> None:
@@ -128,7 +128,7 @@ class WebCache(Caching):
             if key not in cache:
                 cache[key] = {"value": {"current_index": 0, "streams": []}, "ts": timestamp}
 
-            cache[key]["value"]["streams"].extend(copy.deepcopy(web_responses))
+            cache[key]["value"]["streams"].extend(copy.deepcopy([web_responses]))
             cache[key]["ts"] = timestamp  # Update timestamp on append
             self._save_to_disk(self._get_cache_path(), cache)
     

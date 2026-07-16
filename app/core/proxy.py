@@ -270,6 +270,8 @@ class Proxy:
     def stream() -> Response:
         id = request.args.get("id")
         if not id: return Response("Missing 'id' parameter", status=400)
+        fileIdx = request.args.get("fileIdx")
+        if not fileIdx: return Response("Missing 'fileIdx' parameter", status=400)
         cache = web_cache.get(id)
         if not cache: return Response("Stream not found", status=404)
 
@@ -280,7 +282,7 @@ class Proxy:
         
         print(streams)
 
-        current_stream = streams[current_index]
+        current_stream = streams[int(current_index)][int(fileIdx)]
         stream: str = current_stream.get("url") + f"&id={id}"
         if not stream: return Response("Stream URL not found", status=404)
 
