@@ -9,8 +9,14 @@ from app.core.logger import Logger
 from app.core.caching import TmdbCache
 import requests
 from app.config import CATALOG_BUILDER
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logger = Logger("tmdb", level=logging.DEBUG)
+
+session = requests.Session()
+retries = Retry(total=3, backoff_factor=1, status_forcelist=[502, 503, 504])
+session.mount('https://', HTTPAdapter(max_retries=retries))
 
 class Tmdb:
     def __init__(self, cache: TmdbCache):
@@ -45,7 +51,10 @@ class Tmdb:
         }
 
         try:
-            res = requests.get(url, params=params, timeout=5).json()
+            # res = requests.get(url, params=params, headers=headers, timeout=5).json()
+            response = session.get(url, params=params)
+            response.raise_for_status()
+            res = response.json()
             # Cache the complete find API response
             self.cache.set("find", {imdb_id: res})
             return res
@@ -90,7 +99,10 @@ class Tmdb:
         }
 
         try:
-            res = requests.get(url, params=params, timeout=5).json()
+            # res = requests.get(url, params=params, timeout=5).json()
+            response = session.get(url, params=params)
+            response.raise_for_status()
+            res = response.json()
             imdb_id = res.get("imdb_id")
             if imdb_id:
                 logger.debug(f"Found IMDB ID {imdb_id} for TMDB ID {tmdb_id}")
@@ -162,15 +174,18 @@ class TmdbCatalog(Tmdb):
         super().__init__(cache)
 
     def _getter(self, url: str, pages: int = 1) -> Optional[dict[str, Any]]:
-        all_results = []
+        all_results: list[Any] = []
         for page in range(1, pages + 1):
-            params = {
+            params: dict[str, str] = {
                 "api_key": self.api_key,
-                "page": page
+                "page": str(page)
             }
 
             try:
-                res = requests.get(url, params=params, timeout=5).json()
+                # res = requests.get(url, params=params, timeout=5).json()
+                response = session.get(url, params=params)
+                response.raise_for_status()
+                res = response.json()
                 all_results.extend(res.get("results", []))
             except requests.RequestException as e:
                 logger.error(f"Error fetching data from {url} page {page}: {e}")
@@ -189,7 +204,7 @@ class TmdbCatalog(Tmdb):
                     results = self._getter(url, pages)
                     
                     if results and results.get("results"):
-                        metas = []
+                        metas: list[Any]  = []
                         for item in results["results"]:
                             # Handle both movie and TV show response formats
                             title = item.get("title") or item.get("name", "")
@@ -197,7 +212,7 @@ class TmdbCatalog(Tmdb):
                             tmdb_id = item.get("id")
                             
                             if tmdb_id and title:  # Only include items with id and title
-                                meta = {
+                                meta: dict[str, Any] = {
                                     "id": self.tmdb_to_imdb(str(tmdb_id), media_type),
                                     "type": "movie" if media_type == "movie" else "series",
                                     "name": title,
