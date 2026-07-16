@@ -203,7 +203,9 @@ def get_web_stream(type: str, id: str) -> Response:
             if orig_lang in ['ta', 'ml', 'kn', 'hi'] and release_year:
                 title = tmdb_client.get_title(id)
                 if title:
-                    return tamilblasters_scraper.get_movie(title, year=release_year, threadpool=thread_pool_web)
+                    results = tamilblasters_scraper.get_movie(title, year=release_year, threadpool=thread_pool_web)
+                    web_cache.set(id, results)
+                    return results
             
             # Fallback
             if not returnable_results:
