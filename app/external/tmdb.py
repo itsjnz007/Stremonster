@@ -15,7 +15,7 @@ from urllib3.util.retry import Retry
 logger = Logger("tmdb", level=logging.INFO)
 
 session = requests.Session()
-retries = Retry(total=10, backoff_factor=0.2, status_forcelist=[502, 503, 504])
+retries = Retry(total=2, backoff_factor=2, status_forcelist=[502, 503, 504])
 session.mount('https://', HTTPAdapter(max_retries=retries))
 
 class Tmdb:
@@ -52,7 +52,7 @@ class Tmdb:
 
         try:
             # res = requests.get(url, params=params, headers=headers, timeout=5).json()
-            response = session.get(url, params=params)
+            response = session.get(url, params=params, timeout=5)
             response.raise_for_status()
             res = response.json()
             # Cache the complete find API response
@@ -100,7 +100,7 @@ class Tmdb:
 
         try:
             # res = requests.get(url, params=params, timeout=5).json()
-            response = session.get(url, params=params)
+            response = session.get(url, params=params, timeout=5)
             response.raise_for_status()
             res = response.json()
             imdb_id = res.get("imdb_id")
@@ -183,7 +183,7 @@ class TmdbCatalog(Tmdb):
 
             try:
                 # res = requests.get(url, params=params, timeout=5).json()
-                response = session.get(url, params=params)
+                response = session.get(url, params=params, timeout=5)
                 response.raise_for_status()
                 res = response.json()
                 all_results.extend(res.get("results", []))
