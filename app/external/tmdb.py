@@ -15,7 +15,7 @@ from urllib3.util.retry import Retry
 logger = Logger("tmdb", level=logging.INFO)
 
 session = requests.Session()
-retries = Retry(total=3, backoff_factor=1, status_forcelist=[502, 503, 504])
+retries = Retry(total=10, backoff_factor=0.2, status_forcelist=[502, 503, 504])
 session.mount('https://', HTTPAdapter(max_retries=retries))
 
 class Tmdb:
@@ -55,6 +55,7 @@ class Tmdb:
             response = session.get(url, params=params)
             response.raise_for_status()
             res = response.json()
+            print(res)
             # Cache the complete find API response
             self.cache.set("find", {imdb_id: res})
             return res
@@ -194,7 +195,7 @@ class TmdbCatalog(Tmdb):
         return {"results": all_results} if all_results else None
     
     def get_catalog(self, pages: int = 1) -> Optional[dict[str, Any]]:
-        catalog = {}
+        catalog: dict[str, Any] = {}
         
         for region, media_types in CATALOG_BUILDER.items():
             for media_type, categories in media_types.items():
@@ -229,9 +230,9 @@ class TmdbCatalog(Tmdb):
 if __name__ == "__main__":
     cache = TmdbCache()
     tmdb = TmdbCatalog(cache)
-    test_imdb_id = "tt1375666"
+    test_imdb_id = "tt0116629"
     tmdb_id = tmdb.imdb_to_tmdb(test_imdb_id)
     print(f"TMDB ID for IMDB ID {test_imdb_id}: {tmdb_id}")
-    print("IMDB to TMDB mapping:")
-    imdb_id = tmdb.tmdb_to_imdb(tmdb_id, "movie")
-    print(f"IMDB ID for TMDB ID {tmdb_id}: {imdb_id}")
+    # print("IMDB to TMDB mapping:")
+    # imdb_id = tmdb.tmdb_to_imdb(tmdb_id, "movie")
+    # print(f"IMDB ID for TMDB ID {tmdb_id}: {imdb_id}")
