@@ -12,7 +12,7 @@ from app.config import CATALOG_BUILDER
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-logger = Logger("tmdb", level=logging.DEBUG)
+logger = Logger("tmdb", level=logging.INFO)
 
 session = requests.Session()
 retries = Retry(total=3, backoff_factor=1, status_forcelist=[502, 503, 504])

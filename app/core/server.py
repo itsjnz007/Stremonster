@@ -158,7 +158,7 @@ def get_web_stream(type: str, id: str) -> Response:
             results = sorted(results, key=lambda x: float(x.get('bandwidth') or 0), reverse=True)
             return [Torrent.to_web_response(i, id) for i in results]
 
-        def get_torrentio_series_response(tmdb: str, season: str, episode: str) -> Optional[List[WebResponse]]:
+        def get_torrentio_series_response(*_) -> Optional[List[WebResponse]]:
             results = torrentio_module.get_series(id, thread_pool_torrent, True)
             if not results:
                 return None
@@ -186,6 +186,7 @@ def get_web_stream(type: str, id: str) -> Response:
             (lambda ani_id, ani_eps, mal_id, mal_eps: [result] if (result := vidnest_scraper.get_series(ani_id, str(ani_eps))) else None, 'vidnest'),
             (lambda ani_id, ani_eps, mal_id, mal_eps: [result] if (result := miruro_scraper.get_series(mal_id, str(mal_eps))) else None, 'miruro'),
             (lambda ani_id, ani_eps, mal_id, mal_eps: [result] if (result := miruro_scraper.get_series(ani_id, str(ani_eps))) else None, 'miruro'),
+            (get_torrentio_series_response, 'torrentio'),
         ]
 
         returnable_results: List[WebResponse] | List[ExternalWebResponse] = []

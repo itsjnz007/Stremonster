@@ -43,14 +43,7 @@ class CinebyScraper(Scraper):
     
 
 if __name__ == "__main__":
-    test_movie_id = "936075"  # Michael Jackson
-    test_series_id = "1399"    # Game of Thrones
-
     scraper = CinebyScraper()
-    
-    # print(f"Testing movie ID {test_movie_id}...")
-    # movie_response = scraper.get_movie(test_movie_id)
-    # print(f"Movie response: {movie_response}")
 
     series_response = scraper.get_series("48891", "5", "2")
     print(f"Series response: {series_response}")

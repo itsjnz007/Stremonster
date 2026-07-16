@@ -22,15 +22,7 @@ class VidsrcScraper(Scraper):
         return result
 
 if __name__ == "__main__":
-    test_movie_id = "687163"  # John Wick: Chapter 4
-    test_series_id = "1399"    # Game of Thrones
-
     scraper = VidsrcScraper()
     
-    print(f"Testing movie ID {test_movie_id}...")
-    movie_response = scraper.get_movie(test_movie_id)
-    print(f"Movie response: {movie_response}")
-
-    print(f"Testing serues ID {test_series_id}...")
-    series_response = scraper.get_series(test_series_id, "1", "1")
-    print(f"Movie response: {series_response}")
+    series_response = scraper.get_series("48891", "5", "2")
+    print(f"Series response: {series_response}")
