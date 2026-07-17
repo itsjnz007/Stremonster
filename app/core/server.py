@@ -135,17 +135,29 @@ def get_web_stream(type: str, id: str) -> Response:
             behaviorHints = BehaviorHints(bingeGroup=imdb_id)
         ) for idx in range(len(streams))]
 
+    def append_id_to_streams(streams: List[WebResponse]) -> List[WebResponse]:
+        return [
+            {
+                **stream,
+                'url': stream['url'] + f'&id={id}'
+            }
+            for stream in streams
+        ]
+    
     def calculate() -> List[WebResponse] | None:
+
         def process_results(tasks: List[Callable[[Any], Optional[List[WebResponse]]]]) -> List[WebResponse] | None:
             results_iter = thread_pool_web.get_all(tasks)
             first_result: Optional[List[WebResponse]] = next(results_iter, None)
             if first_result:
+                first_result = append_id_to_streams(first_result)
                 logger.debug(f"First result obtained, caching and draining remaining results for ID {id}, first result: {first_result}")
                 web_cache.set(id, first_result)
                 def drain_remaining(iterator: Iterator[Optional[List[WebResponse]]]) -> None:
                     for response in iterator:
-                        response['url'] = request['url'] + f'&id={id}'
-                        if response: web_cache.extend(id, response)
+                        if response:
+                            response = append_id_to_streams(response)
+                            web_cache.extend(id, response)
 
                 thread_pool_web.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator))
                 if not TUNNEL_URL: raise Exception("TUNNEL_URL is not set. Please set it in the config.")
@@ -246,14 +258,14 @@ def get_web_stream(type: str, id: str) -> Response:
     # try:
     cache = web_cache.get(id, 60*2)
     if cache: 
-        stream_index = cache.get("current_index")
-        streams = cache.get("streams", [])
-        if not streams or stream_index is None or stream_index >= len(streams):
+        stream_index: Optional[int] = cache.get("current_index")
+        stream_group: list[list[WebResponse]] = cache.get("streams", [])
+        if not stream_group or stream_index is None or stream_index >= len(stream_group):
             logger.error(f"Cache for {id} is invalid or empty...")
             return respond_with({'streams': []})
         logger.info("Returning cached web result...")
-        if not user_agent: formatted_result = {'streams': build_web_response(streams[stream_index])}
-        else: formatted_result = {'streams': build_web_response(streams[stream_index], unified=True)}
+        if not user_agent: formatted_result = {'streams': build_web_response(append_id_to_streams(stream_group[stream_index]))}
+        else: formatted_result = {'streams': build_web_response(append_id_to_streams(stream_group[stream_index]), unified=True)}
         logger.info(f"Responding with: {formatted_result}")
         return respond_with(formatted_result)
 
