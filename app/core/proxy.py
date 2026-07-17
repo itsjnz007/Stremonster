@@ -340,8 +340,10 @@ class Proxy:
                 return Response(f"Upstream error {e}", status=503)
             
             if upstream_response.status_code not in (200, 203, 206):
-                if request_id: web_cache.switch_source(request_id)
                 logger.error(f"Upstream error {upstream_response.status_code} {upstream_response.text}")
+                if request_id: web_cache.switch_source(request_id)
+                else: logger.warning("'request_id' nit available, skipping source swotch")
+                
 
             content_type = upstream_response.headers.get("content-type", "").lower()
 
