@@ -136,8 +136,8 @@ class Proxy:
         try:
             r = session.head(stream_url, timeout=10, headers=headers, allow_redirects=True)
             if r.status_code not in (200, 203, 206):
-                r.pop('origin')
-                r.pop('referer')
+                headers.pop('origin')
+                headers.pop('referer')
                 # headers['origin'] = origin
                 # headers['referer'] = f"{origin}/"
                 r = session.get(stream_url, timeout=10, headers=headers, allow_redirects=True)
