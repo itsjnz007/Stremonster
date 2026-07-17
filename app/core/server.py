@@ -140,6 +140,7 @@ def get_web_stream(type: str, id: str) -> Response:
             first_result: Optional[List[WebResponse]] = next(results_iter, None)
             if first_result:
                 logger.debug(f"First result obtained, caching and draining remaining results for ID {id}, first result: {first_result}")
+                first_result['url'] = first_resulr['url'] + f'&id={id}'
                 web_cache.set(id, first_result)
                 def drain_remaining(iterator: Iterator[Optional[List[WebResponse]]]) -> None:
                     for response in iterator:
