@@ -143,6 +143,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 web_cache.set(id, first_result)
                 def drain_remaining(iterator: Iterator[Optional[List[WebResponse]]]) -> None:
                     for response in iterator:
+                        response['url'] = request['url'] + f'&id={id}'
                         if response: web_cache.extend(id, response)
 
                 thread_pool_web.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator))
