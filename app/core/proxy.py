@@ -129,15 +129,17 @@ class Proxy:
             "sec-fetch-dest": "empty",
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "cross-site",
-            # "origin": origin,
-            # "referer": f"{origin}/"
+            "origin": origin,
+            "referer": f"{origin}/"
         }
 
         try:
             r = session.head(stream_url, timeout=10, headers=headers, allow_redirects=True)
             if r.status_code not in (200, 203, 206):
-                headers['origin'] = origin
-                headers['referer'] = f"{origin}/"
+                r.pop('origin')
+                r.pop('referer')
+                # headers['origin'] = origin
+                # headers['referer'] = f"{origin}/"
                 r = session.get(stream_url, timeout=10, headers=headers, allow_redirects=True)
         except Exception as e:
             logger.error(f"Network error while probing stream URL: {e}")
