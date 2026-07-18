@@ -133,8 +133,7 @@ def get_web_stream(type: str, id: str) -> Response:
             subtitles = streams[idx]['subtitles'],
             origin = streams[idx]['origin'],
             behaviorHints = BehaviorHints(
-                bingeGroup=imdb_id,
-                notWebReady=None
+                bingeGroup=imdb_id
             )
         ) for idx in range(len(streams))]
 
