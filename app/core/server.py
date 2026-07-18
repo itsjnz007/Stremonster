@@ -134,7 +134,7 @@ def get_web_stream(type: str, id: str) -> Response:
             origin = streams[idx]['origin'],
             behaviorHints = BehaviorHints(
                 bingeGroup=imdb_id,
-                notWebReady=True
+                notWebReady=None
             )
         ) for idx in range(len(streams))]
 
@@ -267,7 +267,7 @@ def get_web_stream(type: str, id: str) -> Response:
             logger.error(f"Cache for {id} is invalid or empty...")
             return respond_with({'streams': []})
         logger.info("Returning cached web result...")
-        if not user_agent: formatted_result = {'streams': build_web_response(append_id_to_streams(stream_group[stream_index]), unified=True)}
+        if not user_agent: formatted_result = {'streams': build_web_response(append_id_to_streams(stream_group[stream_index]))}
         else: formatted_result = {'streams': build_web_response(append_id_to_streams(stream_group[stream_index]), unified=True)}
         logger.info(f"Responding with: {formatted_result}")
         return respond_with(formatted_result)
