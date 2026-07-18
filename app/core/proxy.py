@@ -137,9 +137,7 @@ class Proxy:
             r = session.head(stream_url, timeout=10, headers=headers, allow_redirects=True)
             if r.status_code not in (200, 203, 206):
                 headers.pop('origin')
-                headers.pop('referer')
-                # headers['origin'] = origin
-                # headers['referer'] = f"{origin}/"
+                headers.pop('referer');
                 r = session.get(stream_url, timeout=10, headers=headers, allow_redirects=True)
         except Exception as e:
             logger.error(f"Network error while probing stream URL: {e}")
