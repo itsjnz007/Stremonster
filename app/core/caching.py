@@ -164,6 +164,60 @@ class IgnoreSourceCache(Caching):
     cache_path: ClassVar[Path] = Path(CACHE_DIR) / "ignore_source.json"
     cache: ClassVar[dict[str, Any]] = {}
 
+
+class ProcessingCache(Caching):
+    """Track processing status for web/torrent requests per ID.
+
+    Stored format per key:
+    {
+        "web": {"processing": bool, "completed": bool, "has_results": bool},
+        "torrent": {"processing": bool, "completed": bool, "has_results": bool},
+        "ts": "..."
+    }
+    """
+    cache_path: ClassVar[Path] = Path(CACHE_DIR) / "processing.json"
+    cache: ClassVar[dict[str, Any]] = {}
+
+    def start(self, key: str, kind: str) -> None:
+        kind = kind.lower()
+        if kind not in ("web", "torrent"):
+            raise ValueError("kind must be 'web' or 'torrent'")
+        with self._write_lock:
+            cache = self._get_cache()
+            timestamp = datetime.now(timezone.utc).isoformat()
+            entry = cache.get(key, {})
+            entry.setdefault("web", {"processing": False, "completed": False, "has_results": False})
+            entry.setdefault("torrent", {"processing": False, "completed": False, "has_results": False})
+            entry[kind]["processing"] = True
+            entry[kind]["completed"] = False
+            entry[kind]["has_results"] = False
+            entry["ts"] = timestamp
+            cache[key] = entry
+            # self._save_to_disk(self._get_cache_path(), cache)
+
+    def finish(self, key: str, kind: str, has_results: bool) -> None:
+        kind = kind.lower()
+        if kind not in ("web", "torrent"):
+            raise ValueError("kind must be 'web' or 'torrent'")
+        with self._write_lock:
+            cache = self._get_cache()
+            timestamp = datetime.now(timezone.utc).isoformat()
+            entry = cache.get(key, {})
+            entry.setdefault("web", {"processing": False, "completed": False, "has_results": False})
+            entry.setdefault("torrent", {"processing": False, "completed": False, "has_results": False})
+            entry[kind]["processing"] = False
+            entry[kind]["completed"] = True
+            entry[kind]["has_results"] = bool(has_results)
+            entry["ts"] = timestamp
+            cache[key] = entry
+            # self._save_to_disk(self._get_cache_path(), cache)
+
+    def get_status(self, key: str) -> dict[str, dict[str, bool]] | None:
+        entry = self._get_cache().get(key)
+        if not entry:
+            return None
+        return copy.deepcopy(entry)
+
 if __name__ == "__main__":
     web_cache = WebCache()
     tmdb_cache = TmdbCache()

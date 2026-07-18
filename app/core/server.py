@@ -6,13 +6,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import os, time, requests
 from typing import Any, List, Optional, Callable, Tuple, Iterator
 from app.external.tmdb import Tmdb
-from app.models.responses import BehaviorHints, WebResponse, ExternalWebResponse
+from app.models.responses import BehaviorHints, WebResponse
 from app.sources import torrentio as torrentio_module
 from flask import Flask, request
 from flask.wrappers import Response
 from app.core.logger import Logger
 from app.config import MANIFEST_CATALOG, MANIFEST_TORRENTS, MANIFEST_WEB, TUNNEL_URL
-from app.core.caching import TmdbCache, WebCache, TorrentCache, IgnoreSourceCache
+from app.core.caching import TmdbCache, WebCache, TorrentCache, IgnoreSourceCache, ProcessingCache
 from app.core.multithreading import MultiThreading
 from app.core.proxy import respond_with, Proxy
 from app.external.anilist import AniBridgeV3Resolver
@@ -20,7 +20,6 @@ from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as 
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo
 from app.sources.regional import tamilblasters as tamilblasters
 from app.core.catalog import Catalog
-from app.core.torrent import Torrent
 
 logger = Logger("server")
 app = Flask(__name__)
@@ -32,6 +31,7 @@ tmdb_cache = TmdbCache()
 web_cache = WebCache()
 torrent_cache = TorrentCache()
 ignore_source_cache = IgnoreSourceCache()
+processing_cache = ProcessingCache()
 catalog = Catalog(tmdb_cache)
 
 catalog.build_catalog(pages=1)  # Pre-build catalog on startup
@@ -166,27 +166,11 @@ def get_web_stream(type: str, id: str) -> Response:
                 if not user_agent: return build_web_response(first_result)
                 else: return build_web_response(first_result, unified=True)
 
-        def get_torrentio_movie_response(tmdb_id: str) -> Optional[List[WebResponse]]: # type: ignore
-            results = torrentio_module.get_movie(id, thread_pool_torrent, True)
-            if not results:
-                logger.warning(f"No torrentio movie results for TMDB ID {tmdb_id}")
-                return None
-            results = sorted(results, key=lambda x: float(x.get('bandwidth') or 0), reverse=True)
-            return [Torrent.to_web_response(i, id) for i in results]
-
-        def get_torrentio_series_response(*_) -> Optional[List[WebResponse]]:
-            results = torrentio_module.get_series(id, thread_pool_torrent, True)
-            if not results:
-                return None
-            results = sorted(results, key=lambda x: float(x.get('bandwidth') or 0), reverse=True)
-            return [Torrent.to_web_response(i, id) for i in results]
-
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
             (lambda tmdb_id: [result] if (result := vidsrc_scraper.get_movie(tmdb_id)) else None, 'vidsrc'),
             (lambda tmdb_id: [result] if (result := flicky_scraper.get_movie(tmdb_id)) else None, 'flicky'),
             (lambda tmdb_id: [result] if (result := cineby_scraper.get_movie(tmdb_id)) else None, 'cineby'),
             #(lambda tmdb_id: [result] if (result := vidking_scraper.get_movie(tmdb_id)) else None, 'vidking'),
-            # (get_torrentio_movie_response, 'torrentio'),
         ]
 
         series_scrapers: List[Tuple[Callable[[str, str, str], Optional[List[WebResponse]]], str]] = [
@@ -194,7 +178,6 @@ def get_web_stream(type: str, id: str) -> Response:
             (lambda tmdb, s, e: [result] if (result := flicky_scraper.get_series(tmdb, s, e)) else None, 'flicky'),
             (lambda tmdb, s, e: [result] if (result := cineby_scraper.get_series(tmdb, s, e)) else None, 'cineby'),
             #(lambda tmdb, s, e: [result] if (result := vidking_scraper.get_series(tmdb, s, e)) else None, 'vidking'),
-            # (get_torrentio_series_response, 'torrentio'),
         ]
 
         anime_series_scrapers: List[Tuple[Callable[[str, str, str, str], Optional[List[WebResponse]]], str]] = [
@@ -202,10 +185,7 @@ def get_web_stream(type: str, id: str) -> Response:
             (lambda ani_id, ani_eps, mal_id, mal_eps: [result] if (result := vidnest_scraper.get_series(ani_id, str(ani_eps))) else None, 'vidnest'),
             (lambda ani_id, ani_eps, mal_id, mal_eps: [result] if (result := miruro_scraper.get_series(mal_id, str(mal_eps))) else None, 'miruro'),
             (lambda ani_id, ani_eps, mal_id, mal_eps: [result] if (result := miruro_scraper.get_series(ani_id, str(ani_eps))) else None, 'miruro'),
-            (get_torrentio_series_response, 'torrentio'),
         ]
-
-        returnable_results: List[WebResponse] | List[ExternalWebResponse] = []
 
         if type == 'movie':
             tmdb_id = tmdb_client.imdb_to_tmdb(id)
@@ -220,16 +200,15 @@ def get_web_stream(type: str, id: str) -> Response:
                 title = tmdb_client.get_title(id)
                 if title:
                     results = tamilblasters_scraper.get_movie(title, year=release_year, threadpool=thread_pool_web)
-                    web_cache.set(id, results)
-                    return build_web_response(results)
+                    if results:
+                        web_cache.set(id, results)
+                        return build_web_response(results)
             
-            # Fallback
-            if not returnable_results:
-                tasks_movie: List[Callable[[str], Optional[List[WebResponse]]]] = [
-                    lambda _, f=func: f(tmdb_id or "unknown")
-                    for func, _ in movie_scrapers
-                ]
-                return process_results(tasks_movie)
+            tasks_movie: List[Callable[[str], Optional[List[WebResponse]]]] = [
+                lambda _, f=func: f(tmdb_id or "unknown")
+                for func, _ in movie_scrapers
+            ]
+            return process_results(tasks_movie)
 
         else:  # Series
             imdb_id, season, episode = id.split(':')
@@ -246,8 +225,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 tasks_anime_series: List[Callable[[Tuple[str, str, str, str]], Optional[List[WebResponse]]]] = [
                     lambda _, f=func: f(ani_id, str(ani_eps), mal_id, str(mal_eps))
                     for func, _ in anime_series_scrapers
-                ]
-                
+                ] 
                 return process_results(tasks_anime_series)
 
             else:
@@ -272,12 +250,24 @@ def get_web_stream(type: str, id: str) -> Response:
         return respond_with(formatted_result)
 
     logger.info("Cache invalid, recalculating...")
-    
+    # mark that a web request is being processed for this id
+    try:
+        processing_cache.start(id, 'web')
+    except Exception:
+        pass
+
     streams = calculate()
     if streams:
-        # formatted_result = build_stremio_format_response(streams[0]['url'])
-        # logger.info(f"Responding with: {formatted_result}")
+        try:
+            processing_cache.finish(id, 'web', True)
+        except Exception:
+            pass
         return respond_with({'streams': streams})
+
+    try:
+        processing_cache.finish(id, 'web', False)
+    except Exception:
+        pass
         
     # except Exception as e:
     #     logger.error(f"Error calculating web streams. Error: {e}")
@@ -308,12 +298,39 @@ def get_torrent_stream(type: str, id: str) -> Response:
         logger.info("Returning cached torrent result...")
         return respond_with(cache)
     else:
-        # wait_until(4)
+        # mark that a torrent request is being processed for this id
+        try:
+            processing_cache.start(id, 'torrent')
+        except Exception:
+            pass
+
         result = calculate()
+        try:
+            processing_cache.finish(id, 'torrent', bool(result))
+        except Exception:
+            pass
+
         if result:
             formatted_result = {'streams': result}
             torrent_cache.set(id, formatted_result)
-            return respond_with(formatted_result)
+
+            # If web is still processing, wait briefly for it to finish (so we prefer web results)
+            status = processing_cache.get_status(id) or {}
+            web_status = status.get('web') or {}
+            wait_total = 0.0
+            wait_step = 0.5
+            wait_limit = 8.0
+            while web_status.get('processing') and wait_total < wait_limit:
+                time.sleep(wait_step)
+                wait_total += wait_step
+                status = processing_cache.get_status(id) or {}
+                web_status = status.get('web') or {}
+
+            # After waiting (or if web already finished), only return torrent results if web completed and had no results
+            if web_status.get('completed') and not web_status.get('has_results'):
+                return respond_with(formatted_result)
+            # If web has results or is still processing/unknown, don't return torrents now
+            return respond_with({'streams': []})
     
     logger.info(f"Total time taken to fetch torrent stream: {time.time() - start_time:.2f} seconds")
     logger.warning(f"No torrent stream found for {type} with ID {id}")
