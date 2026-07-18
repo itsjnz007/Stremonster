@@ -364,7 +364,7 @@ def engine(path: str) -> Response:
     response_time = time.time() - start_time
     
     # If stream is slow and request_id is available, switch source
-    if response_time > 5 and request_id:
+    if response_time > 30 and request_id:
         logger.warning(f"Slow stream detected ({response_time:.2f}s) for ID {request_id}, switching source...")
         web_cache.switch_source(request_id)
 
@@ -381,9 +381,10 @@ def engine(path: str) -> Response:
     ]
 
     return Response(
-        resp.iter_content(32 * 1024),
+        resp.iter_content(64 * 1024),
         status=resp.status_code,
-        headers=headers
+        headers=headers,
+        direct_passthrough=True
     )
 
 
@@ -392,4 +393,4 @@ if __name__ == "__main__":
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         logger.info("Starting server...")
     
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(host="0.0.0.0", port=8000, debug=True, threading=True)
