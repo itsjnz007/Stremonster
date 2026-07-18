@@ -32,13 +32,13 @@ class CinebyScraper(Scraper):
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/movie/{tmdb_id}"
         # url = f"{self.base_url}/movie/{tmdb_id}?play=true"
-        result = self.get_stream(url, stop_event, title="Web | Cineby")
+        result = self.get_stream(url, stop_event, title="Cineby")
         return result
     
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}"
         # url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}?play=true"
-        result = self.get_stream(url, stop_event, title="Web | Cineby")
+        result = self.get_stream(url, stop_event, title="Cineby")
         return result
     
 

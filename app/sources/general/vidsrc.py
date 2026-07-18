@@ -13,12 +13,12 @@ class VidsrcScraper(Scraper):
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/1/movie/{tmdb_id}"
-        result = self.get_stream(url, stop_event, title="Web | Vidsrc")
+        result = self.get_stream(url, stop_event, title="Vidsrc")
         return result
     
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/1/tv/{tmdb_id}/{season}/{episode}"
-        result = self.get_stream(url, stop_event, title="Web | Vidsrc")
+        result = self.get_stream(url, stop_event, title="Vidsrc")
         return result
 
 if __name__ == "__main__":

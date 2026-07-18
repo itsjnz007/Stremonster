@@ -126,8 +126,8 @@ def get_web_stream(type: str, id: str) -> Response:
     def build_web_response(streams: List[WebResponse], unified: bool = False) -> List[WebResponse]:
         imdb_id = id.split(':')[0] if type == 'series' else id
         return [WebResponse(
-            # title = "Streaming from\n" + streams[idx]['title'],
-            title = "",
+            title = "Streaming from\n" + streams[idx]['title'],
+            # title = "",
             name = "Play",
             url = streams[idx]['url'] if not unified else build_unified_stream_url(idx),
             subtitles = streams[idx]['subtitles'],

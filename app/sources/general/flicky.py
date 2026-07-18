@@ -15,12 +15,12 @@ class FlickyScraper(Scraper):
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/player/movie/{tmdb_id}"
-        result = self.get_stream(url, stop_event, title="Web | Flicky")
+        result = self.get_stream(url, stop_event, title="Flicky")
         return result
     
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/player/tv/{tmdb_id}/{season}/{episode}"
-        result = self.get_stream(url, stop_event, title="Web | Flicky")
+        result = self.get_stream(url, stop_event, title="Flicky")
         return result
     
 
