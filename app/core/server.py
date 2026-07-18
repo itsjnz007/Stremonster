@@ -166,7 +166,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 if not user_agent: return build_web_response(first_result)
                 else: return build_web_response(first_result, unified=True)
 
-        def get_torrentio_movie_response(tmdb_id: str) -> Optional[List[WebResponse]]:
+        def get_torrentio_movie_response(tmdb_id: str) -> Optional[List[WebResponse]]: # type: ignore
             results = torrentio_module.get_movie(id, thread_pool_torrent, True)
             if not results:
                 logger.warning(f"No torrentio movie results for TMDB ID {tmdb_id}")
@@ -186,7 +186,7 @@ def get_web_stream(type: str, id: str) -> Response:
             (lambda tmdb_id: [result] if (result := flicky_scraper.get_movie(tmdb_id)) else None, 'flicky'),
             (lambda tmdb_id: [result] if (result := cineby_scraper.get_movie(tmdb_id)) else None, 'cineby'),
             #(lambda tmdb_id: [result] if (result := vidking_scraper.get_movie(tmdb_id)) else None, 'vidking'),
-            (get_torrentio_movie_response, 'torrentio'),
+            # (get_torrentio_movie_response, 'torrentio'),
         ]
 
         series_scrapers: List[Tuple[Callable[[str, str, str], Optional[List[WebResponse]]], str]] = [
@@ -194,7 +194,7 @@ def get_web_stream(type: str, id: str) -> Response:
             (lambda tmdb, s, e: [result] if (result := flicky_scraper.get_series(tmdb, s, e)) else None, 'flicky'),
             (lambda tmdb, s, e: [result] if (result := cineby_scraper.get_series(tmdb, s, e)) else None, 'cineby'),
             #(lambda tmdb, s, e: [result] if (result := vidking_scraper.get_series(tmdb, s, e)) else None, 'vidking'),
-            (get_torrentio_series_response, 'torrentio'),
+            # (get_torrentio_series_response, 'torrentio'),
         ]
 
         anime_series_scrapers: List[Tuple[Callable[[str, str, str, str], Optional[List[WebResponse]]], str]] = [
