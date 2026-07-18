@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 class BehaviorHints(TypedDict):
     bingeGroup: Optional[str]
+    notWebReady: Optional[bool]
 
 class WebResponse(TypedDict):
     """Information about the scraped stream."""

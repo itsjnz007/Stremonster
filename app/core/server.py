@@ -132,7 +132,10 @@ def get_web_stream(type: str, id: str) -> Response:
             url = streams[idx]['url'] if not unified else build_unified_stream_url(idx),
             subtitles = streams[idx]['subtitles'],
             origin = streams[idx]['origin'],
-            behaviorHints = BehaviorHints(bingeGroup=imdb_id)
+            behaviorHints = BehaviorHints(
+                bingeGroup=imdb_id,
+                notWebReady=True
+            )
         ) for idx in range(len(streams))]
 
     def append_id_to_streams(streams: List[WebResponse]) -> List[WebResponse]:
