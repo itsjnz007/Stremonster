@@ -357,8 +357,16 @@ class Proxy:
                             yield chunk
                 except (requests.exceptions.ChunkedEncodingError, requests.exceptions.ConnectionError) as stream_err:
                     logger.warning(f"Upstream stream broken or closed early: {stream_err}")
-                finally:
-                    upstream_response.close()
+                    if request_id: 
+                        web_cache.switch_source(request_id)
+                        assert TUNNEL_URL
+                        redirect_dst = TUNNEL_URL + f"/stream?id={request_id}&fileIdx=0"
+                        return Response(
+                            status=302,
+                            headers={"Location": redirect_dst}
+                        )
+                    else: logger.warning("'request_id' not available, skipping source switch")
+                finally: upstream_response.close()
 
             resp = Response(
                 stream_with_context(generate_media()), 
