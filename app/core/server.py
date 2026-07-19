@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import os, time, requests
+import os, time
 from typing import Any, List, Optional, Callable, Tuple, Iterator
 from app.external.tmdb import Tmdb
 from app.models.responses import BehaviorHints, WebResponse, TorrentResponse
@@ -333,49 +333,49 @@ def proxy() -> Response | tuple[dict[str, str], int]:
     return Proxy.proxy()
 
 
-ENGINEFS = "http://127.0.0.1:11470"
+# ENGINEFS = "http://127.0.0.1:11470"
 
-@app.route("/stream-torrent/<path:path>.mkv")
-def engine(path: str) -> Response:
-    upstream = f"{ENGINEFS}/{path}"
+# @app.route("/stream-torrent/<path:path>.mkv")
+# def engine(path: str) -> Response:
+#     upstream = f"{ENGINEFS}/{path}"
 
-    request_id = request.args.get("id")
-    start_time = time.time()
+#     request_id = request.args.get("id")
+#     start_time = time.time()
 
-    resp = requests.get(
-        upstream,
-        params=request.args,
-        headers={
-            "Range": request.headers.get("Range", "")
-        },
-        stream=True
-    )
+#     resp = requests.get(
+#         upstream,
+#         params=request.args,
+#         headers={
+#             "Range": request.headers.get("Range", "")
+#         },
+#         stream=True
+#     )
 
-    response_time = time.time() - start_time
+#     response_time = time.time() - start_time
     
-    # If stream is slow and request_id is available, switch source
-    if response_time > 30 and request_id:
-        logger.warning(f"Slow stream detected ({response_time:.2f}s) for ID {request_id}, switching source...")
-        web_cache.switch_source(request_id)
+#     # If stream is slow and request_id is available, switch source
+#     if response_time > 30 and request_id:
+#         logger.warning(f"Slow stream detected ({response_time:.2f}s) for ID {request_id}, switching source...")
+#         web_cache.switch_source(request_id)
 
-    excluded = {
-        "content-encoding",
-        "transfer-encoding",
-        "connection"
-    }
+#     excluded = {
+#         "content-encoding",
+#         "transfer-encoding",
+#         "connection"
+#     }
 
-    headers = [
-        (k, v)
-        for k, v in resp.headers.items()
-        if k.lower() not in excluded
-    ]
+#     headers = [
+#         (k, v)
+#         for k, v in resp.headers.items()
+#         if k.lower() not in excluded
+#     ]
 
-    return Response(
-        resp.iter_content(64 * 1024),
-        status=resp.status_code,
-        headers=headers,
-        direct_passthrough=True
-    )
+#     return Response(
+#         resp.iter_content(64 * 1024),
+#         status=resp.status_code,
+#         headers=headers,
+#         direct_passthrough=True
+#     )
 
 
 if __name__ == "__main__":
