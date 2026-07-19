@@ -7,7 +7,7 @@ class BehaviorHints(TypedDict):
 
 class WebResponse(TypedDict):
     """Information about the scraped stream."""
-    title: str
+    title: str # Will be depriciated. Moved to stream.description??? Refer docs.
     name: str
     url: str
     subtitles: list[str]

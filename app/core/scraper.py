@@ -13,18 +13,18 @@ from app.core.logger import Logger
 from urllib.parse import urlparse
 from threading import Event
 from typing import Optional, Callable, Awaitable
-from playwright.async_api import Page, Playwright
+from playwright.async_api import Page, Playwright, BrowserContext
 
 STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/mp4)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
-AD_BLOCK_LIST = [
-    "**/adsense/**",
-    "**/doubleclick.net/**",
-    "**/google-analytics.com/**",
-    "**/googletagmanager.com/**",
-    "**/analytics.js",
-    "**/adservice/**",
-]
+# AD_BLOCK_LIST = [
+#     "**/adsense/**",
+#     "**/doubleclick.net/**",
+#     "**/google-analytics.com/**",
+#     "**/googletagmanager.com/**",
+#     "**/analytics.js",
+#     "**/adservice/**",
+# ]
 
 class Scraper:
     _playwright: Optional[Playwright] = None
@@ -43,7 +43,8 @@ class Scraper:
                  stream_url_pattern: str = STREAM_URL_PATTERN, 
                  subtitle_url_pattern: str = SUBTITLE_PATTERN,
                  log_requests: bool = False,
-                 page_hook: Optional[Callable[[Page], Awaitable[None]]] =None
+                 page_hook: Optional[Callable[[Page], Awaitable[None]]] = None,
+                 context_hook: Optional[Callable[[BrowserContext], Awaitable[None]]] = None
     ):
         self.logger = Logger(f"scraper.{source}", level=logging.DEBUG)
         self.source = source.upper()
@@ -54,6 +55,7 @@ class Scraper:
         self.subtitle_url_pattern = subtitle_url_pattern
         self.log_requests = log_requests
         self.page_hook = page_hook
+        self.context_hook = context_hook
         self.base_url = base_url
 
     def _start_loop(self):
@@ -136,14 +138,13 @@ class Scraper:
 
         try:
             # await page.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "stylesheet", "font"] else route.continue_())
-            await page.route("**/*", lambda route: 
-                route.abort() if any(pattern in route.request.url for pattern in AD_BLOCK_LIST) 
-                else route.continue_()
-            )
+            # await page.route("**/*", lambda route: 
+            #     # route.abort() if any(pattern in route.request.url for pattern in AD_BLOCK_LIST) 
+            #     # else route.continue_()
+            # )
+            if self.context_hook: await self.context_hook(context)
             page.on("request", handle_request)
-            # page.on("request", lambda req: self.logger.debug(f"Request URL: {req.url}"))
             await page.goto(url)
-
             if self.page_hook: await self.page_hook(page)
 
             start_time = time.time()
@@ -184,7 +185,7 @@ class Scraper:
 
             if stream_url:
                 return WebResponse(
-                    title=title or "Web",  # TODO: Extract actual title from page content if needed
+                    title=title or self.source.title(),  # TODO: Extract actual title from page content if needed
                     name=name or "1080p / 720p",
                     url=stream_url,
                     subtitles=subtitle_urls,
