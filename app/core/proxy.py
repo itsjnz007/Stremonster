@@ -352,7 +352,7 @@ class Proxy:
             
             def generate_media():
                 try:
-                    for chunk in upstream_response.iter_content(chunk_size=1024*64):
+                    for chunk in upstream_response.iter_content(chunk_size=1024*32):
                         if chunk:
                             yield chunk
                 except (requests.exceptions.ChunkedEncodingError, requests.exceptions.ConnectionError) as stream_err:
