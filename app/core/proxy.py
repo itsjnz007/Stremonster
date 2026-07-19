@@ -314,6 +314,9 @@ class Proxy:
             if "Range" in request_headers: arg_headers['Range'] = request_headers['Range']
 
             try:
+                # import random
+                # if random.randint(1, 10) == 1:
+                #     raise Exception("Ingecting test failure")
                 if request.method == "POST":
                     upstream_response = session.post(
                         media_url,

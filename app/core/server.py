@@ -69,13 +69,6 @@ def torrent_manifest() -> Response:
 def catalog_manifest() -> Response:
     return respond_with(MANIFEST_CATALOG)
 
-# Landing page
-@app.route('/')
-def index() -> Response:
-    return respond_with({
-        "message": "Welcome! Available endpoints: /web/manifest.json, /torrent/manifest.json, /catalog/manifest.json"
-    })
-
 @app.route('/catalog/catalog/<media_type>/<catalog_id>.json')
 def get_catalog(media_type: str, catalog_id: str) -> Response:
     try:
@@ -88,25 +81,6 @@ def get_catalog(media_type: str, catalog_id: str) -> Response:
     except Exception as e:
         logger.error(f"Error fetching catalog {catalog_id}: {e}")
         return Response("Failed to fetch catalog", status=500)
-
-# @app.route('/web/ignore_source/<id>/<source>.json')
-# def ignore_source(id: str, source: str):
-#     source_list: List[str] = ignore_source_cache.get(id) or []
-#     source_list.append(source)
-#     ignore_source_cache.set(id, list(set(source_list)))
-#     web_cache.remove(id)
-#     return render_template('message.html', 
-#                            title=f"{source.title()} removed", 
-#                            message=f"{source.title()} has been added to the ignore list for this video.")
-
-# @app.route('/web/clear_ignore_source/<id>.json')
-# def clear_ignore_source(id: str):
-#     ignore_source_cache.set(id, [])
-#     web_cache.remove(id)
-#     return render_template('message.html', 
-#                            title="Preferences Cleared", 
-#                            message="Using all the available sources.")
-
 
 @app.route('/web/stream/<type>/<id>.json')
 def get_web_stream(type: str, id: str) -> Response:
@@ -235,7 +209,6 @@ def get_web_stream(type: str, id: str) -> Response:
                 ]
                 return process_results(tasks_series)
 
-    # try:
     cache = web_cache.get(id, 60*2)
     if cache: 
         stream_index: Optional[int] = cache.get("current_index")
@@ -333,53 +306,7 @@ def proxy() -> Response | tuple[dict[str, str], int]:
     return Proxy.proxy()
 
 
-# ENGINEFS = "http://127.0.0.1:11470"
-
-# @app.route("/stream-torrent/<path:path>.mkv")
-# def engine(path: str) -> Response:
-#     upstream = f"{ENGINEFS}/{path}"
-
-#     request_id = request.args.get("id")
-#     start_time = time.time()
-
-#     resp = requests.get(
-#         upstream,
-#         params=request.args,
-#         headers={
-#             "Range": request.headers.get("Range", "")
-#         },
-#         stream=True
-#     )
-
-#     response_time = time.time() - start_time
-    
-#     # If stream is slow and request_id is available, switch source
-#     if response_time > 30 and request_id:
-#         logger.warning(f"Slow stream detected ({response_time:.2f}s) for ID {request_id}, switching source...")
-#         web_cache.switch_source(request_id)
-
-#     excluded = {
-#         "content-encoding",
-#         "transfer-encoding",
-#         "connection"
-#     }
-
-#     headers = [
-#         (k, v)
-#         for k, v in resp.headers.items()
-#         if k.lower() not in excluded
-#     ]
-
-#     return Response(
-#         resp.iter_content(64 * 1024),
-#         status=resp.status_code,
-#         headers=headers,
-#         direct_passthrough=True
-#     )
-
-
 if __name__ == "__main__":
-    # Check if we're in the Flask reloader child process
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         logger.info("Starting server...")
     
