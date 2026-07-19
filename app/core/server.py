@@ -209,7 +209,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 ]
                 return process_results(tasks_series)
 
-    cache = web_cache.get(id, 60*2)
+    cache = web_cache.get(id, 60*3)
     if cache: 
         stream_index: Optional[int] = cache.get("current_index")
         stream_group: list[list[WebResponse]] = cache.get("streams", [])
@@ -263,7 +263,7 @@ def get_torrent_stream(type: str, id: str) -> Response:
             return respond_with(results)
         return respond_with({'streams': []})
         
-    cache = torrent_cache.get(key=id, upto_mins=60*2)
+    cache = torrent_cache.get(key=id, upto_mins=60*3)
     if cache:
         logger.info("Returning cached torrent result...")
         return respond_otherwise(cache)
