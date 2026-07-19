@@ -122,9 +122,9 @@ class Proxy:
         if not content_type: 
             content_type = Proxy.get_stream_type(r)
             if not content_type: 
-                logger.error("Unable to determine content-type for proxying. Rejecting source.")
+                logger.error(f"[{source_name}] [{r.status_code}] Unable to determine content-type for proxying. Rejecting source.")
                 return None
-            logger.info(f"Detected content-type: {content_type}")
+            logger.info(f"[{source_name}] [{r.status_code}] Detected content-type: {content_type}")
         stream_type = "stream.mp4" if content_type == "video/mp4" else "stream.m3u8"
 
         if cookies:
