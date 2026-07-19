@@ -15,7 +15,7 @@ from app.core.multithreading import MultiThreading
 from app.config import CACHE_DIR, TUNNEL_URL
 import logging
 
-logger = Logger('torrent', level=logging.DEBUG)
+logger = Logger('torrent', level=logging.INFO)
 
 class Torrent:
     def __init__(self, threadpool: MultiThreading, connection_speed: int = 200) -> None:
