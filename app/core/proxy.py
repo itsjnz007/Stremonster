@@ -110,7 +110,7 @@ class Proxy:
                 logger.warning(f"[{source_name}] [{r.status_code}] Stream returned unsuccessful, trying without 'origin'.")
                 headers.pop('origin')
                 headers.pop('referer');
-                r = session.get(stream_url, timeout=10, headers=headers, allow_redirects=True)
+                r = session.head(stream_url, timeout=10, headers=headers, allow_redirects=True)
         except Exception as e:
             logger.error(f"Network error while probing stream URL: {e}")
             return None
