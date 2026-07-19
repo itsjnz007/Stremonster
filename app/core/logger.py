@@ -1,8 +1,30 @@
-import logging
-import os
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+import logging, os
 from logging.handlers import RotatingFileHandler
 from app.config import CACHE_DIR
+
+
+class ColoredFormatter(logging.Formatter):
+    """Adds terminal colors for different log levels while keeping file logs plain."""
+
+    COLORS = {
+        "ERROR": "\033[31m",   # red
+        "WARNING": "\033[33m", # yellow
+        "INFO": "",
+        "DEBUG": ""
+    }
+    RESET = "\033[0m"
+
+    def format(self, record: logging.LogRecord) -> str:
+        message = super().format(record)
+        color = self.COLORS.get(record.levelname, "")
+        if color and hasattr(sys.stdout, "isatty") and sys.stdout.isatty():
+            return f"{color}{message}{self.RESET}"
+        return message
+
 
 class Logger:
     def __init__(self, module_name: str, level: int = logging.INFO, log_file: str = f"{CACHE_DIR}/app.log"):
@@ -21,10 +43,14 @@ class Logger:
             fmt=f"[%(asctime)s] [%(levelname)s] [{self.module_name}] %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S"
         )
+        console_formatter = ColoredFormatter(
+            fmt=f"[%(asctime)s] [%(levelname)s] [{self.module_name}] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
+        )
 
         # 3. Create Console Handler
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(log_formatter)
+        console_handler.setFormatter(console_formatter)
 
         # 4. Create Rotating File Handler (Crucial for server disk safety)
         file_handler = RotatingFileHandler(
@@ -60,6 +86,10 @@ class Logger:
         """Logs a debugging message."""
         self._internal_logger.debug(f"{message}")
 
-    def exception(self, message: str):
-        """Logs an error along with the complete crash traceback stack."""
-        self._internal_logger.exception(f"[exception] {message}")
+
+if __name__ == "__main__":
+    logger = Logger("demo")
+    logger.debug("debug message")
+    logger.info("info message")
+    logger.warning("warning message")
+    logger.error("error message")
