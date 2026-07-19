@@ -27,5 +27,5 @@ class FlickyScraper(Scraper):
 if __name__ == "__main__":
     scraper = FlickyScraper()
     
-    series_response = scraper.get_series("48891", "5", "2")
+    series_response = scraper.get_movie("1325734")
     print(f"Series response: {series_response}")
