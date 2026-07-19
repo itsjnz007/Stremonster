@@ -22,21 +22,6 @@ def respond_with(data: dict[str, Any]) -> Response:
 
 
 class Proxy:
-    """Collection of proxy-related helpers exposed as static methods.
-
-    Optimized for Android ExoPlayer compatibility by preserving clean explicit 
-    extensions and handling precise mime-types.
-    """
-    # @staticmethod
-    # def is_valid(stream_url: str) -> bool:
-    #     try:
-    #         response = requests.head(stream_url, timeout=10, allow_redirects=True)
-    #         if response.status_code in [200, 203, 206]: return True 
-    #     except Exception as e:
-    #         logger.error(f"Error checking URL validity. Error: {e}")
-
-    #     return False
-
     # @staticmethod
     # def get_external_proxy_url(stream_url: str, origin: str) -> str:
     #     if 'proxy' in stream_url: return stream_url
@@ -66,22 +51,6 @@ class Proxy:
 
     @staticmethod
     def get_stream_type(res: requests.Response) -> Optional[str]:
-        # headers = {
-        #     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-        #     "accept": "*/*",
-        #     "accept-language": "en-US,en;q=0.5",
-        #     "sec-fetch-dest": "empty",
-        #     "sec-fetch-mode": "cors",
-        #     "sec-fetch-site": "cross-site",
-        #     "origin": origin,
-        #     "referer": f"{origin}/"
-        # }
-
-        # try:
-        #     r = session.head(stream_url, headers=headers, timeout=5, allow_redirects=True)
-        # except Exception as e:
-        #     logger.error(f"Network error while probing stream URL: {e}")
-        #     return None
 
         # 1. Handle standard error codes
         if res.status_code not in (200, 203, 206): 
@@ -116,7 +85,7 @@ class Proxy:
             if ".mpd" in res.request.url.lower():
                 return "application/dash+xml"
         
-        logger.error("Content-type unavailable or unrecognized. Rejecting source.")
+        logger.error("Content-type unavailable or unrecognized.")
         return None
 
     @staticmethod
@@ -133,9 +102,12 @@ class Proxy:
             "referer": f"{origin}/"
         }
 
+        source_name = urlparse(origin)
+
         try:
             r = session.head(stream_url, timeout=10, headers=headers, allow_redirects=True)
             if r.status_code not in (200, 203, 206):
+                logger.warning(f"[{source_name}] [{r.status_code}] Stream returned unsuccessful, trying without 'origin'.")
                 headers.pop('origin')
                 headers.pop('referer');
                 r = session.get(stream_url, timeout=10, headers=headers, allow_redirects=True)
@@ -144,7 +116,7 @@ class Proxy:
             return None
 
         if r.status_code not in (200, 203, 206): 
-            logger.error(f"Unable to fetch content-type. Error code {r.status_code}")
+            logger.error(f"[{source_name}] [{r.status_code}] Unable to apply proxy. Rejecting source.")
             return None
         
         if not content_type: 
@@ -154,18 +126,6 @@ class Proxy:
                 return None
             logger.info(f"Detected content-type: {content_type}")
         stream_type = "stream.mp4" if content_type == "video/mp4" else "stream.m3u8"
-
-        # headers = {
-        #     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-        #     "accept": "*/*",
-        #     "accept-language": "en-US,en;q=0.5",
-        #     "sec-fetch-dest": "empty",
-        #     "sec-fetch-mode": "cors",
-        #     "sec-fetch-site": "cross-site",
-        #     "origin": origin,
-        #     "referer": f"{origin}/",
-        #     # "content-type": content_type
-        # }
 
         if cookies:
             if isinstance(cookies, RequestsCookieJar):

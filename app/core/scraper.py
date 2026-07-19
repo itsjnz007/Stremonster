@@ -56,13 +56,6 @@ class Scraper:
         self.page_hook = page_hook
         self.base_url = base_url
 
-        # Scraper._playwright: Any = None
-        # Scraper._browser: Optional[Browser] = None
-        # Scraper._loop: Optional[asyncio.AbstractEventLoop] = None
-        # Scraper._loop_thread: Optional[threading.Thread] = None
-        # Scraper._loop_ready = threading.Event()
-        # Scraper._browser_lock = threading.Lock()
-
     def _start_loop(self):
         Scraper._loop = asyncio.new_event_loop()
         asyncio.set_event_loop(Scraper._loop)
