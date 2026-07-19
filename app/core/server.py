@@ -108,7 +108,10 @@ def get_web_stream(type: str, id: str) -> Response:
             origin = streams[idx]['origin'],
             behaviorHints = BehaviorHints(
                 bingeGroup=imdb_id
-            )
+            ),
+            cacheMaxAge=0,
+            staleRevalidate=0,
+            staleError=0
         ) for idx in range(len(streams))]
 
     def append_id_to_streams(streams: List[WebResponse]) -> List[WebResponse]:

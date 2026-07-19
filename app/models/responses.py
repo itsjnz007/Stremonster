@@ -13,6 +13,9 @@ class WebResponse(TypedDict):
     subtitles: list[str]
     origin: Optional[str]
     behaviorHints: Optional[BehaviorHints]
+    cacheMaxAge: Optional[int]
+    staleRevalidate: Optional[int]
+    staleError: Optional[int]
 
 class ExternalWebResponse(TypedDict):
     """Information about the scraped stream."""
