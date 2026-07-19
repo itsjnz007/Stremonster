@@ -9,7 +9,7 @@ from threading import Event
 
 class VidsrcScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="vidsrc", base_url="https://www.vidsrc.wtf")
+        super().__init__(headless=True, source="vidsrc", base_url="https://www.viduki.net")
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/1/movie/{tmdb_id}"
