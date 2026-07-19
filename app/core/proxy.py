@@ -102,7 +102,7 @@ class Proxy:
             "referer": f"{origin}/"
         }
 
-        source_name = urlparse(origin)
+        source_name = urlparse(origin).netloc
 
         try:
             r = session.head(stream_url, timeout=10, headers=headers, allow_redirects=True)
