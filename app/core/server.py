@@ -25,7 +25,7 @@ logger = Logger("server")
 app = Flask(__name__)
 
 thread_pool_web = MultiThreading(max_workers=3)
-thread_pool_torrent = MultiThreading(max_workers=3)
+thread_pool_torrent = MultiThreading(max_workers=1)
 
 tmdb_cache = TmdbCache()
 web_cache = WebCache()
