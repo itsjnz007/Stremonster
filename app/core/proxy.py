@@ -351,8 +351,14 @@ class Proxy:
                 return Proxy.apply_headers(resp)
             
             def generate_media():
-                for chunk in upstream_response.iter_content(chunk_size=1024*64):
-                    if chunk: yield chunk
+                try:
+                    for chunk in upstream_response.iter_content(chunk_size=1024*64):
+                        if chunk:
+                            yield chunk
+                except (requests.exceptions.ChunkedEncodingError, requests.exceptions.ConnectionError) as stream_err:
+                    logger.warning(f"Upstream stream broken or closed early: {stream_err}")
+                finally:
+                    upstream_response.close()
 
             resp = Response(
                 stream_with_context(generate_media()), 
