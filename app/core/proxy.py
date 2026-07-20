@@ -243,8 +243,6 @@ class Proxy:
         streams = cache.get("streams", [])
         if not streams:
             return Response("No streams found", status=404)
-        
-        print(streams)
 
         current_stream = streams[int(current_index)][int(fileIdx)]
         stream: str = current_stream.get("url") + f"&id={id}"
@@ -290,18 +288,18 @@ class Proxy:
                 logger.error(f"Proxy upstream error, {e}")
                 if request_id: 
                     web_cache.switch_source(request_id)
-                    assert TUNNEL_URL
-                    redirect_dst = TUNNEL_URL + f"/stream?id={request_id}&fileIdx=0"
-                    return Response(status=302, headers={"Location": redirect_dst})
+                    # assert TUNNEL_URL
+                    # redirect_dst = TUNNEL_URL + f"/stream?id={request_id}&fileIdx=0"
+                    # return Response(status=302, headers={"Location": redirect_dst})
                 return Response(f"Upstream error {e}", status=503)
             
             if upstream_response.status_code not in (200, 203, 206):
                 logger.error(f"Upstream error [{upstream_response.status_code}] {upstream_response.text}")
                 if request_id: 
                     web_cache.switch_source(request_id)
-                    assert TUNNEL_URL
-                    redirect_dst = TUNNEL_URL + f"/stream?id={request_id}&fileIdx=0"
-                    return Response(status=302, headers={"Location": redirect_dst})
+                    # assert TUNNEL_URL
+                    # redirect_dst = TUNNEL_URL + f"/stream?id={request_id}&fileIdx=0"
+                    # return Response(status=302, headers={"Location": redirect_dst})
 
             content_type = upstream_response.headers.get("content-type", "").lower()
             is_m3u8 = (".m3u8" in media_url or "mpegurl" in content_type)

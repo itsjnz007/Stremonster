@@ -134,7 +134,6 @@ class WebCache(Caching):
     
     def switch_source(self, key: str) -> None:
         """Switch to the next source in the list for a given key."""
-        logger.info(f"Switching source for key: '{key}'")
         with self._write_lock:
             cache = self._get_cache()
             if key not in cache or not cache[key]["value"]["streams"]:
@@ -147,6 +146,7 @@ class WebCache(Caching):
             cache[key]["value"]["current_index"] = new_index
             cache[key]["ts"] = datetime.now(timezone.utc).isoformat()  # Update timestamp on switch
             self._save_to_disk(self._get_cache_path(), cache)
+            logger.info(f"Switching source for key: '{key}' to index: '{new_index}'")
 
 class TorrentCache(Caching):
     cache_path: ClassVar[Path] = Path(CACHE_DIR) / "torrent_results.json"
