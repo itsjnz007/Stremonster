@@ -398,6 +398,9 @@ class Proxy:
                         elapsed = time.monotonic() - start
 
                         if elapsed > 10 and bytes_read / elapsed < 50 * 1024:  # <50 KB/s
+                            if request_id:
+                                web_cache.switch_source(request_id)
+                            else: logger.warning("'request_id' not available, skipping source switch")
                             raise Exception("Upstream too slow")
 
                         yield chunk
