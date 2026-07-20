@@ -22,6 +22,21 @@ def respond_with(data: dict[str, Any]) -> Response:
 
 
 class Proxy:
+    """Collection of proxy-related helpers exposed as static methods.
+
+    Optimized for Android ExoPlayer compatibility by preserving clean explicit 
+    extensions and handling precise mime-types.
+    """
+    # @staticmethod
+    # def is_valid(stream_url: str) -> bool:
+    #     try:
+    #         response = requests.head(stream_url, timeout=10, allow_redirects=True)
+    #         if response.status_code in [200, 203, 206]: return True 
+    #     except Exception as e:
+    #         logger.error(f"Error checking URL validity. Error: {e}")
+
+    #     return False
+
     # @staticmethod
     # def get_external_proxy_url(stream_url: str, origin: str) -> str:
     #     if 'proxy' in stream_url: return stream_url
@@ -51,6 +66,22 @@ class Proxy:
 
     @staticmethod
     def get_stream_type(res: requests.Response) -> Optional[str]:
+        # headers = {
+        #     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
+        #     "accept": "*/*",
+        #     "accept-language": "en-US,en;q=0.5",
+        #     "sec-fetch-dest": "empty",
+        #     "sec-fetch-mode": "cors",
+        #     "sec-fetch-site": "cross-site",
+        #     "origin": origin,
+        #     "referer": f"{origin}/"
+        # }
+
+        # try:
+        #     r = session.head(stream_url, headers=headers, timeout=5, allow_redirects=True)
+        # except Exception as e:
+        #     logger.error(f"Network error while probing stream URL: {e}")
+        #     return None
 
         # 1. Handle standard error codes
         if res.status_code not in (200, 203, 206): 
@@ -85,7 +116,7 @@ class Proxy:
             if ".mpd" in res.request.url.lower():
                 return "application/dash+xml"
         
-        logger.error("Content-type unavailable or unrecognized.")
+        logger.error("Content-type unavailable or unrecognized. Rejecting source.")
         return None
 
     @staticmethod
@@ -102,30 +133,39 @@ class Proxy:
             "referer": f"{origin}/"
         }
 
-        source_name = urlparse(origin).netloc
-
         try:
             r = session.head(stream_url, timeout=10, headers=headers, allow_redirects=True)
             if r.status_code not in (200, 203, 206):
-                logger.warning(f"[{source_name}] [{r.status_code}] Stream returned unsuccessful, trying without 'origin'.")
                 headers.pop('origin')
                 headers.pop('referer');
-                r = session.head(stream_url, timeout=10, headers=headers, allow_redirects=True)
+                r = session.get(stream_url, timeout=10, headers=headers, allow_redirects=True)
         except Exception as e:
             logger.error(f"Network error while probing stream URL: {e}")
             return None
 
         if r.status_code not in (200, 203, 206): 
-            logger.error(f"[{source_name}] [{r.status_code}] Unable to apply proxy. Rejecting source.")
+            logger.error(f"Unable to fetch content-type. Error code {r.status_code}")
             return None
         
         if not content_type: 
             content_type = Proxy.get_stream_type(r)
             if not content_type: 
-                logger.error(f"[{source_name}] [{r.status_code}] Unable to determine content-type for proxying. Rejecting source.")
+                logger.error("Unable to determine content-type for proxying. Rejecting source.")
                 return None
-            logger.info(f"[{source_name}] [{r.status_code}] Detected content-type: {content_type}")
+            logger.info(f"Detected content-type: {content_type}")
         stream_type = "stream.mp4" if content_type == "video/mp4" else "stream.m3u8"
+
+        # headers = {
+        #     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
+        #     "accept": "*/*",
+        #     "accept-language": "en-US,en;q=0.5",
+        #     "sec-fetch-dest": "empty",
+        #     "sec-fetch-mode": "cors",
+        #     "sec-fetch-site": "cross-site",
+        #     "origin": origin,
+        #     "referer": f"{origin}/",
+        #     # "content-type": content_type
+        # }
 
         if cookies:
             if isinstance(cookies, RequestsCookieJar):
@@ -213,12 +253,8 @@ class Proxy:
         return "\n".join(rewritten)
     
     @staticmethod
-    def apply_headers(response: Response, is_media: bool = False):
-        # Only strip content-length if it's NOT a direct media file stream
-        excluded_headers = ['content-encoding', 'transfer-encoding', 'connection']
-        if not is_media:
-            excluded_headers.append('content-length')
-            
+    def apply_headers(response: Response):
+        excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
         for header in excluded_headers:
             response.headers.pop(header, None)
 
@@ -264,34 +300,48 @@ class Proxy:
             logger.debug(f"request_id: {request_id}")
 
             request_headers = dict(request.headers)
-            
+            logger.debug(f"request_headers: {request_headers}")
+
             media_headers = request.args.get("headers", "{}")
             if not media_headers: raise Exception("No media_headers found")
 
             try: arg_headers = json.loads(media_headers)
             except Exception as e: return Response(f"Unable to parse headers_str. Error: {e}", status=503)
+            logger.debug(f"arg_headers: {arg_headers}")
 
-            # Forward the Range header from the video player to the upstream server
-            if "Range" in request_headers: 
-                arg_headers['Range'] = request_headers['Range']
+            if "Range" in request_headers: arg_headers['Range'] = request_headers['Range']
 
             try:
-                upstream_response = session.get(
-                    media_url,
-                    timeout=30,
-                    headers=arg_headers,
-                    stream=True,
-                    verify=False,
-                    allow_redirects=True,
-                )
+                if request.method == "POST":
+                    upstream_response = session.post(
+                        media_url,
+                        timeout=30,
+                        headers=arg_headers,
+                        stream=True,
+                        verify=False,
+                        allow_redirects=True,
+                    )
+                else:
+                    upstream_response = session.get(
+                        media_url,
+                        timeout=30,
+                        headers=arg_headers,
+                        stream=True,
+                        verify=False,
+                        allow_redirects=True,
+                    )
             except Exception as e: 
                 logger.error(f"Proxy upstream error, {e}")
                 if request_id: 
                     web_cache.switch_source(request_id)
                     # assert TUNNEL_URL
                     # redirect_dst = TUNNEL_URL + f"/stream?id={request_id}&fileIdx=0"
-                    # return Response(status=302, headers={"Location": redirect_dst})
-                return Response(f"Upstream error {e}", status=503)
+                    # return Response(
+                    #     status=302,
+                    #     headers={"Location": redirect_dst}
+                    # )
+                else: logger.warning("'request_id' not available, skipping source switch")
+                return Response(f"Upstream error {e}", status=503) 
             
             if upstream_response.status_code not in (200, 203, 206):
                 logger.error(f"Upstream error [{upstream_response.status_code}] {upstream_response.text}")
@@ -299,55 +349,57 @@ class Proxy:
                     web_cache.switch_source(request_id)
                     # assert TUNNEL_URL
                     # redirect_dst = TUNNEL_URL + f"/stream?id={request_id}&fileIdx=0"
-                    # return Response(status=302, headers={"Location": redirect_dst})
+                    # return Response(
+                    #     status=302,
+                    #     headers={"Location": redirect_dst}
+                    # )
+                else: logger.warning("'request_id' not available, skipping source switch")
+                return Response(f"Upstream error {upstream_response.text}", status=503)
 
             content_type = upstream_response.headers.get("content-type", "").lower()
-            is_m3u8 = (".m3u8" in media_url or "mpegurl" in content_type)
-            is_mp4 = (".mp4" in media_url or "mp4" in content_type)
 
-            # --- Handle HLS Manifests ---
+            is_m3u8 = (
+                ".m3u8" in media_url
+                or "mpegurl" in content_type
+                or "application/vnd.apple.mpegurl" in content_type
+            )
+
             if is_m3u8 and upstream_response.status_code in (200, 203, 206):
+
                 content = upstream_response.content
-                updated_content = Proxy.parse_segment(content, arg_headers, media_url, id=request_id)
+
+                updated_content = Proxy.parse_segment(
+                    content,
+                    arg_headers,
+                    media_url,
+                    id=request_id,
+                )
+
                 resp = Response(
                     updated_content,
                     status=upstream_response.status_code,
                     mimetype=content_type,
                     headers=upstream_response.headers,
                 )
+                
                 logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Parsing m3u8 {request.url}")
-                return Proxy.apply_headers(resp, is_media=False)
+                return Proxy.apply_headers(resp)
             
-            # --- Handle Binary Media Streams (MP4, TS chunks) ---
             def generate_media():
-                try:
-                    # Increased chunk size to 64KB for smoother video throughput
-                    for chunk in upstream_response.iter_content(chunk_size=1024*64):
-                        if chunk:
-                            yield chunk
-                except GeneratorExit:
-                    # Normal behavior: The client player closed or paused the video stream link
-                    logger.debug("Downstream client disconnected/paused the stream context.")
-                except (requests.exceptions.ChunkedEncodingError, requests.exceptions.ConnectionError) as stream_err:
-                    logger.warning(f"Upstream stream broken or closed early: {stream_err}")
-                finally: upstream_response.close()
-
-            # Pass along crucial upstream headers for partial content/seeking support
-            response_headers: dict[str, Any] = {}
-            for h in ['Content-Length', 'Content-Range', 'Accept-Ranges']:
-                if h in upstream_response.headers:
-                    response_headers[h] = upstream_response.headers[h]
+                for chunk in upstream_response.iter_content(chunk_size=1024*64):
+                    if chunk: yield chunk
 
             resp = Response(
                 stream_with_context(generate_media()), 
                 status=upstream_response.status_code,
                 content_type=content_type,
-                headers=response_headers,
+                headers=upstream_response.headers,
             )
 
-            logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Proxying media {request.url}")
-            return Proxy.apply_headers(resp, is_media=is_mp4)
-            
+            logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Proxying url {request.url}")
+            return Proxy.apply_headers(resp)
         except Exception as e: 
             logger.error(f"Proxy error, {e}")
-            return Response(f"Proxy error: {e}", status=500)
+            return Response(f"Proxy error: {e}")
+        finally:
+            pass
