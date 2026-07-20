@@ -386,8 +386,22 @@ class Proxy:
                 return Proxy.apply_headers(resp)
             
             def generate_media():
-                for chunk in upstream_response.iter_content(chunk_size=1024*64):
-                    if chunk: yield chunk
+                try:
+                    start = time.monotonic()
+                    bytes_read = 0
+
+                    for chunk in upstream_response.iter_content(64 * 1024):
+                        if not chunk:
+                            continue
+
+                        bytes_read += len(chunk)
+                        elapsed = time.monotonic() - start
+
+                        if elapsed > 10 and bytes_read / elapsed < 50 * 1024:  # <50 KB/s
+                            raise Exception("Upstream too slow")
+
+                        yield chunk
+                finally: upstream_response.close()
 
             resp = Response(
                 stream_with_context(generate_media()), 
