@@ -349,12 +349,13 @@ class Proxy:
                     web_cache.switch_source(request_id)
                     # assert TUNNEL_URL
                     # redirect_dst = TUNNEL_URL + f"/stream?id={request_id}&fileIdx=0"
+                    # time.sleep(5)
                     # return Response(
                     #     status=302,
                     #     headers={"Location": redirect_dst}
                     # )
                 else: logger.warning("'request_id' not available, skipping source switch")
-                return Response(f"Upstream error {upstream_response.text}", status=503)
+                return Response(f"Upstream error {upstream_response.text}", status=upstream_response.status_code)
 
             content_type = upstream_response.headers.get("content-type", "").lower()
 
@@ -397,7 +398,7 @@ class Proxy:
                         bytes_read += len(chunk)
                         elapsed = time.monotonic() - start
 
-                        if elapsed > 10 and bytes_read / elapsed < 50 * 1024:  # <50 KB/s
+                        if elapsed > 10 and bytes_read / elapsed < 500 * 1024:  # <50 KB/s
                             if request_id:
                                 web_cache.switch_source(request_id)
                             else: logger.warning("'request_id' not available, skipping source switch")

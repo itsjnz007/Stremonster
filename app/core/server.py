@@ -150,7 +150,7 @@ def get_web_stream(type: str, id: str) -> Response:
             (lambda tmdb_id: [result] if (result := cineby_scraper.get_movie(tmdb_id)) else None, 'cineby'),
             (lambda tmdb_id: [result] if (result := vidlink_scraper.get_movie(tmdb_id)) else None, 'vidlink'),
             (lambda tmdb_id: [result] if (result := viduki_scraper.get_movie(tmdb_id)) else None, 'viduki'),
-            (lambda tmdb_id: [result] if (result := vidsrc_scraper.get_movie(tmdb_id)) else None, 'vidsrc'),
+            # (lambda tmdb_id: [result] if (result := vidsrc_scraper.get_movie(tmdb_id)) else None, 'vidsrc'),
             (lambda tmdb_id: [result] if (result := vidking_scraper.get_movie(tmdb_id)) else None, 'vidking'),
         ]
 
@@ -159,7 +159,7 @@ def get_web_stream(type: str, id: str) -> Response:
             (lambda tmdb, s, e: [result] if (result := cineby_scraper.get_series(tmdb, s, e)) else None, 'cineby'),
             (lambda tmdb, s, e: [result] if (result := vidlink_scraper.get_series(tmdb, s, e)) else None, 'vidlink'),
             (lambda tmdb, s, e: [result] if (result := viduki_scraper.get_series(tmdb, s, e)) else None, 'viduki'),
-            (lambda tmdb, s, e: [result] if (result := vidsrc_scraper.get_series(tmdb, s, e)) else None, 'vidsrc'),
+            # (lambda tmdb, s, e: [result] if (result := vidsrc_scraper.get_series(tmdb, s, e)) else None, 'vidsrc'),
             (lambda tmdb, s, e: [result] if (result := vidking_scraper.get_series(tmdb, s, e)) else None, 'vidking'),
         ]
 
