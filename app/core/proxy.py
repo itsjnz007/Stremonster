@@ -279,8 +279,7 @@ class Proxy:
 
         current_index = cache.get("current_index", 0)
         streams = cache.get("streams", [])
-        if not streams:
-            return Response("No streams found", status=404)
+        if not streams: return Response("No streams found", status=404)
 
         current_stream = streams[int(current_index)][int(fileIdx)]
         stream: str = current_stream.get("url") + f"&id={id}"
@@ -336,12 +335,6 @@ class Proxy:
                 logger.error(f"Proxy upstream error, {e}")
                 if request_id: 
                     web_cache.switch_source(request_id)
-                    # assert TUNNEL_URL
-                    # redirect_dst = TUNNEL_URL + f"/stream?id={request_id}&fileIdx=0"
-                    # return Response(
-                    #     status=302,
-                    #     headers={"Location": redirect_dst}
-                    # )
                 else: logger.warning("'request_id' not available, skipping source switch")
                 return Response(f"Upstream error {e}", status=503) 
             
@@ -349,13 +342,6 @@ class Proxy:
                 logger.error(f"Upstream error [{upstream_response.status_code}] {upstream_response.text}")
                 if request_id: 
                     web_cache.switch_source(request_id)
-                    # assert TUNNEL_URL
-                    # redirect_dst = TUNNEL_URL + f"/stream?id={request_id}&fileIdx=0"
-                    # time.sleep(5)
-                    # return Response(
-                    #     status=303,
-                    #     headers={"Location": redirect_dst}
-                    # )
                 else: logger.warning("'request_id' not available, skipping source switch")
                 return Response(f"Upstream error {upstream_response.text}", status=503)
 
@@ -368,7 +354,7 @@ class Proxy:
             )
 
             if is_m3u8 and upstream_response.status_code in (200, 203, 206):
-                if request_id: web_cache.reloaded(request_id)
+                if request_id: web_cache.reloaded(request_id, request.url)
                 content = upstream_response.content
                 updated_content = Proxy.parse_segment(
                     content,
@@ -376,14 +362,12 @@ class Proxy:
                     media_url,
                     id=request_id,
                 )
-
                 resp = Response(
                     updated_content,
                     status=upstream_response.status_code,
                     mimetype=content_type,
                     headers=upstream_response.headers,
                 )
-                
                 logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Parsing m3u8 {request.url}")
                 return Proxy.apply_headers(resp)
             
@@ -409,10 +393,6 @@ class Proxy:
                             if request_id:
                                 web_cache.switch_source(request_id)
                             else: logger.warning("'request_id' not available, skipping source switch")
-                            # return Response(
-                            #     "Stream too slow, switching source.",
-                            #     status=504
-                            # )
                             break
 
                         yield chunk

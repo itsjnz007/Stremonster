@@ -149,17 +149,21 @@ class WebCache(Caching):
             self._save_to_disk(self._get_cache_path(), cache)
             logger.info(f"Switching source for key: '{key}' to index: '{new_index}'")
     
-    def reloaded(self, key: str) -> None:
+    def reloaded(self, key: str, url: str) -> None:
         with self._write_lock:
             cache = self._get_cache()
             if key not in cache or not cache[key]["value"]["streams"]:
                 logger.warning(f"No streams available to switch for key: '{key}'")
                 return
             
+            current_index = cache[key]["value"]["current_index"]
+            if cache[key]['value'][current_index]['url'] == url:
+                logger.warning(f"Skipping 'requires_reload' flag, url same as current index. Current index {current_index}.")
+                return
+            
             cache[key]["value"]["requires_reload"] = False
             cache[key]["ts"] = datetime.now(timezone.utc).isoformat()  # Update timestamp on switch
             self._save_to_disk(self._get_cache_path(), cache)
-            logger.info(f"Marked realod complete for: '{key}'")
 
 
 class TorrentCache(Caching):
