@@ -103,9 +103,9 @@ def get_web_stream(type: str, id: str) -> Response:
         imdb_id = id.split(':')[0] if type == 'series' else id
         return [WebResponse(
             title = "Stream from\n" + streams[idx]['title'],
-            # title = "",
             name = "Play",
             url = streams[idx]['url'] if not unified else build_unified_stream_url(idx),
+            headers = {},
             subtitles = streams[idx]['subtitles'],
             origin = streams[idx]['origin'],
             behaviorHints = BehaviorHints(
@@ -148,18 +148,18 @@ def get_web_stream(type: str, id: str) -> Response:
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
             (lambda tmdb_id: [result] if (result := flicky_scraper.get_movie(tmdb_id)) else None, 'flicky'),
             (lambda tmdb_id: [result] if (result := cineby_scraper.get_movie(tmdb_id)) else None, 'cineby'),
+            (lambda tmdb_id: [result] if (result := vidsrc_scraper.get_movie(tmdb_id)) else None, 'vidsrc'),
             (lambda tmdb_id: [result] if (result := vidlink_scraper.get_movie(tmdb_id)) else None, 'vidlink'),
             (lambda tmdb_id: [result] if (result := viduki_scraper.get_movie(tmdb_id)) else None, 'viduki'),
-            # (lambda tmdb_id: [result] if (result := vidsrc_scraper.get_movie(tmdb_id)) else None, 'vidsrc'),
             (lambda tmdb_id: [result] if (result := vidking_scraper.get_movie(tmdb_id)) else None, 'vidking'),
         ]
 
         series_scrapers: List[Tuple[Callable[[str, str, str], Optional[List[WebResponse]]], str]] = [
             (lambda tmdb, s, e: [result] if (result := flicky_scraper.get_series(tmdb, s, e)) else None, 'flicky'),
             (lambda tmdb, s, e: [result] if (result := cineby_scraper.get_series(tmdb, s, e)) else None, 'cineby'),
+            (lambda tmdb, s, e: [result] if (result := vidsrc_scraper.get_series(tmdb, s, e)) else None, 'vidsrc'),
             (lambda tmdb, s, e: [result] if (result := vidlink_scraper.get_series(tmdb, s, e)) else None, 'vidlink'),
             (lambda tmdb, s, e: [result] if (result := viduki_scraper.get_series(tmdb, s, e)) else None, 'viduki'),
-            # (lambda tmdb, s, e: [result] if (result := vidsrc_scraper.get_series(tmdb, s, e)) else None, 'vidsrc'),
             (lambda tmdb, s, e: [result] if (result := vidking_scraper.get_series(tmdb, s, e)) else None, 'vidking'),
         ]
 

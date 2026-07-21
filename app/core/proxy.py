@@ -4,7 +4,7 @@ from urllib.parse import quote, urlparse
 from app.core.logger import Logger
 import json, re, urllib3, logging, time, requests
 from typing import Optional, Any
-from requests.cookies import RequestsCookieJar
+# from requests.cookies import RequestsCookieJar
 from app.core.caching import WebCache
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -120,25 +120,25 @@ class Proxy:
         return None
 
     @staticmethod
-    def get_proxy_url(stream_url: str, origin: str, content_type: Optional[str] = None, cookies: Optional[dict[str, str] | RequestsCookieJar] = None) -> Optional[str]:
+    def get_proxy_url(stream_url: str, headers: dict[str, Any], content_type: Optional[str] = None) -> Optional[str]:
 
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-            "accept": "*/*",
-            "accept-language": "en-US,en;q=0.5",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "origin": origin,
-            "referer": f"{origin}/"
-        }
+        # headers = {
+        #     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
+        #     "accept": "*/*",
+        #     "accept-language": "en-US,en;q=0.5",
+        #     "sec-fetch-dest": "empty",
+        #     "sec-fetch-mode": "cors",
+        #     "sec-fetch-site": "cross-site",
+        #     "origin": origin,
+        #     "referer": f"{origin}/"
+        # }
 
         try:
             r = session.head(stream_url, timeout=10, headers=headers, allow_redirects=True)
-            if r.status_code not in (200, 203, 206):
-                headers.pop('origin')
-                headers.pop('referer');
-                r = session.get(stream_url, timeout=10, headers=headers, allow_redirects=True)
+            # if r.status_code not in (200, 203, 206):
+            #     headers.pop('origin')
+            #     headers.pop('referer');
+            #     r = session.get(stream_url, timeout=10, headers=headers, allow_redirects=True)
         except Exception as e:
             logger.error(f"Network error while probing stream URL: {e}")
             return None
@@ -167,15 +167,15 @@ class Proxy:
         #     # "content-type": content_type
         # }
 
-        if cookies:
-            if isinstance(cookies, RequestsCookieJar):
-                cookie_header = "; ".join(
-                    f"{c.name}={c.value}" for c in cookies
-                )
-            else:
-                cookie_header = "; ".join(f"{k}={v}" for k, v in cookies.items())
+        # if cookies:
+        #     if isinstance(cookies, RequestsCookieJar):
+        #         cookie_header = "; ".join(
+        #             f"{c.name}={c.value}" for c in cookies
+        #         )
+        #     else:
+        #         cookie_header = "; ".join(f"{k}={v}" for k, v in cookies.items())
 
-            headers["cookie"] = cookie_header
+        #     headers["cookie"] = cookie_header
 
         headers_str = json.dumps(headers)
 
@@ -311,6 +311,9 @@ class Proxy:
 
             if "Range" in request_headers: arg_headers['Range'] = request_headers['Range']
 
+            arg_headers['Origin'] = "https://cloudorchestranova.com"
+            arg_headers['Referer'] = "https://cloudorchestranova.com/"
+
             try:
                 if request.method == "POST":
                     upstream_response = session.post(
@@ -403,7 +406,7 @@ class Proxy:
                         bytes_read += len(chunk)
                         elapsed = time.monotonic() - start
 
-                        if elapsed > 10 and bytes_read / elapsed < 300 * 1024:  # <500 KB/s
+                        if elapsed > 10 and bytes_read / elapsed < 300 * 1024:  # <300 KB/s
                             if request_id:
                                 web_cache.switch_source(request_id)
                             else: logger.warning("'request_id' not available, skipping source switch")

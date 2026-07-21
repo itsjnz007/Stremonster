@@ -40,7 +40,7 @@ class VidsrcScraper(Scraper):
         super().__init__(headless=True, source="vidsrc", 
                          base_url="https://vsembed.ru", 
                          context_hook=context_hook, 
-                         page_hook=page_hook
+                         page_hook=page_hook,
         )
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:

@@ -126,14 +126,17 @@ class Scraper:
         page = await context.new_page()
 
         stream_url: Optional[str] = None
+        stream_headers: Optional[dict[str, Any]] = None
         subtitle_urls: list[str] = []
         start_time = time.time()
 
         def handle_request(request: Request):
             nonlocal stream_url
+            nonlocal stream_headers
             if self.log_requests: self.logger.info(f"Request -> {request.url}")
             if re.search(self.stream_url_pattern, request.url, re.I):
                 stream_url = request.url
+                stream_headers = request.headers
                 self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
 
         try:
@@ -189,6 +192,7 @@ class Scraper:
                     name=name or "1080p / 720p",
                     url=stream_url,
                     subtitles=subtitle_urls,
+                    headers=stream_headers
                 )
 
         except Exception as e:
@@ -227,7 +231,7 @@ class Scraper:
         try:
             result = future.result(timeout=(self.timeout / 1000) + 15)
             if result: 
-                proxy_result = Proxy.get_proxy_url(result['url'], origin=self.base_url)
+                proxy_result = Proxy.get_proxy_url(result['url'], headers=result['headers'])
                 if not proxy_result: return
                 result['url'] = proxy_result
                 result['origin'] = self.base_url

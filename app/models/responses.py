@@ -1,4 +1,4 @@
-from typing import Optional, TypedDict
+from typing import Optional, TypedDict, Any, Dict
 from dataclasses import dataclass
 
 class BehaviorHints(TypedDict):
@@ -10,6 +10,7 @@ class WebResponse(TypedDict):
     title: str # Will be depriciated. Moved to stream.description??? Refer docs.
     name: str
     url: str
+    headers: Dict[str, Any]
     subtitles: list[str]
     origin: Optional[str]
     behaviorHints: Optional[BehaviorHints]
