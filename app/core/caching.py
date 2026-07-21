@@ -117,7 +117,7 @@ class WebCache(Caching):
         with self._write_lock:
             cache = self._get_cache()
             timestamp = datetime.now(timezone.utc).isoformat()
-            cache[key] = {"value": {"current_index": 0, "requires_reload": False, "streams": copy.deepcopy([value])}, "ts": timestamp}
+            cache[key] = {"value": {"current_index": 0, "streams": copy.deepcopy([value])}, "ts": timestamp}
             self._save_to_disk(self._get_cache_path(), cache)
 
     def extend(self, key: str, web_responses: list[WebResponse]) -> None:
@@ -126,7 +126,7 @@ class WebCache(Caching):
             cache = self._get_cache()
             timestamp = datetime.now(timezone.utc).isoformat()
             if key not in cache:
-                cache[key] = {"value": {"current_index": 0, "requires_reload": False, "streams": []}, "ts": timestamp}
+                cache[key] = {"value": {"current_index": 0, "streams": []}, "ts": timestamp}
 
             cache[key]["value"]["streams"].extend(copy.deepcopy([web_responses]))
             cache[key]["ts"] = timestamp  # Update timestamp on append
@@ -144,31 +144,9 @@ class WebCache(Caching):
             total_streams = len(cache[key]["value"]["streams"])
             new_index = (current_index + 1) % total_streams
             cache[key]["value"]["current_index"] = new_index
-            # cache[key]["value"]["requires_reload"] = True
             cache[key]["ts"] = datetime.now(timezone.utc).isoformat()  # Update timestamp on switch
             self._save_to_disk(self._get_cache_path(), cache)
             logger.info(f"Switching source for key: '{key}' to index: '{new_index}'")
-    
-    # def reloaded(self, key: str, index: str) -> None:
-    #     with self._write_lock:
-    #         cache = self._get_cache()
-    #         if key not in cache or not cache[key]["value"]["streams"]:
-    #             logger.warning(f"No streams available to switch for key: '{key}'")
-    #             return
-            
-    #         current_index = cache[key]["value"]["current_index"]
-    #         source_index, file_index = index.split(':')
-    #         logger.debug(f'current_index: {current_index} | source_index: {source_index} | file_index: {file_index}')
-    #         url: str = cache[key]['value']['streams'][current_index][int(file_index)]['url']
-    #         parsed_url = urlparse(url)
-    #         query_params = parse_qs(parsed_url.query)
-    #         if query_params.get('index', [None])[0] == index:
-    #             logger.warning(f"Skipping 'requires_reload' flag, url same as current index. Current index {current_index}.")
-    #             return
-            
-    #         cache[key]["value"]["requires_reload"] = False
-    #         cache[key]["ts"] = datetime.now(timezone.utc).isoformat()  # Update timestamp on switch
-    #         self._save_to_disk(self._get_cache_path(), cache)
 
 
 class TorrentCache(Caching):
