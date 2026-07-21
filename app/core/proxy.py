@@ -290,125 +290,125 @@ class Proxy:
 
     @staticmethod
     def proxy() -> Response:
+        # try:
+        start_time = time.time()
+
+        media_url = request.args.get("url")
+        if not media_url: raise Exception("No media_url found")
+        logger.debug(f"media_url: {media_url}")
+
+        request_id = request.args.get("id")
+        logger.debug(f"request_id: {request_id}")
+
+        request_headers = dict(request.headers)
+        logger.debug(f"request_headers: {request_headers}")
+
+        media_headers = request.args.get("headers", "{}")
+        if not media_headers: raise Exception("No media_headers found")
+
+        try: arg_headers = json.loads(media_headers)
+        except Exception as e: return Response(f"Unable to parse headers_str. Error: {e}", status=503)
+        logger.debug(f"arg_headers: {arg_headers}")
+
+        if "Range" in request_headers: arg_headers['Range'] = request_headers['Range']
+
         try:
-            start_time = time.time()
-
-            media_url = request.args.get("url")
-            if not media_url: raise Exception("No media_url found")
-            logger.debug(f"media_url: {media_url}")
-
-            request_id = request.args.get("id")
-            logger.debug(f"request_id: {request_id}")
-
-            request_headers = dict(request.headers)
-            logger.debug(f"request_headers: {request_headers}")
-
-            media_headers = request.args.get("headers", "{}")
-            if not media_headers: raise Exception("No media_headers found")
-
-            try: arg_headers = json.loads(media_headers)
-            except Exception as e: return Response(f"Unable to parse headers_str. Error: {e}", status=503)
-            logger.debug(f"arg_headers: {arg_headers}")
-
-            if "Range" in request_headers: arg_headers['Range'] = request_headers['Range']
-
-            try:
-                if request.method == "POST":
-                    upstream_response = session.post(
-                        media_url,
-                        timeout=(5, 30),
-                        headers=arg_headers,
-                        stream=True,
-                        verify=False,
-                        allow_redirects=True,
-                    )
-                else:
-                    upstream_response = session.get(
-                        media_url,
-                        timeout=(5, 30),
-                        headers=arg_headers,
-                        stream=True,
-                        verify=False,
-                        allow_redirects=True,
-                    )
-            except Exception as e: 
-                logger.error(f"Proxy upstream error, {e}")
-                if request_id: 
-                    web_cache.switch_source(request_id)
-                else: logger.warning("'request_id' not available, skipping source switch")
-                return Response(f"Upstream error {e}", status=503) 
-            
-            if upstream_response.status_code not in (200, 203, 206):
-                logger.error(f"Upstream error [{upstream_response.status_code}] {upstream_response.text}")
-                if request_id: 
-                    web_cache.switch_source(request_id)
-                else: logger.warning("'request_id' not available, skipping source switch")
-                return Response(f"Upstream error {upstream_response.text}", status=503)
-
-            content_type = upstream_response.headers.get("content-type", "").lower()
-
-            is_m3u8 = (
-                ".m3u8" in media_url
-                or "mpegurl" in content_type
-                or "application/vnd.apple.mpegurl" in content_type
-            )
-
-            if is_m3u8 and upstream_response.status_code in (200, 203, 206):
-                if request_id: web_cache.reloaded(request_id, request.url)
-                content = upstream_response.content
-                updated_content = Proxy.parse_segment(
-                    content,
-                    arg_headers,
+            if request.method == "POST":
+                upstream_response = session.post(
                     media_url,
-                    id=request_id,
+                    timeout=(5, 30),
+                    headers=arg_headers,
+                    stream=True,
+                    verify=False,
+                    allow_redirects=True,
                 )
-                resp = Response(
-                    updated_content,
-                    status=upstream_response.status_code,
-                    mimetype=content_type,
-                    headers=upstream_response.headers,
+            else:
+                upstream_response = session.get(
+                    media_url,
+                    timeout=(5, 30),
+                    headers=arg_headers,
+                    stream=True,
+                    verify=False,
+                    allow_redirects=True,
                 )
-                logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Parsing m3u8 {request.url}")
-                return Proxy.apply_headers(resp)
-            
-            if request_id:
-                web_res = web_cache.get(request_id)
-                if web_res:
-                    if web_res.get('requires_reload', False):
-                        return Response("Returning failure to reload webpage.", status=503)
-            
-            def generate_media():
-                try:
-                    start = time.monotonic()
-                    bytes_read = 0
+        except Exception as e: 
+            logger.error(f"Proxy upstream error, {e}")
+            if request_id: 
+                web_cache.switch_source(request_id)
+            else: logger.warning("'request_id' not available, skipping source switch")
+            return Response(f"Upstream error {e}", status=503) 
+        
+        if upstream_response.status_code not in (200, 203, 206):
+            logger.error(f"Upstream error [{upstream_response.status_code}] {upstream_response.text}")
+            if request_id: 
+                web_cache.switch_source(request_id)
+            else: logger.warning("'request_id' not available, skipping source switch")
+            return Response(f"Upstream error {upstream_response.text}", status=503)
 
-                    for chunk in upstream_response.iter_content(64 * 1024):
-                        if not chunk:
-                            continue
+        content_type = upstream_response.headers.get("content-type", "").lower()
 
-                        bytes_read += len(chunk)
-                        elapsed = time.monotonic() - start
+        is_m3u8 = (
+            ".m3u8" in media_url
+            or "mpegurl" in content_type
+            or "application/vnd.apple.mpegurl" in content_type
+        )
 
-                        if elapsed > 10 and bytes_read / elapsed < 300 * 1024:  # <300 KB/s
-                            if request_id:
-                                web_cache.switch_source(request_id)
-                            else: logger.warning("'request_id' not available, skipping source switch")
-                            break
-
-                        yield chunk
-                finally: upstream_response.close()
-
+        if is_m3u8 and upstream_response.status_code in (200, 203, 206):
+            if request_id: web_cache.reloaded(request_id, request.url)
+            content = upstream_response.content
+            updated_content = Proxy.parse_segment(
+                content,
+                arg_headers,
+                media_url,
+                id=request_id,
+            )
             resp = Response(
-                stream_with_context(generate_media()), 
+                updated_content,
                 status=upstream_response.status_code,
-                content_type=content_type,
+                mimetype=content_type,
                 headers=upstream_response.headers,
             )
-
-            logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Proxying url {request.url}")
+            logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Parsing m3u8 {request.url}")
             return Proxy.apply_headers(resp)
-        except Exception as e: 
-            logger.error(f"Proxy error, {e}")
-            return Response(f"Proxy error: {e}")
-        finally:
-            pass
+        
+        if request_id:
+            web_res = web_cache.get(request_id)
+            if web_res:
+                if web_res.get('requires_reload', False):
+                    return Response("Returning failure to reload webpage.", status=503)
+        
+        def generate_media():
+            try:
+                start = time.monotonic()
+                bytes_read = 0
+
+                for chunk in upstream_response.iter_content(64 * 1024):
+                    if not chunk:
+                        continue
+
+                    bytes_read += len(chunk)
+                    elapsed = time.monotonic() - start
+
+                    if elapsed > 10 and bytes_read / elapsed < 300 * 1024:  # <300 KB/s
+                        if request_id:
+                            web_cache.switch_source(request_id)
+                        else: logger.warning("'request_id' not available, skipping source switch")
+                        break
+
+                    yield chunk
+            finally: upstream_response.close()
+
+        resp = Response(
+            stream_with_context(generate_media()), 
+            status=upstream_response.status_code,
+            content_type=content_type,
+            headers=upstream_response.headers,
+        )
+
+        logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Proxying url {request.url}")
+        return Proxy.apply_headers(resp)
+        # except Exception as e: 
+        #     logger.error(f"Proxy error, {e}")
+        #     return Response(f"Proxy error: {e}")
+        # finally:
+        #     pass

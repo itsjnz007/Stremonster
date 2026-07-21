@@ -149,7 +149,7 @@ class WebCache(Caching):
             self._save_to_disk(self._get_cache_path(), cache)
             logger.info(f"Switching source for key: '{key}' to index: '{new_index}'")
     
-    def reloaded(self, key: str, url: str) -> None:
+    def reloaded(self, key: str, url: str, fileIdx: int = 0) -> None:
         with self._write_lock:
             cache = self._get_cache()
             if key not in cache or not cache[key]["value"]["streams"]:
@@ -157,7 +157,7 @@ class WebCache(Caching):
                 return
             
             current_index = cache[key]["value"]["current_index"]
-            if cache[key]['value'][current_index]['url'] == url:
+            if cache[key]['value']['streams'][current_index][fileIdx]['url'] == url:
                 logger.warning(f"Skipping 'requires_reload' flag, url same as current index. Current index {current_index}.")
                 return
             
