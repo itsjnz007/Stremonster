@@ -299,16 +299,16 @@ def stream() -> Response:
 @app.route("/stream.m3u8")
 def proxy_m3u8():
     """Proxy endpoint for M3U8 playlists - ends with .m3u8 for Android compatibility"""
-    return Proxy.proxy()
+    return Proxy.proxy("application/vnd.apple.mpegurl")
 
 @app.route("/stream.ts")
 def proxy_stream_ts():
     """Proxy endpoint for TS segments - ends with .ts for Android compatibility"""
-    return Proxy.proxy()
+    return Proxy.proxy("video/mp2t")
 
 @app.route("/stream.mp4")
 def proxy_stream_mp4():
-    return Proxy.proxy()
+    return Proxy.proxy("video/mp4")
 
 @app.route("/proxy")
 def proxy() -> Response | tuple[dict[str, str], int]:

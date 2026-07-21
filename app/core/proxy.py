@@ -289,7 +289,7 @@ class Proxy:
         return Response(status=302, headers={"Location": stream})
 
     @staticmethod
-    def proxy() -> Response:
+    def proxy(content_type: Optional[str] = None) -> Response:
         # try:
         start_time = time.time()
 
@@ -345,7 +345,7 @@ class Proxy:
             else: logger.warning("'request_id' not available, skipping source switch")
             return Response(f"Upstream error {upstream_response.text}", status=503)
 
-        content_type = upstream_response.headers.get("content-type", "").lower()
+        if not content_type: content_type = upstream_response.headers.get("content-type", "").lower()
 
         is_m3u8 = (
             ".m3u8" in media_url
