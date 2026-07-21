@@ -136,7 +136,17 @@ class Scraper:
             if self.log_requests: self.logger.info(f"Request -> {request.url}")
             if re.search(self.stream_url_pattern, request.url, re.I):
                 stream_url = request.url
-                stream_headers = request.headers
+                raw_headers = request.headers
+                clean_headers: dict[str, Any] = {}
+                
+                for key, value in raw_headers.items():
+                    # Strip outer escaped or duplicate quotes if present
+                    cleaned_val = value.replace('\"', '')
+                    clean_headers[key.lower()] = cleaned_val
+                
+                stream_headers = {}
+                if clean_headers.get('referer'): stream_headers['referer'] = clean_headers['referer']
+                if clean_headers.get('origin'): stream_headers['origin'] = clean_headers['origin']
                 self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
 
         try:

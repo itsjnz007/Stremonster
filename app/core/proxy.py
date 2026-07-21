@@ -121,17 +121,19 @@ class Proxy:
 
     @staticmethod
     def get_proxy_url(stream_url: str, headers: dict[str, Any], content_type: Optional[str] = None) -> Optional[str]:
+        referer = headers.get('referer')
+        origin = headers.get('origin')
+        headers = {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
+            "accept": "*/*",
+            "accept-language": "en-US,en;q=0.5",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+        }
 
-        # headers = {
-        #     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-        #     "accept": "*/*",
-        #     "accept-language": "en-US,en;q=0.5",
-        #     "sec-fetch-dest": "empty",
-        #     "sec-fetch-mode": "cors",
-        #     "sec-fetch-site": "cross-site",
-        #     "origin": origin,
-        #     "referer": f"{origin}/"
-        # }
+        if referer: headers['referer'] = referer
+        if origin: headers['origin'] = origin
 
         try:
             r = session.head(stream_url, timeout=10, headers=headers, allow_redirects=True)
@@ -310,9 +312,6 @@ class Proxy:
             logger.debug(f"arg_headers: {arg_headers}")
 
             if "Range" in request_headers: arg_headers['Range'] = request_headers['Range']
-
-            arg_headers['Origin'] = "https://cloudorchestranova.com"
-            arg_headers['Referer'] = "https://cloudorchestranova.com/"
 
             try:
                 if request.method == "POST":

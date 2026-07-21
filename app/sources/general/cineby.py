@@ -25,7 +25,7 @@ async def click_play_button(page: Page) -> None:
 
 class CinebyScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="cineby", base_url="https://player.videasy.to", page_hook=click_play_button)
+        super().__init__(headless=False, source="cineby", base_url="https://player.videasy.to", page_hook=click_play_button)
         # self.base_url = "https://cineby.cc"
         # self.base_url = "https://cineby.at"
 
