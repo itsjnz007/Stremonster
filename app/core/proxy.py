@@ -403,7 +403,7 @@ class Proxy:
                         bytes_read += len(chunk)
                         elapsed = time.monotonic() - start
 
-                        if elapsed > 10 and bytes_read / elapsed < 1000 * 1024:  # <500 KB/s
+                        if elapsed > 10 and bytes_read / elapsed < 300 * 1024:  # <500 KB/s
                             if request_id:
                                 web_cache.switch_source(request_id)
                             else: logger.warning("'request_id' not available, skipping source switch")
