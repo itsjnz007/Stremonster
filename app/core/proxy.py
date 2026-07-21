@@ -372,11 +372,11 @@ class Proxy:
             return Proxy.apply_headers(resp)
         
         if request_id:
+            web_cache.reloaded(request_id, request.url)
             web_res = web_cache.get(request_id)
             if web_res:
                 if web_res.get('requires_reload', False):
                     return Response("Returning failure to reload webpage.", status=503)
-            web_cache.reloaded(request_id, request.url)
         
         def generate_media():
             try:
