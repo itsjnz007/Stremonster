@@ -401,7 +401,10 @@ class Proxy:
                             if request_id:
                                 web_cache.switch_source(request_id)
                             else: logger.warning("'request_id' not available, skipping source switch")
-                            raise Exception("Upstream too slow")
+                            return Response(
+                                "Stream too slow, switching source.",
+                                status=504
+                            )
 
                         yield chunk
                 finally: upstream_response.close()
