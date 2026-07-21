@@ -354,7 +354,7 @@ class Proxy:
         )
 
         if is_m3u8 and upstream_response.status_code in (200, 203, 206):
-            if request_id: web_cache.reloaded(request_id, request.url)
+            # if request_id: web_cache.reloaded(request_id, request.url)
             content = upstream_response.content
             updated_content = Proxy.parse_segment(
                 content,
@@ -376,6 +376,7 @@ class Proxy:
             if web_res:
                 if web_res.get('requires_reload', False):
                     return Response("Returning failure to reload webpage.", status=503)
+            web_cache.reloaded(request_id, request.url)
         
         def generate_media():
             try:
