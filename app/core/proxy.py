@@ -297,12 +297,12 @@ class Proxy:
             logger.debug(f"media_url: {media_url}")
 
             request_id = request.args.get("id")
-            if request_id:
-                web_res = web_cache.get(request_id)
-                if web_res:
-                    if web_res.get('requires_reload', False):
-                        web_cache.reloaded(request_id)
-                        return Response("Returning failure to reload webpage.", status=503)
+            # if request_id:
+            #     web_res = web_cache.get(request_id)
+            #     if web_res:
+            #         if web_res.get('requires_reload', False):
+            #             web_cache.reloaded(request_id)
+            #             return Response("Returning failure to reload webpage.", status=503)
             logger.debug(f"request_id: {request_id}")
 
             request_headers = dict(request.headers)
@@ -404,7 +404,7 @@ class Proxy:
                         bytes_read += len(chunk)
                         elapsed = time.monotonic() - start
 
-                        if elapsed > 10 and bytes_read / elapsed < 500 * 1024:  # <500 KB/s
+                        if elapsed > 10 and bytes_read / elapsed < 1000 * 1024:  # <500 KB/s
                             if request_id:
                                 web_cache.switch_source(request_id)
                             else: logger.warning("'request_id' not available, skipping source switch")
