@@ -241,11 +241,9 @@ class Scraper:
         try:
             result = future.result(timeout=(self.timeout / 1000) + 15)
             if result: 
-                proxy_result = Proxy.get_proxy_url(result['url'], headers=result['headers'])
-                if not proxy_result: return
-                result['url'] = proxy_result
-                result['origin'] = self.base_url
-            return result
+                result = Proxy.get_proxy_url(result)
+                if result: 
+                    return result
         except Exception as e:
             self.logger.error(f"Scraping error: {e}")
             return None

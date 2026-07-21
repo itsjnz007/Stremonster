@@ -12,7 +12,7 @@ class WebResponse(TypedDict):
     url: str
     headers: Dict[str, Any]
     subtitles: list[str]
-    origin: Optional[str]
+    contentType: Optional[str]
     behaviorHints: Optional[BehaviorHints]
     cacheMaxAge: Optional[int]
     staleRevalidate: Optional[int]

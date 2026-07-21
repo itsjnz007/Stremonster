@@ -4,8 +4,8 @@ from urllib.parse import quote, urlparse
 from app.core.logger import Logger
 import json, re, urllib3, logging, time, requests
 from typing import Optional, Any
-# from requests.cookies import RequestsCookieJar
 from app.core.caching import WebCache
+from app.models.responses import WebResponse
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -65,23 +65,7 @@ class Proxy:
 
 
     @staticmethod
-    def get_stream_type(res: requests.Response) -> Optional[str]:
-        # headers = {
-        #     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-        #     "accept": "*/*",
-        #     "accept-language": "en-US,en;q=0.5",
-        #     "sec-fetch-dest": "empty",
-        #     "sec-fetch-mode": "cors",
-        #     "sec-fetch-site": "cross-site",
-        #     "origin": origin,
-        #     "referer": f"{origin}/"
-        # }
-
-        # try:
-        #     r = session.head(stream_url, headers=headers, timeout=5, allow_redirects=True)
-        # except Exception as e:
-        #     logger.error(f"Network error while probing stream URL: {e}")
-        #     return None
+    def get_content_type(res: requests.Response) -> Optional[str]:
 
         # 1. Handle standard error codes
         if res.status_code not in (200, 203, 206): 
@@ -116,31 +100,19 @@ class Proxy:
             if ".mpd" in res.request.url.lower():
                 return "application/dash+xml"
         
-        logger.error("Content-type unavailable or unrecognized. Rejecting source.")
         return None
 
     @staticmethod
-    def get_proxy_url(stream_url: str, headers: dict[str, Any], content_type: Optional[str] = None) -> Optional[str]:
-        referer = headers.get('referer')
-        origin = headers.get('origin')
-        headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-            "accept": "*/*",
-            "accept-language": "en-US,en;q=0.5",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-        }
-
-        if referer: headers['referer'] = referer
-        if origin: headers['origin'] = origin
+    def get_proxy_url(stream: WebResponse) -> Optional[WebResponse]:
+        stream['headers']["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0"
+        stream['headers']["accept"] = "*/*"
+        stream['headers']["accept-language"] = "en-US,en;q=0.5"
+        stream['headers']["sec-fetch-dest"] = "empty"
+        stream['headers']["sec-fetch-mode"] = "cors"
+        stream['headers']["sec-fetch-site"] = "cross-site"
 
         try:
-            r = session.head(stream_url, timeout=10, headers=headers, allow_redirects=True)
-            # if r.status_code not in (200, 203, 206):
-            #     headers.pop('origin')
-            #     headers.pop('referer');
-            #     r = session.get(stream_url, timeout=10, headers=headers, allow_redirects=True)
+            r = session.head(stream['url'], timeout=10, headers=stream['headers'], allow_redirects=True)
         except Exception as e:
             logger.error(f"Network error while probing stream URL: {e}")
             return None
@@ -149,44 +121,21 @@ class Proxy:
             logger.error(f"Unable to fetch content-type. Error code {r.status_code}")
             return None
         
-        if not content_type: 
-            content_type = Proxy.get_stream_type(r)
-            if not content_type: 
+        if not stream.get('contentType'): 
+            stream['contentType'] = Proxy.get_content_type(r)
+            if not stream.get('contentType'): 
                 logger.error("Unable to determine content-type for proxying. Rejecting source.")
                 return None
-            logger.info(f"Detected content-type: {content_type}")
-        stream_type = "stream.mp4" if content_type == "video/mp4" else "stream.m3u8"
+            logger.info(f"Detected content-type: {stream['contentType']}")
+        stream_type = "stream.mp4" if stream['contentType'] == "video/mp4" else "stream.m3u8"
 
-        # headers = {
-        #     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-        #     "accept": "*/*",
-        #     "accept-language": "en-US,en;q=0.5",
-        #     "sec-fetch-dest": "empty",
-        #     "sec-fetch-mode": "cors",
-        #     "sec-fetch-site": "cross-site",
-        #     "origin": origin,
-        #     "referer": f"{origin}/",
-        #     # "content-type": content_type
-        # }
-
-        # if cookies:
-        #     if isinstance(cookies, RequestsCookieJar):
-        #         cookie_header = "; ".join(
-        #             f"{c.name}={c.value}" for c in cookies
-        #         )
-        #     else:
-        #         cookie_header = "; ".join(f"{k}={v}" for k, v in cookies.items())
-
-        #     headers["cookie"] = cookie_header
-
-        headers_str = json.dumps(headers)
-
-        proxied_url = Proxy.add_proxy(stream_url, headers_str, stream_type)
-        return proxied_url
+        headers_str = json.dumps(stream['headers'])
+        stream['url'] = Proxy.add_proxy(stream['url'], headers_str, stream_type=stream_type)
+        return stream
     
     
     @staticmethod
-    def add_proxy(url: str, headers: str, stream_type: str = "stream.ts", request_id: Optional[str] = None) -> str:
+    def add_proxy(url: str, headers: str, id: Optional[str] = None, index: Optional[str] = None, stream_type: str = "stream.ts") -> str:
 
         if not TUNNEL_URL: raise Exception("TUNNEL_URL not set")
 
@@ -199,13 +148,13 @@ class Proxy:
             + "?url=" + quote(url_str, safe="")
             + "&headers=" + quote(headers_str, safe="")
         )
-        if request_id:
-            proxy_url += f"&id={quote(request_id, safe='')}"
+        if id: proxy_url += f"&id={quote(id, safe='')}"
+        if index: proxy_url +=  f"&index={quote(index, safe='')}"
         return proxy_url
 
 
     @staticmethod
-    def parse_segment(content: bytes, headers: str, master_url: str, id: Optional[str] = None) -> str:
+    def parse_segment(content: bytes, headers: str, master_url: str, id: Optional[str], index: Optional[str]) -> str:
         text = content.decode("utf-8", errors="ignore")
         rewritten: list[str] = []
 
@@ -240,7 +189,7 @@ class Proxy:
                     # Replace the URI inside the tag with the proxied version
                     def replace_uri(match: re.Match[str]):
                         full_url = resolve_url(match.group(2))
-                        proxied_url = Proxy.add_proxy(full_url, headers, stream_type, request_id=id)
+                        proxied_url = Proxy.add_proxy(full_url, headers, stream_type=stream_type, id=id, index=index)
                         return f'{match.group(1)}{proxied_url}{match.group(3)}'
                     
                     rewritten.append(uri_pattern.sub(replace_uri, line))
@@ -250,7 +199,7 @@ class Proxy:
             
             # Handle segment URLs (lines not starting with #)
             else:
-                rewritten.append(Proxy.add_proxy(resolve_url(line), headers, stream_type, request_id=id))
+                rewritten.append(Proxy.add_proxy(resolve_url(line), headers, stream_type=stream_type, id=id, index=index))
 
         return "\n".join(rewritten)
     
@@ -269,20 +218,22 @@ class Proxy:
         return response
     
     @staticmethod
-    def stream() -> Response:
+    def redirect() -> Response:
         id = request.args.get("id")
         if not id: return Response("Missing 'id' parameter", status=400)
-        fileIdx = request.args.get("fileIdx")
-        if not fileIdx: return Response("Missing 'fileIdx' parameter", status=400)
+
         cache = web_cache.get(id)
         if not cache: return Response("Stream not found", status=404)
 
         current_index = cache.get("current_index", 0)
         streams = cache.get("streams", [])
         if not streams: return Response("No streams found", status=404)
-
-        current_stream = streams[int(current_index)][int(fileIdx)]
-        stream: str = current_stream.get("url") + f"&id={id}"
+        if len(streams[int(current_index)]) != 1:
+            logger.error(f"Stream length {len(streams[int(current_index)])} is not 1. Unable to process request.")
+            return Response(f"Stream length {len(streams[int(current_index)])} is not 1. Unable to process request.", status=404)
+        
+        current_stream = streams[int(current_index)][0]
+        stream: str = current_stream.get("url") + f"&id={id}&index={current_index}:0"
         if not stream: return Response("Stream URL not found", status=404)
 
         logger.info(f"Redirecting to proxied stream URL: {stream}")
@@ -293,18 +244,18 @@ class Proxy:
         # try:
         start_time = time.time()
 
+        # Proxy arguments
         media_url = request.args.get("url")
         if not media_url: raise Exception("No media_url found")
-        logger.debug(f"media_url: {media_url}")
-
-        request_id = request.args.get("id")
-        logger.debug(f"request_id: {request_id}")
-
-        request_headers = dict(request.headers)
-        logger.debug(f"request_headers: {request_headers}")
-
+        id = request.args.get("id")
+        index = request.args.get("index")
         media_headers = request.args.get("headers", "{}")
         if not media_headers: raise Exception("No media_headers found")
+        logger.debug(f"id {id} | index {index}\n{'-'*10}\nmedia_url {media_url}\n{'-'*10}\nmedia_headers {media_headers}")
+
+        # Request arguments
+        request_headers = dict(request.headers)
+        logger.debug(f"request_headers: {request_headers}")
 
         try: arg_headers = json.loads(media_headers)
         except Exception as e: return Response(f"Unable to parse headers_str. Error: {e}", status=503)
@@ -333,15 +284,15 @@ class Proxy:
                 )
         except Exception as e: 
             logger.error(f"Proxy upstream error, {e}")
-            if request_id: 
-                web_cache.switch_source(request_id)
+            if id: 
+                web_cache.switch_source(id)
             else: logger.warning("'request_id' not available, skipping source switch")
             return Response(f"Upstream error {e}", status=503) 
         
         if upstream_response.status_code not in (200, 203, 206):
             logger.error(f"Upstream error [{upstream_response.status_code}] {upstream_response.text}")
-            if request_id: 
-                web_cache.switch_source(request_id)
+            if id:
+                web_cache.switch_source(id)
             else: logger.warning("'request_id' not available, skipping source switch")
             return Response(f"Upstream error {upstream_response.text}", status=503)
 
@@ -354,13 +305,13 @@ class Proxy:
         )
 
         if is_m3u8 and upstream_response.status_code in (200, 203, 206):
-            # if request_id: web_cache.reloaded(request_id, request.url)
             content = upstream_response.content
             updated_content = Proxy.parse_segment(
                 content,
                 arg_headers,
                 media_url,
-                id=request_id,
+                id=id,
+                index=index
             )
             resp = Response(
                 updated_content,
@@ -371,11 +322,14 @@ class Proxy:
             logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Parsing m3u8 {request.url}")
             return Proxy.apply_headers(resp)
         
-        if request_id:
-            web_cache.reloaded(request_id, request.url)
-            web_res = web_cache.get(request_id)
+        if id and index:
+            web_res = web_cache.get(id)
             if web_res:
-                if web_res.get('requires_reload', False):
+                current_index = int(web_res.get('current_index'))
+                source_index = int(index.split(':')[0])
+                logger.debug(f"current_index: {current_index} | source_index: {source_index}")
+                if current_index != source_index:
+                    logger.error("Returning failure to reload webpage.")
                     return Response("Returning failure to reload webpage.", status=503)
         
         def generate_media():
@@ -391,8 +345,8 @@ class Proxy:
                     elapsed = time.monotonic() - start
 
                     if elapsed > 10 and bytes_read / elapsed < 100 * 1024:  # <100 KB/s
-                        if request_id:
-                            web_cache.switch_source(request_id)
+                        if id:
+                            web_cache.switch_source(id)
                         else: logger.warning("'request_id' not available, skipping source switch")
                         break
 

@@ -94,20 +94,23 @@ def get_web_stream(type: str, id: str) -> Response:
     user_agent = request.headers.get('User-Agent')
     logger.debug(f"User-Agent: {user_agent}")
 
-    def build_unified_stream_url(fileIdx: int) -> str:
+    def build_unified_stream_url(content_type: Optional[str] = None) -> str:
         if not TUNNEL_URL:
             raise Exception("TUNNEL_URL is not set. Please set it in the config.")
-        return TUNNEL_URL + f"/stream?id={id}&fileIdx={fileIdx}"
+        if content_type == 'video/mp4': return TUNNEL_URL + f"/redirect.mp4?id={id}"
+        if content_type == 'application/vnd.apple.mpegurl': return TUNNEL_URL + f"/redirect.m3u8?id={id}"
+        return TUNNEL_URL + f"/redirect?id={id}"
     
     def build_web_response(streams: List[WebResponse], unified: bool = False) -> List[WebResponse]:
         imdb_id = id.split(':')[0] if type == 'series' else id
+        if len(streams) > 1: unified = False
         return [WebResponse(
             title = "Stream from\n" + streams[idx]['title'],
             name = "Play",
-            url = streams[idx]['url'] if not unified else build_unified_stream_url(idx),
+            url = streams[idx]['url'] if not unified else build_unified_stream_url(streams[idx]['contentType']),
             headers = {},
             subtitles = streams[idx]['subtitles'],
-            origin = streams[idx]['origin'],
+            contentType = streams[idx]['contentType'],
             behaviorHints = BehaviorHints(
                 bingeGroup=imdb_id
             ),
@@ -116,13 +119,13 @@ def get_web_stream(type: str, id: str) -> Response:
             staleError=0
         ) for idx in range(len(streams))]
 
-    def append_id_to_streams(streams: List[WebResponse]) -> List[WebResponse]:
+    def append_id_to_streams(streams: List[WebResponse], source_index: int) -> List[WebResponse]:
         return [
             {
-                **stream,
-                'url': stream['url'] + f'&id={id}'
+                **streams[idx],
+                'url': streams[idx]['url'] + f"&id={id}&index={source_index}:{idx}"
             }
-            for stream in streams
+            for idx in range(len(streams))
         ]
     
     def calculate() -> List[WebResponse] | None:
@@ -131,18 +134,18 @@ def get_web_stream(type: str, id: str) -> Response:
             results_iter = thread_pool_web.get_all(tasks)
             first_result: Optional[List[WebResponse]] = next(results_iter, None)
             if first_result:
-                first_result = append_id_to_streams(first_result)
+                first_result = append_id_to_streams(first_result, 0)
                 logger.debug(f"First result obtained, caching and draining remaining results for ID {id}, first result: {first_result}")
                 web_cache.set(id, first_result)
                 def drain_remaining(iterator: Iterator[Optional[List[WebResponse]]]) -> None:
-                    for response in iterator:
+                    for idx, response in enumerate(iterator, start=1):
                         if response:
-                            response = append_id_to_streams(response)
+                            response = append_id_to_streams(response, source_index=idx)
                             web_cache.extend(id, response)
 
                 thread_pool_web.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator))
                 if not TUNNEL_URL: raise Exception("TUNNEL_URL is not set. Please set it in the config.")
-                if not user_agent: return build_web_response(first_result)
+                if not user_agent: return build_web_response(first_result, unified=True)
                 else: return build_web_response(first_result, unified=True)
 
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
@@ -226,8 +229,8 @@ def get_web_stream(type: str, id: str) -> Response:
             logger.error(f"Cache for {id} is invalid or empty...")
             return respond_with({'streams': []})
         logger.info("Returning cached web result...")
-        if not user_agent: formatted_result = {'streams': build_web_response(append_id_to_streams(stream_group[stream_index]))}
-        else: formatted_result = {'streams': build_web_response(append_id_to_streams(stream_group[stream_index]), unified=True)}
+        if not user_agent: formatted_result = {'streams': build_web_response(stream_group[stream_index], unified=True)}
+        else: formatted_result = {'streams': build_web_response(stream_group[stream_index], unified=True)}
         logger.info(f"Responding with: {formatted_result}")
         return respond_with(formatted_result)
 
@@ -285,16 +288,22 @@ def get_torrent_stream(type: str, id: str) -> Response:
             torrent_cache.set(id, formatted_result)
             return respond_otherwise(formatted_result)
 
-            
-    
     logger.info(f"Total time taken to fetch torrent stream: {time.time() - start_time:.2f} seconds")
     logger.warning(f"No torrent stream found for {type} with ID {id}")
     return respond_with({'streams': []})
+
         
-@app.route('/stream')
-def stream() -> Response:
-    logger.info(f"GET /stream")
-    return Proxy.stream()
+@app.route('/redirect')
+def redirect() -> Response:
+    return Proxy.redirect()
+
+@app.route('/redirect.m3u8')
+def redirect_m3u8() -> Response:
+    return Proxy.redirect()
+
+@app.route('/redirect.mp4')
+def redirect_mp4() -> Response:
+    return Proxy.redirect()
 
 @app.route("/stream.m3u8")
 def proxy_m3u8():
