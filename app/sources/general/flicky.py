@@ -11,16 +11,15 @@ from threading import Event
 class FlickyScraper(Scraper):
     def __init__(self):
         super().__init__(headless=True, source="flicky", base_url="https://flickystream.dad")
-        # self.base_url = "https://flickystream.su"
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/player/movie/{tmdb_id}"
-        result = self.get_stream(url, stop_event, title="Flicky")
+        result = self.get_stream(url, stop_event)
         return result
     
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/player/tv/{tmdb_id}/{season}/{episode}"
-        result = self.get_stream(url, stop_event, title="Flicky")
+        result = self.get_stream(url, stop_event)
         return result
     
 
