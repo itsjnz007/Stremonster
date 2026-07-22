@@ -17,14 +17,6 @@ from playwright.async_api import Page, Playwright, BrowserContext
 
 STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/mp4)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
-# AD_BLOCK_LIST = [
-#     "**/adsense/**",
-#     "**/doubleclick.net/**",
-#     "**/google-analytics.com/**",
-#     "**/googletagmanager.com/**",
-#     "**/analytics.js",
-#     "**/adservice/**",
-# ]
 
 class Scraper:
     _playwright: Optional[Playwright] = None
@@ -133,6 +125,7 @@ class Scraper:
         def handle_request(request: Request):
             nonlocal stream_url
             nonlocal stream_headers
+            nonlocal subtitle_urls
             if self.log_requests: self.logger.info(f"Request -> {request.url}")
             if re.search(self.stream_url_pattern, request.url, re.I):
                 stream_url = request.url
@@ -149,17 +142,17 @@ class Scraper:
                 if clean_headers.get('origin'): stream_headers['origin'] = clean_headers['origin']
                 self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
 
+            if re.search(self.subtitle_url_pattern, request.url, re.I):
+                subtitle_urls = [request.url]
+                self.logger.info(f'💬 Subtitles from {domain}: {subtitle_urls}')
+
         try:
-            # await page.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "stylesheet", "font"] else route.continue_())
-            # await page.route("**/*", lambda route: 
-            #     # route.abort() if any(pattern in route.request.url for pattern in AD_BLOCK_LIST) 
-            #     # else route.continue_()
-            # )
             if self.context_hook: await self.context_hook(context)
             page.on("request", handle_request)
             await page.goto(url)
             if self.page_hook: await self.page_hook(page)
 
+            # Wait 30 seconds for stream url
             start_time = time.time()
             while not stream_url:
                 if stop_event and stop_event.is_set(): 
@@ -168,33 +161,13 @@ class Scraper:
                 if time.time() - start_time > (self.timeout / 1000): break
                 await asyncio.sleep(0.1)
 
-            # for _ in range(int(self.timeout / 500)):
-            #     if stop_event and stop_event.is_set(): 
-            #         self.logger.debug(f"Stopping task due to a stop_event")
-            #         break
-            #     try:
-            #         stream_request = await page.wait_for_event(
-            #             "request",
-            #             predicate=lambda req: bool(re.search(self.stream_url_pattern, req.url, re.I)),
-            #             timeout=self.timeout,
-            #         )
-            #         stream_url = stream_request.url
-            #         self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
-            #     except Exception:
-            #         self.logger.warning(f"Timeout! No stream found within {self.timeout / 1000:.2f}s")
-
-            # if stream_url and self.subtitle_timeout > 0:
-            #     try:
-            #         subtitle_response = await page.wait_for_event(
-            #             "response",
-            #             predicate=lambda resp: bool(re.search(self.subtitle_url_pattern, resp.url, re.I)),
-            #             timeout=self.subtitle_timeout,
-            #         )
-            #         if subtitle_response.url not in subtitle_urls:
-            #             subtitle_urls.append(subtitle_response.url)
-            #             self.logger.info(f"💬 Subtitles: {subtitle_response.url}")
-            #     except Exception:
-            #         self.logger.warning(f"Timeout! No subtitle found within {self.subtitle_timeout:.2f}s after stream detection")
+            # Wait additional 3 seconds for subtitles url
+            while not subtitle_urls:
+                if stop_event and stop_event.is_set(): 
+                    self.logger.info(f"❌ Task skipped for {domain}")
+                    return
+                if time.time() - start_time > (3000 / 1000): break
+                await asyncio.sleep(0.1)
 
             if stream_url:
                 return WebResponse(

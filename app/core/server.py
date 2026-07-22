@@ -319,6 +319,10 @@ def proxy_stream_ts():
 def proxy_stream_mp4():
     return Proxy.proxy("video/mp4")
 
+@app.route("/proxy.vtt")
+def proxy_vvt():
+    return Proxy.proxy("text/vtt")
+
 @app.route("/proxy")
 def proxy() -> Response | tuple[dict[str, str], int]:
     return Proxy.proxy()
