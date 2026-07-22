@@ -260,8 +260,17 @@ class Proxy:
         try: arg_headers = json.loads(media_headers)
         except Exception as e: return Response(f"Unable to parse headers_str. Error: {e}", status=503)
         logger.debug(f"arg_headers: {arg_headers}")
-
         if "Range" in request_headers: arg_headers['Range'] = request_headers['Range']
+
+        if id and index:
+            web_res = web_cache.get(id)
+            if web_res:
+                current_index = int(web_res.get('current_index'))
+                source_index = int(index.split(':')[0])
+                logger.debug(f"current_index: {current_index} | source_index: {source_index}")
+                if current_index != source_index:
+                    logger.error("Returning failure to reload webpage.")
+                    return Response("Returning failure to reload webpage.", status=503)
 
         try:
             if request.method == "POST":
@@ -321,16 +330,6 @@ class Proxy:
             )
             logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Parsing m3u8 {request.url}")
             return Proxy.apply_headers(resp)
-        
-        if id and index:
-            web_res = web_cache.get(id)
-            if web_res:
-                current_index = int(web_res.get('current_index'))
-                source_index = int(index.split(':')[0])
-                logger.debug(f"current_index: {current_index} | source_index: {source_index}")
-                if current_index != source_index:
-                    logger.error("Returning failure to reload webpage.")
-                    return Response("Returning failure to reload webpage.", status=503)
         
         def generate_media():
             try:
