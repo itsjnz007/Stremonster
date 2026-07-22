@@ -344,12 +344,15 @@ class Proxy:
                     elapsed = time.monotonic() - start
 
                     if elapsed > 10 and bytes_read / elapsed < 200 * 1024:  # <200 KB/s
-                        if id:
-                            web_cache.switch_source(id)
+                        if id: web_cache.switch_source(id)
                         else: logger.warning("'request_id' not available, skipping source switch")
                         break
 
                     yield chunk
+            except Exception as e:
+                logger.error(f"Error while yielding chunk. Error: {e}")
+                if id: web_cache.switch_source(id)
+                else: logger.warning("'request_id' not available, skipping source switch")
             finally: upstream_response.close()
 
         resp = Response(
