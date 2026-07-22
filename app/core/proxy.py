@@ -351,8 +351,15 @@ class Proxy:
                     yield chunk
             except Exception as e:
                 logger.error(f"Error while yielding chunk. Error: {e}")
-                if id: web_cache.switch_source(id)
-                else: logger.warning("'request_id' not available, skipping source switch")
+                if id and index:
+                    web_res = web_cache.get(id)
+                    if web_res:
+                        current_index = int(web_res.get('current_index'))
+                        source_index = int(index.split(':')[0])
+                        logger.debug(f"current_index: {current_index} | source_index: {source_index}")
+                        if current_index == source_index: web_cache.switch_source(id)
+                        else: logger.debug('Ignoring source switch since the source has already been switched.')
+                else: logger.warning("'id' or 'index' not available, skipping source switch")
             finally: upstream_response.close()
 
         resp = Response(
