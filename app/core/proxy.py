@@ -22,6 +22,7 @@ def respond_with(data: dict[str, Any]) -> Response:
 
 
 class Proxy:
+    _stream_speeds: dict[str, dict[str, float]] = {}
     """Collection of proxy-related helpers exposed as static methods.
 
     Optimized for Android ExoPlayer compatibility by preserving clean explicit 
@@ -342,16 +343,34 @@ class Proxy:
                     if not chunk:
                         continue
 
-                    bytes_read += len(chunk)
-                    elapsed = time.monotonic() - start
+                    if id:
+                        bytes_read += len(chunk)
+                        elapsed = time.monotonic() - start
+                        speed = bytes_read / elapsed
 
-                    speed = bytes_read / elapsed
-                    if speed < 500 * 1024: print(f"Speed: {speed / 1024} KB/s")
+                        # Switch source if it buffers repeatedly
+                        if elapsed > 5 and speed < 500 * 1024:  # KB/s
+                            if Proxy._stream_speeds.get('id'):
+                                Proxy._stream_speeds['id']['count'] += 1
+                                Proxy._stream_speeds['id']['speed'] = Proxy._stream_speeds['id']['speed'] + speed / 2
+                                logger.info(f"Reduced stream speed observed. Registering {Proxy._stream_speeds.get('id')}")
+                                if Proxy._stream_speeds['id']['count'] > 5:
+                                    Proxy._stream_speeds.pop(id, None)
+                                    web_cache.switch_source(id)
+                                    logger.info("Slow stream speed observed for more than 5 chunks. Switching source.")
+                                    break
+                            else:
+                                Proxy._stream_speeds[id] = {
+                                    'count': 1,
+                                    'speed': speed
+                                }
 
-                    if elapsed > 15 and speed < 100 * 1024:  # KB/s
-                        if id: web_cache.switch_source(id)
-                        else: logger.warning("'request_id' not available, skipping source switch")
-                        break
+                        # Switch source if it is stuck for a long time
+                        if elapsed > 20 and speed < 500 * 1024:
+                            Proxy._stream_speeds.pop(id, None)
+                            web_cache.switch_source(id)
+                            logger.info("Slow stream speed observed for more than 15 seconds. Switching source.")
+                            break
 
                     yield chunk
             except Exception as e:
