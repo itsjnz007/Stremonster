@@ -335,6 +335,7 @@ class Proxy:
         speed = 0
         
         def generate_media():
+            nonlocal speed
             try:
                 start = time.monotonic()
                 bytes_read = 0
