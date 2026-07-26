@@ -346,7 +346,7 @@ class Proxy:
                     elapsed = time.monotonic() - start
 
                     speed = bytes_read / elapsed
-                    logger.info(f"Speed: {speed*1024} KB/s")
+                    logger.info(f"Speed: {speed / 1024} KB/s")
 
                     if elapsed > 5 and speed < 30 * 1024:  # KB/s
                         if id: web_cache.switch_source(id)
