@@ -10,7 +10,7 @@ from threading import Event
 
 class FlickyScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="flicky", base_url="https://flickystream.dad")
+        super().__init__(source="flicky", base_url="https://flickystream.dad")
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/player/movie/{tmdb_id}"

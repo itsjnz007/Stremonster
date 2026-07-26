@@ -37,7 +37,7 @@ async def context_hook(context: BrowserContext) -> None:
 
 class VidsrcScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="vidsrc", 
+        super().__init__(source="vidsrc", 
                          base_url="https://vsembed.ru", 
                          context_hook=context_hook, 
                          page_hook=page_hook,

@@ -9,7 +9,7 @@ from threading import Event
 
 class VidnestScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, base_url="https://vidnest.fun", source="vidnest",
+        super().__init__(base_url="https://vidnest.fun", source="vidnest",
                           stream_url_pattern= r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/seg)\S*')
     
     def get_series(self, anilist_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:

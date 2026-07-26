@@ -27,7 +27,7 @@ class FourAnimoScraper(Scraper):
             except Exception as e:
                 print(f"Hook error: {e}")
 
-        super().__init__(headless=True, source="4animo",
+        super().__init__(source="4animo",
                           stream_url_pattern= r'https?://[^\s]+\?t=[^\s&]+&type=[^\s]+',
                           page_hook=play_button_hook,
                           base_url="https://cdn.4animo.xyz"

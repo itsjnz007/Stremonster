@@ -115,6 +115,8 @@ class Scraper:
             locale="en-US",
             java_script_enabled=True,
         )
+
+        await context.add_init_script(path='./app/core/plugins/anti-anti-debug.js')
         page = await context.new_page()
 
         stream_url: Optional[str] = None
@@ -257,6 +259,6 @@ atexit.register(Scraper.shutdown)
 if __name__ == "__main__":
     test_url = "https://flickystream.su/player/movie/687163"
 
-    scraper = Scraper(headless=True, source="flickystream", base_url="https://flickystream.su")
+    scraper = Scraper(source="flickystream", base_url="https://flickystream.su")
     response = scraper.get_stream(test_url)
     print(f"Response: {response}")

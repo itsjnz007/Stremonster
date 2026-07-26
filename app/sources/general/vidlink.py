@@ -9,7 +9,7 @@ from threading import Event
 
 class VidlinkScraper(Scraper):
     def __init__(self):
-        super().__init__(headless=True, source="vidlink", base_url="https://vidlink.pro")
+        super().__init__(source="vidlink", base_url="https://vidlink.pro")
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/movie/{tmdb_id}"
