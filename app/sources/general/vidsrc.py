@@ -6,7 +6,7 @@ from app.core.scraper import Scraper
 from app.models.responses import WebResponse
 from typing import Optional
 from threading import Event
-from playwright.async_api import Page, BrowserContext
+from playwright.async_api import Page
 
 async def page_hook(page: Page) -> None:
     player_iframe = page.frame_locator("#player_iframe")
@@ -14,33 +14,12 @@ async def page_hook(page: Page) -> None:
     await target_button.wait_for(state="attached")
     await target_button.click()
     
-async def context_hook(context: BrowserContext) -> None:
-    try:
-        await context.route("**/disable-devtool*", lambda route: route.abort())
-        await context.add_init_script("""
-            Object.defineProperty(window, 'DisableDevtool', {
-                set(val) {
-                    if (val && typeof val === 'object' || typeof val === 'function') {
-                        val.isSuspend = true; // Neutralize the running process engine flags instantly
-                    }
-                    this._val = val;
-                },
-                get() {
-                    return this._val;
-                },
-                configurable: true
-            });
-        """)
-    except Exception as e:
-        print(f"Context hook failed with error: {e}")
-        
-
 class VidsrcScraper(Scraper):
     def __init__(self):
         super().__init__(source="vidsrc", 
-                         base_url="https://vsembed.ru", 
-                         context_hook=context_hook, 
+                         base_url="https://vsembed.ru",
                          page_hook=page_hook,
+                         headless=False
         )
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
@@ -56,5 +35,5 @@ class VidsrcScraper(Scraper):
 if __name__ == "__main__":
     scraper = VidsrcScraper()
     
-    response = scraper.get_movie("786892")
+    response = scraper.get_series("48891", "6", "6")
     print(f"Response: {response}")

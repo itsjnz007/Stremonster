@@ -13,7 +13,7 @@ from app.core.logger import Logger
 from urllib.parse import urlparse
 from threading import Event
 from typing import Optional, Callable, Awaitable
-from playwright.async_api import Page, Playwright, BrowserContext
+from playwright.async_api import Page, Playwright
 
 STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/mp4)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
@@ -36,7 +36,6 @@ class Scraper:
                  subtitle_url_pattern: str = SUBTITLE_PATTERN,
                  log_requests: bool = False,
                  page_hook: Optional[Callable[[Page], Awaitable[None]]] = None,
-                 context_hook: Optional[Callable[[BrowserContext], Awaitable[None]]] = None
     ):
         self.logger = Logger(f"scraper.{source}", level=logging.DEBUG)
         self.source = source.upper()
@@ -47,7 +46,6 @@ class Scraper:
         self.subtitle_url_pattern = subtitle_url_pattern
         self.log_requests = log_requests
         self.page_hook = page_hook
-        self.context_hook = context_hook
         self.base_url = base_url
 
     def _start_loop(self):
@@ -149,7 +147,6 @@ class Scraper:
                 self.logger.info(f'💬 Subtitles from {domain}: {subtitle_urls}')
 
         try:
-            if self.context_hook: await self.context_hook(context)
             page.on("request", handle_request)
             await page.goto(url)
             if self.page_hook: await self.page_hook(page)
