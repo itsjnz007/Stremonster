@@ -332,10 +332,8 @@ class Proxy:
             logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Parsing m3u8 {request.url}")
             return Proxy.apply_headers(resp)
 
-        speed = 0
-        
+
         def generate_media():
-            nonlocal speed
             try:
                 start = time.monotonic()
                 bytes_read = 0
@@ -348,6 +346,7 @@ class Proxy:
                     elapsed = time.monotonic() - start
 
                     speed = bytes_read / elapsed
+                    logger.info(f"Speed: {speed*1024} KB/s")
 
                     if elapsed > 5 and speed < 30 * 1024:  # KB/s
                         if id: web_cache.switch_source(id)
@@ -375,7 +374,7 @@ class Proxy:
             headers=upstream_response.headers,
         )
 
-        logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | {round(speed * 1024, 2)}KB/s | Proxying url {request.url}")
+        logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Proxying url {request.url}")
         return Proxy.apply_headers(resp)
         # except Exception as e: 
         #     logger.error(f"Proxy error, {e}")
