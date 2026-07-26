@@ -331,6 +331,8 @@ class Proxy:
             )
             logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Parsing m3u8 {request.url}")
             return Proxy.apply_headers(resp)
+
+        speed = 0
         
         def generate_media():
             try:
@@ -344,7 +346,9 @@ class Proxy:
                     bytes_read += len(chunk)
                     elapsed = time.monotonic() - start
 
-                    if elapsed > 5 and bytes_read / elapsed < 30 * 1024:  # KB/s
+                    speed = bytes_read / elapsed
+
+                    if elapsed > 5 and speed < 30 * 1024:  # KB/s
                         if id: web_cache.switch_source(id)
                         else: logger.warning("'request_id' not available, skipping source switch")
                         break
@@ -370,7 +374,7 @@ class Proxy:
             headers=upstream_response.headers,
         )
 
-        logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | Proxying url {request.url}")
+        logger.info(f"{upstream_response.status_code} | {time.time() - start_time}ms | {round(speed * 1024, 2)}KB/s | Proxying url {request.url}")
         return Proxy.apply_headers(resp)
         # except Exception as e: 
         #     logger.error(f"Proxy error, {e}")
