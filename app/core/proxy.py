@@ -351,7 +351,7 @@ class Proxy:
                         print(f"Speed: {speed / 1024} KB/s")
 
                         # Switch source if it buffers repeatedly
-                        if elapsed > 5 and speed < 1024 * 1024:  # KB/s
+                        if elapsed > 5 and speed < 512 * 1024:  # KB/s
                             if Proxy._stream_speeds.get('id'):
                                 Proxy._stream_speeds['id']['count'] += 1
                                 Proxy._stream_speeds['id']['speed'] = Proxy._stream_speeds['id']['speed'] + speed / 2
