@@ -348,7 +348,7 @@ class Proxy:
                         elapsed = time.monotonic() - start
                         speed = bytes_read / elapsed
 
-                        print(f"Speed: {speed}")
+                        print(f"Speed: {speed / 1024} KB/s")
 
                         # Switch source if it buffers repeatedly
                         if elapsed > 5 and speed < 1024 * 1024:  # KB/s
