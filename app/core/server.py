@@ -17,7 +17,7 @@ from app.core.multithreading import MultiThreading
 from app.core.proxy import respond_with, Proxy
 from app.external.anilist import AniBridgeV3Resolver
 from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as vidsrc, cineby as cineby, \
-    vidlink as vidlink, viduki as viduki, fmovies as fmovies
+    vidnest as vidnest_general, viduki as viduki, fmovies as fmovies
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo
 from app.sources.regional import tamilblasters as tamilblasters
 from app.core.catalog import Catalog
@@ -43,7 +43,7 @@ flicky_scraper = flicky.FlickyScraper()
 vidking_scraper = vidking.VidkingScraper()
 vidsrc_scraper = vidsrc.VidsrcScraper()
 cineby_scraper = cineby.CinebyScraper()
-vidlink_scraper = vidlink.VidlinkScraper()
+vidnest_general_scraper = vidnest_general.VidnestScraper()
 viduki_scraper = viduki.VidukiScraper()
 fmovies_scraper = fmovies.FmoviesScraper()
 
@@ -152,8 +152,8 @@ def get_web_stream(type: str, id: str) -> Response:
 
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
             (lambda tmdb_id: [result] if (result := viduki_scraper.get_movie(tmdb_id)) else None, 'viduki'),
+            (lambda tmdb_id: [result] if (result := vidnest_general_scraper.get_movie(tmdb_id)) else None, 'vidlink'),
             (lambda tmdb_id: [result] if (result := vidsrc_scraper.get_movie(tmdb_id)) else None, 'vidsrc'),
-            (lambda tmdb_id: [result] if (result := vidlink_scraper.get_movie(tmdb_id)) else None, 'vidlink'),
             (lambda tmdb_id: [result] if (result := fmovies_scraper.get_movie(tmdb_id)) else None, 'fmovies'),
             (lambda tmdb_id: [result] if (result := cineby_scraper.get_movie(tmdb_id)) else None, 'cineby'),
             (lambda tmdb_id: [result] if (result := flicky_scraper.get_movie(tmdb_id)) else None, 'flicky'),
@@ -162,8 +162,8 @@ def get_web_stream(type: str, id: str) -> Response:
 
         series_scrapers: List[Tuple[Callable[[str, str, str], Optional[List[WebResponse]]], str]] = [
             (lambda tmdb, s, e: [result] if (result := viduki_scraper.get_series(tmdb, s, e)) else None, 'viduki'),
+            (lambda tmdb, s, e: [result] if (result := vidnest_general_scraper.get_series(tmdb, s, e)) else None, 'vidlink'),
             (lambda tmdb, s, e: [result] if (result := vidsrc_scraper.get_series(tmdb, s, e)) else None, 'vidsrc'),
-            (lambda tmdb, s, e: [result] if (result := vidlink_scraper.get_series(tmdb, s, e)) else None, 'vidlink'),
             (lambda tmdb, s, e: [result] if (result := fmovies_scraper.get_series(tmdb, s, e)) else None, 'fmovies'),
             (lambda tmdb, s, e: [result] if (result := cineby_scraper.get_series(tmdb, s, e)) else None, 'cineby'),
             (lambda tmdb, s, e: [result] if (result := flicky_scraper.get_series(tmdb, s, e)) else None, 'flicky'),

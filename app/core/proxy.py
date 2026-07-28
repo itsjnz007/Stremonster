@@ -77,7 +77,7 @@ class Proxy:
         # If the server returns a 200 but explicitly says Content-Length is 0 (a ghost/dead token)
         content_length = res.headers.get('content-length')
         if content_length and int(content_length) == 0:
-            logger.warning(f"Source returned 200 OK but Content-Length is 0. URL is likely dead/invalid.")
+            logger.warning(f"Source returned {res.status_code} OK but Content-Length is 0. URL is likely dead/invalid.")
             return None
 
         # 3. Extract and validate Content-Type
@@ -92,15 +92,35 @@ class Proxy:
             elif "mp2t" in content_type:
                 return "video/mp2t"
 
-        # 4. Fallback to URL extension parsing if Content-Type is vague
-        if res.request.url:
-            if ".mp4" in res.request.url.lower():
+        # 4. Fallback 1: URL extension parsing if Content-Type is vague
+        if res.request and res.request.url:
+            url_lower = res.request.url.lower()
+            if ".mp4" in url_lower:
                 return "video/mp4"
-            if ".m3u8" in res.request.url.lower():
+            if ".m3u8" in url_lower:
                 return "application/vnd.apple.mpegurl"
-            if ".mpd" in res.request.url.lower():
+            if ".mpd" in url_lower:
                 return "application/dash+xml"
-        
+
+        # 5. Fallback 2: Magic byte signature detection on binary payload
+        head_bytes = res.content[:512]
+        if head_bytes:
+            # Check for HLS Playlist (#EXTM3U)
+            if head_bytes.startswith(b'#EXTM3U'):
+                return "application/vnd.apple.mpegurl"
+            
+            # Check for MP4 container ('ftyp', 'moov', or 'mdat' at offset 4)
+            if len(head_bytes) >= 8 and head_bytes[4:8] in (b'ftyp', b'moov', b'mdat'):
+                return "video/mp4"
+                
+            # Check for WebM / MKV container
+            if head_bytes.startswith(b'\x1a\x45\xdf\xa3'):
+                return "video/webm"
+                
+            # Check for MPEG Transport Stream (.ts) sync byte
+            if head_bytes.startswith(b'G') and len(head_bytes) >= 189 and head_bytes[188] == 0x47:
+                return "video/mp2t"
+
         return None
 
     @staticmethod
@@ -113,7 +133,16 @@ class Proxy:
         stream['headers']["sec-fetch-site"] = "cross-site"
 
         try:
-            r = session.head(stream['url'], timeout=10, headers=stream['headers'], allow_redirects=True)
+            r = session.get(stream['url'], 
+                            timeout=10, 
+                            headers={
+                                **(stream.get('headers') or {}),
+                                'Range': 'bytes=0-1023',
+                                'Accept-Encoding': 'identity'
+                            }, 
+                            allow_redirects=True, 
+                            stream=True
+                        )
         except Exception as e:
             logger.error(f"Network error while probing stream URL: {e}")
             return None

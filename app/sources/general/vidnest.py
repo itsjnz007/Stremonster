@@ -7,9 +7,10 @@ from app.models.responses import WebResponse
 from typing import Optional
 from threading import Event
 
-class VidlinkScraper(Scraper):
+class VidnestScraper(Scraper):
     def __init__(self):
-        super().__init__(source="vidlink", base_url="https://vidlink.pro")
+        super().__init__(source="vidnest", base_url="https://vidnest.fun", 
+                         stream_url_pattern=r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/mp4|/videos/)\S*')
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/movie/{tmdb_id}"
@@ -22,7 +23,7 @@ class VidlinkScraper(Scraper):
         return result
 
 if __name__ == "__main__":
-    scraper = VidlinkScraper()
+    scraper = VidnestScraper()
     
-    series_response = scraper.get_movie("1119449")
+    series_response = scraper.get_movie("1301421")
     print(f"Series response: {series_response}")

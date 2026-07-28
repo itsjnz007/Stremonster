@@ -7,20 +7,17 @@ from app.models.responses import WebResponse
 from typing import Optional
 from threading import Event
 from playwright.async_api import Page
+import asyncio
 
 
-async def click_play_button(page: Page) -> None:
-    """Click the play button on the page."""
-    try:
-        # Wait for the button to be visible
-        await page.wait_for_selector("button svg path[d='M8 5v14l11-7z']", timeout=5000)
-        
-        # Find and click the play button
-        play_button = await page.query_selector("button:has(svg path[d='M8 5v14l11-7z'])")
-        if play_button:
-            await play_button.click()
-    except Exception as e:
-        print(f"Could not click play button: {e}")
+async def click_play_button(page: Page, stop_event: Optional[Event]) -> None:
+    for i in range(10): 
+        if stop_event and stop_event.is_set(): return
+        play_button = page.locator("button").first
+        try: await play_button.click(force=True, timeout=500)
+        except: pass
+        await asyncio.sleep(0.2)
+        print(f'button click {i}')
 
 
 class CinebyScraper(Scraper):

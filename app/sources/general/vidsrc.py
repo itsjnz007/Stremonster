@@ -8,7 +8,7 @@ from typing import Optional
 from threading import Event
 from playwright.async_api import Page
 
-async def page_hook(page: Page) -> None:
+async def page_hook(page: Page, _: Optional[Event]) -> None:
     player_iframe = page.frame_locator("#player_iframe")
     target_button = player_iframe.locator("#pl_but")
     await target_button.wait_for(state="attached")

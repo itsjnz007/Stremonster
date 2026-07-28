@@ -35,7 +35,7 @@ class Scraper:
                  stream_url_pattern: str = STREAM_URL_PATTERN, 
                  subtitle_url_pattern: str = SUBTITLE_PATTERN,
                  log_requests: bool = False,
-                 page_hook: Optional[Callable[[Page], Awaitable[None]]] = None,
+                 page_hook: Optional[Callable[[Page, Optional[Event]], Awaitable[None]]] = None,
     ):
         self.logger = Logger(f"scraper.{source}", level=logging.DEBUG)
         self.source = source.upper()
@@ -86,14 +86,10 @@ class Scraper:
     def _ensure_browser(self):
         self._ensure_loop()
         if Scraper._browser is not None:
-            # if self.context:
-            #     return
             return
 
         with Scraper._browser_lock:
             if Scraper._browser is not None:
-                # if self.context:
-                #     return
                 return
 
             assert Scraper._loop is not None
@@ -104,6 +100,9 @@ class Scraper:
                                 title: Optional[str] = None,
                                 name: Optional[str] = None) -> Optional[WebResponse]:
         if stop_event and stop_event.is_set(): return
+
+        local_stop_event = Event()
+
         domain = urlparse(url).netloc
         assert Scraper._browser is not None
         # assert self.context is not None
@@ -140,6 +139,7 @@ class Scraper:
                 stream_headers = {}
                 if clean_headers.get('referer'): stream_headers['referer'] = clean_headers['referer']
                 if clean_headers.get('origin'): stream_headers['origin'] = clean_headers['origin']
+                local_stop_event.set()
                 self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
 
             if re.search(self.subtitle_url_pattern, request.url, re.I):
@@ -149,7 +149,7 @@ class Scraper:
         try:
             page.on("request", handle_request)
             await page.goto(url)
-            if self.page_hook: await self.page_hook(page)
+            if self.page_hook: await self.page_hook(page, local_stop_event)
 
             # Wait 30 seconds for stream url
             start_time = time.time()
