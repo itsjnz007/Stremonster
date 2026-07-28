@@ -157,7 +157,7 @@ def get_web_stream(type: str, id: str) -> Response:
             (lambda tmdb_id: [result] if (result := vidlink_scraper.get_movie(tmdb_id)) else None, 'vidlink'),
             (lambda tmdb_id: [result] if (result := cineby_scraper.get_movie(tmdb_id)) else None, 'cineby'),
             (lambda tmdb_id: [result] if (result := flicky_scraper.get_movie(tmdb_id)) else None, 'flicky'),
-            (lambda tmdb_id: [result] if (result := vidking_scraper.get_movie(tmdb_id)) else None, 'vidking'),
+            # (lambda tmdb_id: [result] if (result := vidking_scraper.get_movie(tmdb_id)) else None, 'vidking'),
         ]
 
         series_scrapers: List[Tuple[Callable[[str, str, str], Optional[List[WebResponse]]], str]] = [
@@ -167,7 +167,7 @@ def get_web_stream(type: str, id: str) -> Response:
             (lambda tmdb, s, e: [result] if (result := vidlink_scraper.get_series(tmdb, s, e)) else None, 'vidlink'),
             (lambda tmdb, s, e: [result] if (result := cineby_scraper.get_series(tmdb, s, e)) else None, 'cineby'),
             (lambda tmdb, s, e: [result] if (result := flicky_scraper.get_series(tmdb, s, e)) else None, 'flicky'),
-            (lambda tmdb, s, e: [result] if (result := vidking_scraper.get_series(tmdb, s, e)) else None, 'vidking'),
+            # (lambda tmdb, s, e: [result] if (result := vidking_scraper.get_series(tmdb, s, e)) else None, 'vidking'),
         ]
 
         anime_series_scrapers: List[Tuple[Callable[[str, str, str, str], Optional[List[WebResponse]]], str]] = [
