@@ -11,13 +11,12 @@ import asyncio
 
 async def click_play_button(page: Page, stop_event: Optional[Event] = None) -> None:
     # Matches the button on mobile (via SVG shape) and desktop (via SVG or text)
-    for i in range(10): 
+    for _ in range(10): 
         if stop_event and stop_event.is_set(): return
         play_button = page.locator("button:has-text('Play')").first
         try: await play_button.click(force=True, timeout=500)
         except: pass
         await asyncio.sleep(0.2)
-        print(f'button click {i}')
 
 
 class FmoviesScraper(Scraper):
