@@ -367,62 +367,60 @@ class Proxy:
                 bytes_read = 0
                 counter = 0
 
-                # Rolling window tracker for accurate speed measurement
-                window_start = time.monotonic()
                 window_bytes = 0
+                window_fetch_time = 0.0  # Accumulate ONLY network read time
 
-                for chunk in upstream_response.iter_content(32 * 1024):
-                    counter += 1
+                # Get the chunk iterator
+                chunk_iter = upstream_response.iter_content(32 * 1024)
+
+                while True:
+                    # 1. Measure ONLY the time spent reading from the upstream network
+                    t0 = time.monotonic()
+                    try:
+                        chunk = next(chunk_iter)
+                    except StopIteration:
+                        break
+                    fetch_duration = time.monotonic() - t0
+
                     if not chunk:
                         continue
 
+                    counter += 1
                     chunk_len = len(chunk)
                     bytes_read += chunk_len
                     window_bytes += chunk_len
+                    window_fetch_time += fetch_duration
 
-                    now = time.monotonic()
-                    window_elapsed = now - window_start
-                    total_elapsed = now - start_time
-
-                    # Update speed calculations every ~1 second window
-                    if window_elapsed >= 1.0:
-                        # Current rolling download speed in bytes/second
-                        current_speed = window_bytes / window_elapsed
-
-                        # Reset rolling window trackers
-                        window_bytes = 0
-                        window_start = now
-
-                        # Print progress log
+                    # 2. Check speed after accumulating at least 1 second of ACTUAL active network downloading
+                    if window_fetch_time >= 1.0:
+                        # Speed based strictly on active network transfer time
+                        current_speed = window_bytes / window_fetch_time
                         speed_mbps = round(current_speed / (1024 * 1024), 2)
+                        
+                        total_elapsed = time.monotonic() - start_time
                         print(f"counter: {counter} | speed: {speed_mbps} MB/s | bytes {bytes_read} | elapsed {round(total_elapsed, 2)}s")
 
                         if id:
-                            # Fix: Use variable `id`, not string `'id'`
                             stream_info = Proxy._stream_speeds.setdefault(id, {'count': 0, 'speed': 0})
 
-                            # Condition 1: Stream stalled or severely slowed down (< 500 KB/s for 15+ seconds overall)
-                            if total_elapsed > 30 and current_speed < 256 * 1024:
-                                Proxy._stream_speeds.pop(id, None)
-                                web_cache.switch_source(id)
-                                logger.warning("Stream stalled for >15 seconds. Switching source.")
-                                break
-
-                            # Condition 2: Consistently slow stream (< 512 KB/s over 5 consecutive checks after 5s)
-                            if total_elapsed > 5 and current_speed < 256 * 1024:
+                            # Condition: Active network download is slower than 256 KB/s
+                            if current_speed < 256 * 1024:
                                 stream_info['count'] += 1
-                                stream_info['speed'] = (stream_info['speed'] + current_speed) / 2
-                                logger.warning(f"Slow stream observed ({speed_mbps} MB/s). Failure count: {stream_info['count']}")
+                                logger.warning(f"Slow upstream network ({speed_mbps} MB/s). Failure count: {stream_info['count']}")
 
                                 if stream_info['count'] > 5:
                                     Proxy._stream_speeds.pop(id, None)
                                     web_cache.switch_source(id)
-                                    logger.info("Slow stream speed observed for > 5 consecutive checks. Switching source.")
+                                    logger.info("Consistently slow upstream download. Switching source.")
                                     break
                             else:
-                                # Reset failure count if network recovers
                                 stream_info['count'] = 0
 
+                        # Reset window trackers
+                        window_bytes = 0
+                        window_fetch_time = 0.0
+
+                    # 3. Yield to downstream (player pauses here without skewing network speed calculations)
                     yield chunk
 
             except Exception as e:
@@ -432,14 +430,13 @@ class Proxy:
                     if web_res:
                         current_index = int(web_res.get('current_index'))
                         source_index = int(index.split(':')[0])
-                        logger.debug(f"current_index: {current_index} | source_index: {source_index}")
                         if current_index == source_index:
                             web_cache.switch_source(id)
                         else:
-                            logger.debug('Ignoring source switch since the source has already been switched.')
+                            logger.debug('Ignoring source switch since source already changed.')
                 else:
                     logger.warning("'id' or 'index' not available, skipping source switch")
-                    
+
             finally:
                 upstream_response.close()
 
