@@ -402,14 +402,14 @@ class Proxy:
                             stream_info = Proxy._stream_speeds.setdefault(id, {'count': 0, 'speed': 0})
 
                             # Condition 1: Stream stalled or severely slowed down (< 500 KB/s for 15+ seconds overall)
-                            if total_elapsed > 15 and current_speed < 500 * 1024:
+                            if total_elapsed > 30 and current_speed < 256 * 1024:
                                 Proxy._stream_speeds.pop(id, None)
                                 web_cache.switch_source(id)
                                 logger.warning("Stream stalled for >15 seconds. Switching source.")
                                 break
 
                             # Condition 2: Consistently slow stream (< 512 KB/s over 5 consecutive checks after 5s)
-                            if total_elapsed > 5 and current_speed < 512 * 1024:
+                            if total_elapsed > 5 and current_speed < 256 * 1024:
                                 stream_info['count'] += 1
                                 stream_info['speed'] = (stream_info['speed'] + current_speed) / 2
                                 logger.warning(f"Slow stream observed ({speed_mbps} MB/s). Failure count: {stream_info['count']}")
