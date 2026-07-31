@@ -368,13 +368,13 @@ class Proxy:
                 counter = 0
 
                 window_bytes = 0
-                window_fetch_time = 0.0  # Accumulate ONLY network read time
+                window_fetch_time = 0.0  # Accumulate ONLY active upstream network read time
 
                 # Get the chunk iterator
                 chunk_iter = upstream_response.iter_content(32 * 1024)
 
                 while True:
-                    # 1. Measure ONLY the time spent reading from the upstream network
+                    # 1. Measure ONLY the time spent reading from upstream network
                     t0 = time.monotonic()
                     try:
                         chunk = next(chunk_iter)
@@ -391,9 +391,8 @@ class Proxy:
                     window_bytes += chunk_len
                     window_fetch_time += fetch_duration
 
-                    # 2. Check speed after accumulating at least 1 second of ACTUAL active network downloading
+                    # 2. Check speed after accumulating at least 1.0s of ACTIVE network reading
                     if window_fetch_time >= 1.0:
-                        # Speed based strictly on active network transfer time
                         current_speed = window_bytes / window_fetch_time
                         speed_mbps = round(current_speed / (1024 * 1024), 2)
                         
@@ -404,23 +403,30 @@ class Proxy:
                             stream_info = Proxy._stream_speeds.setdefault(id, {'count': 0, 'speed': 0})
 
                             # Condition: Active network download is slower than 256 KB/s
-                            if current_speed < 512 * 1024:
+                            if current_speed < 256 * 1024:
                                 stream_info['count'] += 1
-                                logger.warning(f"Slow upstream network ({speed_mbps} MB/s). Failure count: {stream_info['count']}")
+                                stream_info['speed'] = (stream_info['speed'] + current_speed) / 2
+                                logger.warning(
+                                    f"Slow segment chunk observed ({speed_mbps} MB/s). "
+                                    f"Cumulative failure count: {stream_info['count']}"
+                                )
 
-                                if stream_info['count'] > 5:
+                                # Increased failure threshold before forcing a source switch
+                                if stream_info['count'] >= 10:
+                                    # Reset counter tracking state on source switch
                                     Proxy._stream_speeds.pop(id, None)
                                     web_cache.switch_source(id)
-                                    logger.info("Consistently slow upstream download. Switching source.")
+                                    logger.info("Threshold reached across problematic segments. Switching source and resetting counter.")
                                     break
-                            else:
-                                stream_info['count'] = 0
+                            # NOTE: We deliberately DO NOT reset stream_info['count'] to 0 here.
+                            # Good segments will yield fine, but accumulated problematic segments 
+                            # will continue building towards the failure threshold.
 
-                        # Reset window trackers
+                        # Reset rolling window trackers for the next measurement interval
                         window_bytes = 0
                         window_fetch_time = 0.0
 
-                    # 3. Yield to downstream (player pauses here without skewing network speed calculations)
+                    # 3. Yield to downstream player (pauses here won't skew upstream network timing)
                     yield chunk
 
             except Exception as e:
@@ -431,6 +437,7 @@ class Proxy:
                         current_index = int(web_res.get('current_index'))
                         source_index = int(index.split(':')[0])
                         if current_index == source_index:
+                            Proxy._stream_speeds.pop(id, None)  # Reset state on exception switch
                             web_cache.switch_source(id)
                         else:
                             logger.debug('Ignoring source switch since source already changed.')
