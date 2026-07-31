@@ -18,8 +18,7 @@ class VidsrcScraper(Scraper):
     def __init__(self):
         super().__init__(source="vidsrc", 
                          base_url="https://vsembed.ru",
-                         page_hook=page_hook,
-                         headless=False
+                         page_hook=page_hook
         )
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
