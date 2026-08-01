@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import os, time
 from typing import Any, List, Optional, Callable, Tuple, Iterator
 from app.external.tmdb import Tmdb
-from app.models.responses import BehaviorHints, WebResponse, TorrentResponse
+from app.models.responses import BehaviorHints, WebResponse
 from app.sources import torrentio as torrentio_module
 from flask import Flask, request
 from flask.wrappers import Response
@@ -269,24 +269,25 @@ def get_torrent_stream(type: str, id: str) -> Response:
             logger.info(f"Total time taken to fetch web stream: {time.time() - start_time:.2f} seconds")
             return torrentio_module.get_series(id, thread_pool_torrent, True)
         
-    def respond_otherwise(results: dict[str, List[TorrentResponse]]):
-        # If web is still processing, wait briefly for it to finish (so we prefer web results)
-        status = processing_cache.get_status(id) or {}
-        web_status = status.get('web') or {}
-        wait_total, wait_step, wait_limit = 0.0, 0.1, 30
-        while web_status.get('processing') and wait_total < wait_limit:
-            time.sleep(wait_step)
-            wait_total += wait_step
-            status = processing_cache.get_status(id) or {}
-            web_status = status.get('web') or {}
-        if web_status.get('completed') and not web_status.get('has_results'):
-            return respond_with(results)
-        return respond_with({'streams': []})
+    # def respond_otherwise(results: dict[str, List[TorrentResponse]]):
+    #     # If web is still processing, wait briefly for it to finish (so we prefer web results)
+    #     status = processing_cache.get_status(id) or {}
+    #     web_status = status.get('web') or {}
+    #     wait_total, wait_step, wait_limit = 0.0, 0.1, 30
+    #     while web_status.get('processing') and wait_total < wait_limit:
+    #         time.sleep(wait_step)
+    #         wait_total += wait_step
+    #         status = processing_cache.get_status(id) or {}
+    #         web_status = status.get('web') or {}
+    #     if web_status.get('completed') and not web_status.get('has_results'):
+    #         return respond_with(results)
+    #     return respond_with({'streams': []})
         
     cache = torrent_cache.get(key=id, upto_mins=60*3)
     if cache:
         logger.info("Returning cached torrent result...")
-        return respond_otherwise(cache)
+        return respond_with(cache)
+        # return respond_otherwise(cache)
     else:
         processing_cache.start(id, 'torrent')
         result = calculate()
@@ -294,7 +295,8 @@ def get_torrent_stream(type: str, id: str) -> Response:
         if result:
             formatted_result = {'streams': result}
             torrent_cache.set(id, formatted_result)
-            return respond_otherwise(formatted_result)
+            return respond_with(formatted_result)
+            # return respond_otherwise(formatted_result)
 
     logger.info(f"Total time taken to fetch torrent stream: {time.time() - start_time:.2f} seconds")
     logger.warning(f"No torrent stream found for {type} with ID {id}")
