@@ -403,7 +403,7 @@ class Proxy:
                             stream_info = Proxy._stream_speeds.setdefault(id, {'count': 0, 'speed': 0})
 
                             # Condition: Active network download is slower than 256 KB/s
-                            if current_speed < 256 * 1024:
+                            if current_speed < 128 * 1024:
                                 stream_info['count'] += 1
                                 stream_info['speed'] = (stream_info['speed'] + current_speed) / 2
                                 logger.warning(
