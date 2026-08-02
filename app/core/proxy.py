@@ -342,6 +342,7 @@ class Proxy:
             or "mpegurl" in content_type
             or "application/vnd.apple.mpegurl" in content_type
         )
+        stream_id: Optional[str] = id
 
         if is_m3u8 and upstream_response.status_code in (200, 203, 206):
             content = upstream_response.content
@@ -363,77 +364,32 @@ class Proxy:
 
         def generate_media():
             try:
-                start_time = time.monotonic()
-                bytes_read = 0
-                counter = 0
-
+                window_start = time.monotonic()
                 window_bytes = 0
-                window_fetch_time = 0.0  # Accumulate ONLY active upstream network read time
+                min_throughput_bps = 1024 * 50  # KB/s threshold for slow upstream activity
 
-                # Get the chunk iterator
-                chunk_iter = upstream_response.iter_content(32 * 1024)
-
-                while True:
-                    # 1. Measure ONLY the time spent reading from upstream network
-                    t0 = time.monotonic()
-                    try:
-                        chunk = next(chunk_iter)
-                    except StopIteration:
-                        break
-                    fetch_duration = time.monotonic() - t0
-
+                for chunk in upstream_response.iter_content(32 * 1024):
                     if not chunk:
                         continue
 
-                    counter += 1
-                    chunk_len = len(chunk)
-                    bytes_read += chunk_len
-                    window_bytes += chunk_len
-                    window_fetch_time += fetch_duration
-
-                    # 2. Check speed after accumulating at least 1.0s of ACTIVE network reading
-                    if window_fetch_time >= 1.0:
-                        current_speed = window_bytes / window_fetch_time
-                        speed_mbps = round(current_speed / (1024 * 1024), 2)
-                        
-                        total_elapsed = time.monotonic() - start_time
-                        print(f"counter: {counter} | speed: {speed_mbps} MB/s | bytes {bytes_read} | elapsed {round(total_elapsed, 2)}s")
-
-                        if id:
-                            stream_info = Proxy._stream_speeds.setdefault(id, {'count': 0, 'speed': 0})
-
-                            # Condition: Active network download is slower than 256 KB/s
-                            if current_speed < 128 * 1024:
-                                stream_info['count'] += 1
-                                stream_info['speed'] = (stream_info['speed'] + current_speed) / 2
-                                logger.warning(
-                                    f"Slow segment chunk observed ({speed_mbps} MB/s). "
-                                    f"Cumulative failure count: {stream_info['count']}"
+                    if stream_id is not None:
+                        now = time.monotonic()
+                        window_bytes += len(chunk)
+                        elapsed = now - window_start
+                        if elapsed >= 30:
+                            throughput = window_bytes / elapsed
+                            if throughput < min_throughput_bps:
+                                Proxy._stream_speeds.pop(stream_id, None)
+                                web_cache.switch_source(stream_id)
+                                logger.info(
+                                    f"Slow stream throughput {throughput:.1f} B/s over {elapsed:.1f}s. Switching source."
                                 )
+                                break
+                            window_start = now
+                            window_bytes = 0
 
-                                # Increased failure threshold before forcing a source switch
-                                if stream_info['count'] >= 5:
-                                    # Reset counter tracking state on source switch
-                                    Proxy._stream_speeds.pop(id, None)
-                                    web_cache.switch_source(id)
-                                    logger.info("Threshold reached across problematic segments. Switching source and resetting counter.")
-                                    break
-                            else:
-                                # Reset the failure count if the current segment is fast enough
-                                stream_info['count'] = 0
-                                stream_info['speed'] = current_speed
-                                logger.debug(f"Segment chunk speed is acceptable ({speed_mbps} MB/s). Resetting failure count.")
-                            # NOTE: We deliberately DO NOT reset stream_info['count'] to 0 here.
-                            # Good segments will yield fine, but accumulated problematic segments 
-                            # will continue building towards the failure threshold.
-
-                        # Reset rolling window trackers for the next measurement interval
-                        window_bytes = 0
-                        window_fetch_time = 0.0
-
-                    # 3. Yield to downstream player (pauses here won't skew upstream network timing)
                     yield chunk
-
+                    
             except Exception as e:
                 logger.error(f"Error while yielding chunk. Error: {e}")
                 if id and index:
@@ -441,16 +397,11 @@ class Proxy:
                     if web_res:
                         current_index = int(web_res.get('current_index'))
                         source_index = int(index.split(':')[0])
-                        if current_index == source_index:
-                            Proxy._stream_speeds.pop(id, None)  # Reset state on exception switch
-                            web_cache.switch_source(id)
-                        else:
-                            logger.debug('Ignoring source switch since source already changed.')
-                else:
-                    logger.warning("'id' or 'index' not available, skipping source switch")
-
-            finally:
-                upstream_response.close()
+                        logger.debug(f"current_index: {current_index} | source_index: {source_index}")
+                        if current_index == source_index: web_cache.switch_source(id)
+                        else: logger.debug('Ignoring source switch since the source has already been switched.')
+                else: logger.warning("'id' or 'index' not available, skipping source switch")
+            finally: upstream_response.close()
 
         resp = Response(
             stream_with_context(generate_media()), 
