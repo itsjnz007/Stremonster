@@ -412,12 +412,17 @@ class Proxy:
                                 )
 
                                 # Increased failure threshold before forcing a source switch
-                                if stream_info['count'] >= 10:
+                                if stream_info['count'] >= 5:
                                     # Reset counter tracking state on source switch
                                     Proxy._stream_speeds.pop(id, None)
                                     web_cache.switch_source(id)
                                     logger.info("Threshold reached across problematic segments. Switching source and resetting counter.")
                                     break
+                            else:
+                                # Reset the failure count if the current segment is fast enough
+                                stream_info['count'] = 0
+                                stream_info['speed'] = current_speed
+                                logger.debug(f"Segment chunk speed is acceptable ({speed_mbps} MB/s). Resetting failure count.")
                             # NOTE: We deliberately DO NOT reset stream_info['count'] to 0 here.
                             # Good segments will yield fine, but accumulated problematic segments 
                             # will continue building towards the failure threshold.
