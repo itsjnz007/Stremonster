@@ -397,7 +397,7 @@ class Proxy:
 
                     speed = bytes_read / elapsed / 1024  # KB/s
 
-                    if elapsed > 5 and speed < 512:  # KB/s
+                    if elapsed > 5 and speed < 128:  # KB/s
                         logger.info(f"Speed: {speed} KB/s")
                         if id: 
                             web_cache.switch_source(id)
