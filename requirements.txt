@@ -8,3 +8,4 @@ playwright
 dotenv
 filelock
 gunicorn
+pycurl
