@@ -294,156 +294,68 @@ class Proxy:
     def proxy(content_type: Optional[str] = None) -> Response:
         start_time = time.time()
 
-        # ------------------------------------------------------------------
-        # 1. Parse and Validate Proxy Arguments
-        # ------------------------------------------------------------------
+        # Proxy arguments
         media_url = request.args.get("url")
-        if not media_url: 
-            raise Exception("No media_url found")
-            
+        if not media_url: raise Exception("No media_url found")
         id = request.args.get("id")
         index = request.args.get("index")
         media_headers = request.args.get("headers", "{}")
-        if not media_headers: 
-            raise Exception("No media_headers found")
+        if not media_headers: raise Exception("No media_headers found")
+        logger.debug(f"id {id} | index {index}\n{'-'*10}\nmedia_url {media_url}\n{'-'*10}\nmedia_headers {media_headers}")
 
-        logger.debug(
-            f"id {id} | index {index}\n{'-'*10}\nmedia_url {media_url}\n{'-'*10}\nmedia_headers {media_headers}"
-        )
-
+        # Request arguments
         request_headers = dict(request.headers)
-        try: 
-            arg_headers = json.loads(media_headers)
-        except Exception as e: 
-            return Response(f"Unable to parse headers_str. Error: {e}", status=503)
+        logger.debug(f"request_headers: {request_headers}")
 
-        if "Range" in request_headers: 
-            arg_headers['Range'] = request_headers['Range']
+        try: arg_headers = json.loads(media_headers)
+        except Exception as e: return Response(f"Unable to parse headers_str. Error: {e}", status=503)
+        logger.debug(f"arg_headers: {arg_headers}")
+        if "Range" in request_headers: arg_headers['Range'] = request_headers['Range']
 
         if id and index:
             web_res = web_cache.get(id)
             if web_res:
                 current_index = int(web_res.get('current_index'))
                 source_index = int(index.split(':')[0])
+                logger.debug(f"current_index: {current_index} | source_index: {source_index}")
                 if current_index != source_index:
                     logger.error("Returning failure to reload webpage.")
                     return Response("Returning failure to reload webpage.", status=503)
 
-        # ------------------------------------------------------------------
-        # 2. PycURL Connection Setup (Synchronous / Threadless Retry Loop)
-        # ------------------------------------------------------------------
-        MAX_RETRIES = 3
-        FIRST_BYTE_TIMEOUT = 5.0
-
-        response_headers: dict[str, str] = {}
-        header_status_code: list[Optional[int]] = [None]
-        buffer: list[bytes] = []
-        success = False
-        curl_error_msg: Optional[str] = None
-        c = pycurl.Curl()
-        cm = pycurl.CurlMulti()
-        num_handles = 0
-
-        for attempt in range(1, MAX_RETRIES + 1):
-            response_headers = {}
-            header_status_code = [None]
-            buffer = []
-            success = False
-            curl_error_msg = None
-            c = pycurl.Curl()
-            cm = pycurl.CurlMulti()
-
-            c.setopt(pycurl.URL, str(media_url))
-            c.setopt(pycurl.FOLLOWLOCATION, True)
-            c.setopt(pycurl.SSL_VERIFYPEER, 0)
-            c.setopt(pycurl.SSL_VERIFYHOST, 0)
-
-            c.setopt(pycurl.CONNECTTIMEOUT, 5)
-            c.setopt(pycurl.LOW_SPEED_LIMIT, 1024 * 256)  # 512 KB/s threshold
-            c.setopt(pycurl.LOW_SPEED_TIME, 5)          # 5s low speed abort
-
-            formatted_headers = [f"{k}: {v}" for k, v in arg_headers.items()]
-            c.setopt(pycurl.HTTPHEADER, formatted_headers)
-
+        try:
             if request.method == "POST":
-                c.setopt(pycurl.POST, 1)
-
-            def header_function(header_line: bytes) -> int:
-                header_line_str = header_line.decode('iso-8859-1')
-                if header_line_str.startswith('HTTP/'):
-                    parts = header_line_str.split(' ')
-                    if len(parts) >= 2 and parts[1].isdigit():
-                        header_status_code[0] = int(parts[1])
-                elif ':' in header_line_str:
-                    name, value = header_line_str.split(':', 1)
-                    response_headers[name.strip().lower()] = value.strip()
-                return len(header_line)
-
-            def write_function(data: bytes) -> int:
-                buffer.append(data)
-                return len(data)
-
-            c.setopt(pycurl.HEADERFUNCTION, header_function)
-            c.setopt(pycurl.WRITEFUNCTION, write_function)
-
-            # Create Multi Handle to drive socket select without extra threads
-            cm.add_handle(c)
-
-            ttfb_start = time.time()
-
-            while True:
-                ret, num_handles = cm.perform()  # type: ignore
-
-                # First byte / headers received check
-                if response_headers:
-                    success = True
-                    break
-
-                # Timeout check for TTFB
-                if (time.time() - ttfb_start) > FIRST_BYTE_TIMEOUT:
-                    curl_error_msg = f"First-byte timeout after {FIRST_BYTE_TIMEOUT}s"
-                    break
-
-                # Transfer complete or failed check before headers arrived
-                if num_handles == 0:
-                    # Retrieve curl error message if available
-                    num_q, ok_list, err_list = cm.info_read()  # type: ignore
-                    for handle, err_code, err_msg in err_list:  # type: ignore
-                        logger.error(f"PycURL error during initial transfer: [{err_code}] {err_msg}")
-                        curl_error_msg = err_msg
-                    break
-
-                # Wait for socket activity with 20ms precision
-                cm.select(0.02)
-
-            if success:
-                break
-
-            # Cleanup failed attempt handle
-            logger.warning(f"Attempt {attempt}/{MAX_RETRIES} failed: {curl_error_msg}. Retrying...")
-            cm.remove_handle(c)
-            c.close()
-            cm.close()
-
-        # Handle absolute failure after max retries
-        status_code = header_status_code[0] if header_status_code else None
-        if not success or not response_headers or status_code is None:
-            logger.error(f"Failed to obtain headers from upstream: {curl_error_msg or 'unknown error'}")
+                upstream_response = session.post(
+                    media_url,
+                    timeout=(5, 30),
+                    headers=arg_headers,
+                    stream=True,
+                    verify=False,
+                    allow_redirects=True,
+                )
+            else:
+                upstream_response = session.get(
+                    media_url,
+                    timeout=(5, 30),
+                    headers=arg_headers,
+                    stream=True,
+                    verify=False,
+                    allow_redirects=True,
+                )
+        except Exception as e: 
+            logger.error(f"Proxy upstream error, {e}")
+            if id: 
+                web_cache.switch_source(id)
+            else: logger.warning("'request_id' not available, skipping source switch")
+            return Response(f"Upstream error {e}", status=503) 
+        
+        if upstream_response.status_code not in (200, 203, 206):
+            logger.error(f"Upstream error [{upstream_response.status_code}] {upstream_response.text}")
             if id:
                 web_cache.switch_source(id)
-            return Response(f"Upstream low speed / error after retries: {curl_error_msg or 'unknown error'}", status=503)
+            else: logger.warning("'request_id' not available, skipping source switch")
+            return Response(f"Upstream error {upstream_response.text}", status=503)
 
-        if status_code not in (200, 203, 206):
-            logger.error(f"Upstream returned HTTP error status [{status_code}]")
-            cm.remove_handle(c)
-            c.close()
-            cm.close()
-            if id:
-                web_cache.switch_source(id)
-            return Response(f"Upstream error [{status_code}]", status=503)
-
-        if not content_type:
-            content_type = response_headers.get("content-type", "").lower()
+        if not content_type: content_type = upstream_response.headers.get("content-type", "").lower()
 
         is_m3u8 = (
             ".m3u8" in media_url
@@ -451,111 +363,70 @@ class Proxy:
             or "application/vnd.apple.mpegurl" in content_type
         )
 
-        excluded = {'content-encoding', 'content-length', 'transfer-encoding', 'connection'}
-        out_headers = [(k, v) for k, v in response_headers.items() if k.lower() not in excluded]
+        if is_m3u8 and upstream_response.status_code in (200, 203, 206):
+            content = upstream_response.content
+            updated_content = Proxy.parse_segment(
+                content,
+                arg_headers,
+                media_url,
+                id=id,
+                index=index
+            )
+            resp = Response(
+                updated_content,
+                status=upstream_response.status_code,
+                mimetype=content_type,
+                headers=upstream_response.headers,
+            )
+            logger.info(f"{upstream_response.status_code} | {time.time() - start_time} seconds | Parsing m3u8 {request.url}")
+            return Proxy.apply_headers(resp)
 
-        # ------------------------------------------------------------------
-        # 3. Handle M3U8 Playlist Proxying
-        # ------------------------------------------------------------------
-        if is_m3u8:
-            try:
-                # Synchronously read remaining payload for M3U8 file
-                while num_handles > 0:
-                    cm.select(0.05)
-                    ret, num_handles = cm.perform() # type: ignore
 
-                content = b"".join(buffer)
-                updated_content = Proxy.parse_segment(
-                    content,
-                    arg_headers,
-                    media_url,
-                    id=id,
-                    index=index
-                )
-
-                resp = Response(
-                    updated_content,
-                    status=status_code,
-                    mimetype=content_type,
-                    headers=out_headers,
-                )
-                logger.info(f"{status_code} | {time.time() - start_time:.2f}ms | Parsing m3u8 {request.url}")
-                return Proxy.apply_headers(resp)
-
-            finally:
-                # Log transfer download speed before closing handle
-                # try:
-                speed_bytes_sec = c.getinfo(pycurl.SPEED_DOWNLOAD_T)
-                speed_kbps = speed_bytes_sec / 1024
-                speed_mbps = speed_kbps / 1024
-                logger.info(f"Stream finished/closed. Average speed: {speed_kbps:.2f} KB/s ({speed_mbps:.2f} MB/s)")
-
-                cm.remove_handle(c)
-                c.close()
-                cm.close()
-
-        # ------------------------------------------------------------------
-        # 4. Handle Binary Video / Media Generator (Thread-Safe Single-Thread)
-        # ------------------------------------------------------------------
         def generate_media():
-            stream_failed = False
+            speed = 0.0
             try:
-                while buffer:
-                    yield buffer.pop(0)
+                start = time.monotonic()
+                bytes_read = 0
 
-                handles_remaining = 1
-                while handles_remaining > 0:
-                    cm.select(0.05)
-                    ret, handles_remaining = cm.perform() # type: ignore
+                for chunk in upstream_response.iter_content(64 * 1024):
+                    if not chunk:
+                        continue
 
-                    while buffer:
-                        yield buffer.pop(0)
+                    bytes_read += len(chunk)
+                    elapsed = time.monotonic() - start
 
-                    num_q, ok_list, err_list = cm.info_read() # type: ignore
-                    if err_list:
-                        for handle, err_code, err_msg in err_list: # type: ignore
-                            logger.error(f"PycURL error mid-stream: [{err_code}] {err_msg}")
-                            stream_failed = True
-                        break
+                    speed = bytes_read / elapsed / 1024  # KB/s
 
-            except GeneratorExit:
-                logger.warning(f"Client disconnected early while streaming: {media_url}")
-                stream_failed = True
-                raise
+                    if elapsed > 5 and speed < 512:  # KB/s
+                        logger.info(f"Speed: {speed} KB/s")
+                        if id: 
+                            web_cache.switch_source(id)
+                            raise Exception("Terminating stream due to slow speed. Switching source.")
+                        else: logger.warning("'request_id' not available, skipping source switch")
+
+                    yield chunk
 
             except Exception as e:
-                logger.error(f"Unhandled exception during media generator yield: {e}")
-                stream_failed = True
-                raise
+                logger.error(f"Error while yielding chunk. Error: {e}")
+                if id and index:
+                    web_res = web_cache.get(id)
+                    if web_res:
+                        current_index = int(web_res.get('current_index'))
+                        source_index = int(index.split(':')[0])
+                        logger.debug(f"current_index: {current_index} | source_index: {source_index}")
+                        if current_index == source_index: web_cache.switch_source(id)
+                        else: logger.debug('Ignoring source switch since the source has already been switched.')
+                else: logger.warning("'id' or 'index' not available, skipping source switch")
 
-            finally:
-                # Log transfer download speed before closing handle
-                try:
-                    speed_bytes_sec = c.getinfo(pycurl.SPEED_DOWNLOAD_T)
-                    speed_kbps = speed_bytes_sec / 1024
-                    speed_mbps = speed_kbps / 1024
-                    logger.info(f"Stream finished/closed. Average speed: {speed_kbps:.2f} KB/s ({speed_mbps:.2f} MB/s)")
-                except Exception:
-                    pass
-
-                # Clean up PycURL objects safely
-                try:
-                    cm.remove_handle(c)
-                    c.close()
-                    cm.close()
-                except Exception:
-                    pass
-
-                if stream_failed and id:
-                    logger.warning(f"Switching source for ID: {id} after failed/aborted stream.")
-                    web_cache.switch_source(id)
+            finally: 
+                upstream_response.close()
+                logger.info(f"{upstream_response.status_code} | {speed} KB/s | {time.time() - start_time} seconds | Proxying url {request.url}")
 
         resp = Response(
-            stream_with_context(generate_media()),
-            status=status_code,
+            stream_with_context(generate_media()), 
+            status=upstream_response.status_code,
             content_type=content_type,
-            headers=out_headers,
+            headers=upstream_response.headers,
         )
 
-        logger.info(f"{status_code} | {time.time() - start_time:.2f}ms | Proxying url {request.url}")
         return Proxy.apply_headers(resp)
