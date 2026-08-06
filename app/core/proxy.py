@@ -405,9 +405,7 @@ class Proxy:
 
                     if elapsed > 5 and speed < 256:  # KB/s
                         logger.info(f"Speed: {speed} KB/s")
-                        if id: 
-                            web_cache.switch_source(id)
-                            raise Exception("Terminating stream due to slow speed. Switching source.")
+                        if id and index: raise Exception("Terminating stream due to slow speed. Switching source.")
                         else: logger.warning("'request_id' not available, skipping source switch")
 
                     yield chunk
