@@ -10,7 +10,7 @@ from playwright.async_api import Page
 
 class FourAnimoScraper(Scraper):
     def __init__(self):
-        async def play_button_hook(page: Page):
+        async def play_button_hook(page: Page, _: Optional[Event]) -> None:
             try:
                 # Use a more specific selector: 
                 # The .jw-icon-display class is the one that appears in the center of the video

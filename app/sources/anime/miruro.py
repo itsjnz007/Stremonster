@@ -10,7 +10,7 @@ from threading import Event
 class MiruroScraper(Scraper):
     def __init__(self):
         super().__init__(base_url="https://www.miruro.tv", source="miruro",
-                          stream_url_pattern= r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/seg)\S*',log_requests=True)
+                          stream_url_pattern= r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/seg)\S*')
     
     def get_series(self, animal_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/watch/{animal_id}?ep={episode}"
