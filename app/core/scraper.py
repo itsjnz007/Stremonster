@@ -118,13 +118,15 @@ class Scraper:
 
         stream_url: Optional[str] = None
         stream_headers: Optional[dict[str, Any]] = None
-        subtitle_urls: list[str] = []
+        subtitle_urls: list[Subtitle] = []
+        subtitle_counter = 0
         start_time = time.time()
 
         def handle_request(request: Request):
             nonlocal stream_url
             nonlocal stream_headers
             nonlocal subtitle_urls
+            nonlocal subtitle_counter
             if self.log_requests: self.logger.info(f"Request -> {request.url}")
             if not stream_url and re.search(self.stream_url_pattern, request.url, re.I):
                 stream_url = request.url
@@ -143,7 +145,14 @@ class Scraper:
                 self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
 
             if re.search(self.subtitle_url_pattern, request.url, re.I):
-                subtitle_urls.append(request.url)
+                subtitle_urls.append(
+                    Subtitle(
+                        id=f"eng-{subtitle_counter}",
+                        lang="eng",
+                        url=request.url
+                    )
+                )
+                subtitle_counter += 1
                 self.logger.info(f'💬 Subtitles from {domain}: {subtitle_urls}')
 
         try:

@@ -163,7 +163,13 @@ class Proxy:
 
         headers_str = json.dumps(stream['headers'])
         stream['url'] = Proxy.add_proxy(stream['url'], headers_str, stream_type=stream_type)
-        stream['subtitles'] = [Proxy.add_proxy(url, headers=headers_str, stream_type="proxy.vtt") for url in stream['subtitles']]
+        stream['subtitles'] = [
+            {
+                **sub,
+                'url': Proxy.add_proxy(sub['url'], headers=headers_str, stream_type="proxy.vtt")
+            }
+            for sub in stream['subtitles']
+        ]
         return stream
     
     

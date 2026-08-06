@@ -5,18 +5,24 @@ class BehaviorHints(TypedDict):
     bingeGroup: Optional[str]
     # notWebReady: Optional[bool]
 
+class Subtitle(TypedDict):
+    id: str
+    lang: str
+    url: str
+    
 class WebResponse(TypedDict):
     """Information about the scraped stream."""
     title: str # Will be depriciated. Moved to stream.description??? Refer docs.
     name: str
     url: str
     headers: Dict[str, Any]
-    subtitles: list[str]
+    subtitles: list[Subtitle]
     contentType: Optional[str]
     behaviorHints: Optional[BehaviorHints]
     cacheMaxAge: Optional[int]
     staleRevalidate: Optional[int]
     staleError: Optional[int]
+
 
 class ExternalWebResponse(TypedDict):
     """Information about the scraped stream."""
