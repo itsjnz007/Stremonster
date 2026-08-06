@@ -388,7 +388,7 @@ class Proxy:
                 start = time.monotonic()
                 bytes_read = 0
 
-                for chunk in upstream_response.iter_content(64 * 1024):
+                for chunk in upstream_response.iter_content(32 * 1024):
                     if not chunk:
                         continue
 

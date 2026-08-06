@@ -126,7 +126,7 @@ class Scraper:
             nonlocal stream_headers
             nonlocal subtitle_urls
             if self.log_requests: self.logger.info(f"Request -> {request.url}")
-            if re.search(self.stream_url_pattern, request.url, re.I):
+            if not stream_url and re.search(self.stream_url_pattern, request.url, re.I):
                 stream_url = request.url
                 raw_headers = request.headers
                 clean_headers: dict[str, Any] = {}
@@ -143,7 +143,7 @@ class Scraper:
                 self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
 
             if re.search(self.subtitle_url_pattern, request.url, re.I):
-                subtitle_urls = [request.url]
+                subtitle_urls.append(request.url)
                 self.logger.info(f'💬 Subtitles from {domain}: {subtitle_urls}')
 
         try:
