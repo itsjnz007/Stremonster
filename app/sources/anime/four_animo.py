@@ -35,7 +35,7 @@ class FourAnimoScraper(Scraper):
     
     def get_series(self, anilist_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/api/embed/hd-1/ani/{anilist_id}/{episode}/sub?k=1&autoPlay=1"
-        result = self.get_stream(url, stop_event, title="Web | 4animo (Anime)")
+        result = self.get_stream(url, stop_event, title="4animo (Anime)")
         return result
         
 

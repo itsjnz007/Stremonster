@@ -14,7 +14,7 @@ class VidnestScraper(Scraper):
     
     def get_series(self, anilist_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/anime/{anilist_id}/{episode}/sub"
-        result = self.get_stream(url, stop_event, title="Web | Vidnest (Anime)")
+        result = self.get_stream(url, stop_event, title="Vidnest (Anime)")
         return result
     
 if __name__ == "__main__":

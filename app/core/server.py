@@ -110,7 +110,7 @@ def get_web_stream(type: str, id: str) -> Response:
         if len(streams) > 1: unified = False
         return [WebResponse(
             title = "Stream from\n" + streams[idx]['title'],
-            name = "Play",
+            name = "Web",
             url = streams[idx]['url'] if not unified else build_unified_stream_url(streams[idx]['contentType']),
             headers = {},
             subtitles = streams[idx]['subtitles'],

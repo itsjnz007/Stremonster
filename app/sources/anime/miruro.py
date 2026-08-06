@@ -14,7 +14,7 @@ class MiruroScraper(Scraper):
     
     def get_series(self, animal_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/watch/{animal_id}?ep={episode}"
-        result = self.get_stream(url, stop_event, title="Web | Miruro (Anime)")
+        result = self.get_stream(url, stop_event, title="Miruro (Anime)")
         return result
     
 
