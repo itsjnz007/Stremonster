@@ -161,6 +161,7 @@ class Scraper:
                 await asyncio.sleep(0.1)
 
             # Wait additional 3 seconds for subtitles url
+            start_time = time.time()
             while not subtitle_urls:
                 if stop_event and stop_event.is_set(): 
                     self.logger.info(f"❌ Task skipped for {domain}")
