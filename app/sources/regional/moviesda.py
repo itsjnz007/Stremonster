@@ -9,7 +9,6 @@ from app.core.parsers import Parsers
 from app.models.metadata import Metadata
 import asyncio
 from app.core.scraper import Scraper
-from app.core.proxy import Proxy
 
 parsers = Parsers()
 
@@ -139,8 +138,11 @@ class Moviesda(Scraper):
         future = asyncio.run_coroutine_threadsafe(self.search_page(url), self._loop) # type: ignore
         responses = future.result(timeout=60)
 
-        for response in responses: 
-            response = Proxy.get_proxy_url(response)
+        # for response in responses: 
+        #     response = Proxy.get_proxy_url(response)
+
+        [res.update({'contentType': 'video/mp4'}) for res in responses]
+
 
         return responses
         
