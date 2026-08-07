@@ -36,7 +36,7 @@ ignore_source_cache = IgnoreSourceCache()
 processing_cache = ProcessingCache()
 catalog = Catalog(tmdb_cache)
 
-catalog.build_catalog(pages=1)  # Pre-build catalog on startup
+# catalog.build_catalog(pages=1)  # Pre-build catalog on startup
 anibride = AniBridgeV3Resolver()
 
 # General Scrapers
@@ -111,7 +111,7 @@ def get_web_stream(type: str, id: str) -> Response:
         if len(streams) > 1: unified = False
         return [WebResponse(
             title = "Stream from\n" + streams[idx]['title'],
-            name = "Web",
+            name = streams[idx]['name'],
             url = streams[idx]['url'] if not unified else build_unified_stream_url(streams[idx]['contentType']),
             headers = {},
             subtitles = streams[idx]['subtitles'],
