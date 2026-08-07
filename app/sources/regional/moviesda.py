@@ -9,7 +9,7 @@ from app.core.parsers import Parsers
 from app.models.metadata import Metadata
 import asyncio
 from app.core.scraper import Scraper
-# from app.core.proxy import Proxy
+from app.core.proxy import Proxy
 
 parsers = Parsers()
 
@@ -139,8 +139,8 @@ class Moviesda(Scraper):
         future = asyncio.run_coroutine_threadsafe(self.search_page(url), self._loop) # type: ignore
         responses = future.result(timeout=60)
 
-        # for response in responses: 
-        #     response = Proxy.get_proxy_url(response)
+        for response in responses: 
+            response = Proxy.get_proxy_url(response)
 
         return responses
         
@@ -148,5 +148,5 @@ class Moviesda(Scraper):
 if __name__ == "__main__":
     scraper = Moviesda()
     print(
-        scraper.get_movie("dark giant", "2026")
+        scraper.get_movie("Blast", "2026")
     )
