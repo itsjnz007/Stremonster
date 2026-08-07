@@ -3,9 +3,9 @@ import asyncio
 import threading, logging
 from pathlib import Path
 
-from app.core.proxy import Proxy
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from app.core.proxy import Proxy
 from playwright.async_api import Browser, async_playwright, Request
 from app.models.responses import *
 import re, time
@@ -40,6 +40,7 @@ class Scraper:
         self.logger = Logger(f"scraper.{source}", level=logging.DEBUG)
         self.source = source.upper()
         self.timeout = timeout
+        self.subtitle_timeout = 3000
         self.subtitle_timeout = subtitle_timeout
         self.headless = headless
         self.stream_url_pattern = stream_url_pattern
@@ -175,7 +176,7 @@ class Scraper:
                 if stop_event and stop_event.is_set(): 
                     self.logger.info(f"❌ Task skipped for {domain}")
                     return
-                if time.time() - start_time > (3000 / 1000): break
+                if time.time() - start_time > (self.subtitle_timeout / 1000): break
                 await asyncio.sleep(0.1)
 
             if stream_url:
@@ -264,8 +265,8 @@ atexit.register(Scraper.shutdown)
 
 
 if __name__ == "__main__":
-    test_url = "https://flickystream.su/player/movie/687163"
+    test_url = "https://www.moviesda.vision/download/8715"
 
-    scraper = Scraper(source="flickystream", base_url="https://flickystream.su")
+    scraper = Scraper(source="flickystream", base_url="https://flickystream.su", headless=False)
     response = scraper.get_stream(test_url)
     print(f"Response: {response}")

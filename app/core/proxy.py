@@ -127,6 +127,7 @@ class Proxy:
 
     @staticmethod
     def get_proxy_url(stream: WebResponse) -> Optional[WebResponse]:
+        if not stream.get('headers'): stream['headers'] = {}
         stream['headers']["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0"
         stream['headers']["accept"] = "*/*"
         stream['headers']["accept-language"] = "en-US,en;q=0.5"

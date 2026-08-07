@@ -73,40 +73,59 @@ class Parsers:
         url: str, 
         languages: Optional[List[str]] = None
     ) -> Metadata:
-        if not languages: languages = self.languages
-        # 1. Prepare allowed languages (case-insensitive mapping)
+        if not languages: 
+            languages = self.languages
+
         lang_map = {lang.casefold(): lang for lang in languages}
         
-        # 2. Extract Year
+        # 1. Extract Year
         year_match = re.search(r'\(?(\d{4})\)?', text)
         year = year_match.group(1) if year_match else None
-        
-        # 3. Clean the text
-        clean_text = re.sub(r'\(?\d{4}\)?', '', text)
-        clean_text = re.sub(r'[\[\]\(\)\+\,]', ' ', clean_text)
+
+        # 2. Extract Quality (e.g., WEB-DL, HD, 1080p, 720p, HDRip, CAM, DVDRip)
+        quality_pattern = r'\b(WEB-DL|WEBRip|HDRip|DVDRip|BRRip|BluRay|HDTV|CAMRip|CAM|1080p|720p|480p|4k)\b'
+        quality_match = re.search(quality_pattern, text, flags=re.IGNORECASE)
+        quality = quality_match.group(1) if quality_match else None
+
+        # 3. Clean string for title processing
+        clean_text = re.sub(r'\(?\d{4}\)?', '', text)  # remove year
+        clean_text = re.sub(quality_pattern, '', clean_text, flags=re.IGNORECASE)  # remove quality
+        clean_text = re.sub(r'[\[\]\(\)\+\,\-]', ' ', clean_text)  # remove punctuation
         
         tokens = clean_text.split()
         
-        # 4. Identify languages and title
         found_languages: list[str] = []
         title_words: list[str] = []
         
+        # Common trailing metadata words to skip if encountered after title
+        garbage_words = {"full", "movie", "hd"}
+
+        # 4. Identify title and languages
         for token in tokens:
-            if token.casefold() in lang_map:
-                found_languages.append(lang_map[token.casefold()])
+            token_folded = token.casefold()
+            
+            if token_folded in lang_map:
+                found_languages.append(lang_map[token_folded])
+                # Once a language token is hit, stop accumulating title words
+                break
+            elif token_folded in garbage_words:
+                continue
             else:
                 title_words.append(token)
                 
         return Metadata(
             title=" ".join(title_words).strip(),
-            url=url,  # Now filled with the provided URL
+            url=url,
             year=year,
-            languages=found_languages
+            languages=found_languages,
+            quality=quality
         )
     
 
 if __name__ == "__main__":
     parsers = Parsers()
+    metadata = parsers.parse_metadata("Idhayam Murali 2026 Tamil Full Movie WEB-DL", "https://example.com/movie")
+    print(f"Metadata -> {metadata}")
     # --- Testing ---
     database = [
         Metadata(title="Lokah: Chapter One", url="", year="2026", languages=["Tamil", "Hindi"]),

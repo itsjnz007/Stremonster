@@ -20,7 +20,7 @@ from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as 
     vidnest as vidnest_general, viduki as viduki, fmovies as fmovies, \
     videasy as videasy
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo
-from app.sources.regional import tamilblasters as tamilblasters
+from app.sources.regional import tamilblasters as tamilblasters, moviesda as moviesda
 from app.core.catalog import Catalog
 
 logger = Logger("server")
@@ -56,6 +56,7 @@ vidnest_scraper = vidnest.VidnestScraper()
 
 # Regional Scrapers
 tamilblasters_scraper = tamilblasters.TamilBlasters()
+moviesda_scraper = moviesda.Moviesda()
 
 tmdb_client = Tmdb(tmdb_cache)
 
@@ -181,6 +182,10 @@ def get_web_stream(type: str, id: str) -> Response:
             (lambda ani_id, ani_eps, mal_id, mal_eps: [result] if (result := miruro_scraper.get_series(ani_id, str(ani_eps))) else None, 'miruro'),
         ]
 
+        # regional_movie_scrapers: List[Tuple[Callable[[str, str], List[WebResponse]], str]] = [
+        #     (lambda title, year: moviesda_scraper.get_movie(title, year), 'moviesda'),
+        # ]
+
         if type == 'movie':
             tmdb_id = tmdb_client.imdb_to_tmdb(id)
             if not tmdb_id:
@@ -193,7 +198,8 @@ def get_web_stream(type: str, id: str) -> Response:
             if orig_lang in ['ta', 'ml', 'kn', 'hi'] and release_year:
                 title = tmdb_client.get_title(id)
                 if title:
-                    results = tamilblasters_scraper.get_movie(title, year=release_year, threadpool=thread_pool_web)
+                    results = moviesda_scraper.get_movie(title, year=release_year)
+                    if not results: results = tamilblasters_scraper.get_movie(title, year=release_year, threadpool=thread_pool_web)
                     if results:
                         web_cache.set(id, results)
                         return build_web_response(results)
