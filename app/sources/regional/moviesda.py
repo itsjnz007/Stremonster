@@ -109,7 +109,7 @@ class Moviesda(Scraper):
                         """)
                         pprint(download_data_2)
 
-                        stream = await self._get_stream_async(download_data_2['url'], title=f"Tamilblasters{' (' + ' + '.join(lang.title() for lang in search_match.languages) + ')' if search_match.languages else ''}", name=search_match.quality)
+                        stream = await self._get_stream_async(download_data_2['url'], title=f"Moviesda{' (' + ' + '.join(lang.title() for lang in search_match.languages) + ')' if search_match.languages else ''}", name=search_match.quality)
                         if stream: 
                             results.append(stream)
                             break  # Exit the loop after successfully getting a stream
