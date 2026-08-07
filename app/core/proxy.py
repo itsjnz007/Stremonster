@@ -366,8 +366,13 @@ class Proxy:
 
         is_m3u8 = (
             ".m3u8" in media_url
-            or "mpegurl" in content_type
+            or "mpegurl" in content_type.lower()
             or "application/vnd.apple.mpegurl" in content_type
+        )
+
+        is_ts = (
+            ".ts" in media_url
+            or "video/mp2t" in content_type.lower()
         )
 
         if is_m3u8 and upstream_response.status_code in (200, 203, 206):
@@ -404,9 +409,11 @@ class Proxy:
 
                     speed = bytes_read / elapsed / 1024  # KB/s
 
-                    if elapsed > 5 and speed < 256:  # KB/s
+                    if elapsed > 5 and speed < 256 and is_ts:  # KB/s
                         logger.info(f"Speed: {speed} KB/s")
-                        if id and index: raise Exception("Terminating stream due to slow speed. Switching source.")
+                        if id and index: 
+                            logger.warning(f"Terminating stream due to slow speed. Speed: {speed} KB/s")
+                            raise Exception(f"Terminating stream due to slow speed. Speed: {speed} KB/s")
                         else: logger.warning("'request_id' not available, skipping source switch")
 
                     yield chunk
