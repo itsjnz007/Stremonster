@@ -53,7 +53,7 @@ class Catalog:
         # Launch scheduler in background using the threadpool
         threadpool.run_in_background(_daily_scheduler)
 
-    def build_catalog(self, pages: int = 1) -> dict[str, Any] | None:
+    def build_catalog(self, pages: int = 10) -> dict[str, Any] | None:
         logger.info(f"Building catalog with {pages} pages...")
         # catalog_cache = self.cache.get("catalog", 60*24-1)  # Cache for 1 day
         # if catalog_cache: return catalog_cache

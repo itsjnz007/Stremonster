@@ -1,6 +1,7 @@
 import sys
 import os, logging
 from pathlib import Path
+import time
 from typing import Optional, Any
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -231,6 +232,9 @@ class TmdbCatalog(Tmdb):
                         catalog[catalog_id] = {"metas": metas}
                     else:
                         catalog[catalog_id] = {"metas": []}
+
+                    time.sleep(1)  # To avoid hitting rate limits
+            time.sleep(3)  # To avoid hitting rate limits
         
         return catalog if catalog else None
 
