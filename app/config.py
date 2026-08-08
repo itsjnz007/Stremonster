@@ -31,11 +31,11 @@ MANIFEST_TORRENTS: dict[str, object] = {
 CATALOG_BUILDER: dict[str, dict[str, dict[str, str]]] = {
     "global": {
         "movie": {
-            "popular": "https://api.themoviedb.org/3/movie/popular",
+            "top_rated": "https://api.themoviedb.org/3/movie/top_rated",
             "now_playing": "https://api.themoviedb.org/3/movie/now_playing"
         },
         "series": {
-            "popular": "https://api.themoviedb.org/3/tv/popular",
+            "top_rated": "https://api.themoviedb.org/3/tv/top_rated",
         }
     },
     "tamil": {
