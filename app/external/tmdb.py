@@ -85,6 +85,11 @@ class Tmdb:
         return None
     
     def tmdb_to_imdb(self, tmdb_id: str, media_type: str) -> Optional[str]:
+        if media_type not in ["movie", "tv", "series"]:
+            logger.error(f"Invalid media_type '{media_type}' for TMDB ID {tmdb_id}")
+            return None
+        if media_type == "series": media_type = "tv"  # TMDB uses 'tv' for series
+
         cache_key = "imdb_to_tmdb"
         cached_result = self.cache.get(cache_key)
         if cached_result:
@@ -93,7 +98,7 @@ class Tmdb:
                 logger.debug(f"Found cached IMDB ID {imdb_id} for TMDB ID {tmdb_id}")
                 return imdb_id
 
-        url = f"{self.base_url}/{media_type}/{tmdb_id}"
+        url = f"{self.base_url}/{media_type}/{tmdb_id}/external_ids"
         params = {
             "api_key": self.api_key
         }
@@ -106,7 +111,10 @@ class Tmdb:
             imdb_id = res.get("imdb_id")
             if imdb_id:
                 logger.debug(f"Found IMDB ID {imdb_id} for TMDB ID {tmdb_id}")
-                self.cache.set(cache_key, {str(tmdb_id): imdb_id})  # Cache just the IMDB ID
+                self.cache.set(
+                    cache_key, 
+                    {**cached_result, str(tmdb_id): imdb_id} if cached_result else {str(tmdb_id): imdb_id}
+                )
                 return imdb_id
             else:
                 logger.info(f"No IMDB ID found for TMDB ID {tmdb_id}")
@@ -210,10 +218,10 @@ class TmdbCatalog(Tmdb):
                             title = item.get("title") or item.get("name", "")
                             poster_path = item.get("poster_path")
                             tmdb_id = item.get("id")
-                            
-                            if tmdb_id and title:  # Only include items with id and title
+                            imdb_id = self.tmdb_to_imdb(str(tmdb_id), media_type)
+                            if tmdb_id and title and imdb_id:  # Only include items with id and title
                                 meta: dict[str, Any] = {
-                                    "id": self.tmdb_to_imdb(str(tmdb_id), media_type),
+                                    "id": imdb_id,
                                     "type": "movie" if media_type == "movie" else "series",
                                     "name": title,
                                     "poster": f"{self.image_base}{poster_path}" if poster_path else None
@@ -229,9 +237,13 @@ class TmdbCatalog(Tmdb):
 if __name__ == "__main__":
     cache = TmdbCache()
     tmdb = TmdbCatalog(cache)
-    test_imdb_id = "tt0116629"
-    tmdb_id = tmdb.imdb_to_tmdb(test_imdb_id)
-    print(f"TMDB ID for IMDB ID {test_imdb_id}: {tmdb_id}")
+    # test_imdb_id = "tt0116629"
+    # tmdb_id = tmdb.imdb_to_tmdb(test_imdb_id)
+    # print(f"TMDB ID for IMDB ID {test_imdb_id}: {tmdb_id}")
     # print("IMDB to TMDB mapping:")
     # imdb_id = tmdb.tmdb_to_imdb(tmdb_id, "movie")
     # print(f"IMDB ID for TMDB ID {tmdb_id}: {imdb_id}")
+    print("Fetching catalog...")
+    result = tmdb.get_catalog(pages=1)
+    from pprint import pprint
+    pprint(result)

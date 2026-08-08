@@ -335,6 +335,10 @@ def proxy_stream_ts():
 def proxy_stream_mp4():
     return Proxy.proxy("video/mp4")
 
+@app.route("/stream.m4s")
+def proxy_stream_m4s():
+    return Proxy.proxy("video/mp4")
+
 @app.route("/proxy.vtt")
 def proxy_vvt():
     return Proxy.proxy("text/vtt")

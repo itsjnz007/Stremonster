@@ -1,3 +1,5 @@
+import os
+
 from app.config import TUNNEL_URL
 from flask import Response, request, jsonify, stream_with_context
 from urllib.parse import quote, urlparse
@@ -203,7 +205,6 @@ class Proxy:
         base_path = "/".join(parsed.path.split("/")[:-1])
 
         is_master = "#EXT-X-STREAM-INF" in text
-        stream_type = "stream.m3u8" if is_master else "stream.ts"
 
         def resolve_url(url: str) -> str:
             """Converts relative URLs to absolute."""
@@ -213,6 +214,14 @@ class Proxy:
                 return host + url
             else:
                 return f"{host}{base_path}/{url}"
+
+        # Helper function to dynamically pull the extension (.mp4, .m4s, .ts, .m3u8) from any target line
+        def get_stream_type(target: str) -> str:
+            if is_master: return "stream.m3u8"  # Master playlists should always be treated as m3u8
+            ext = os.path.splitext(urlparse(target).path)[1]
+            if ext in [".mp4", ".m4s", ".ts", ".m3u8"]:
+                return f"stream{ext}"
+            return "stream.ts"
 
         # Regex to find URI="..." inside tags
         uri_pattern = re.compile(r'(URI=["\'])(.*?)(["\'])')
@@ -229,6 +238,7 @@ class Proxy:
                     # Replace the URI inside the tag with the proxied version
                     def replace_uri(match: re.Match[str]):
                         full_url = resolve_url(match.group(2))
+                        stream_type = get_stream_type(match.group(2))
                         proxied_url = Proxy.add_proxy(full_url, headers, stream_type=stream_type, id=id, index=index)
                         return f'{match.group(1)}{proxied_url}{match.group(3)}'
                     
@@ -239,6 +249,7 @@ class Proxy:
             
             # Handle segment URLs (lines not starting with #)
             else:
+                stream_type = get_stream_type(line)
                 rewritten.append(Proxy.add_proxy(resolve_url(line), headers, stream_type=stream_type, id=id, index=index))
 
         return "\n".join(rewritten)
@@ -290,7 +301,7 @@ class Proxy:
             return Response(f"Stream length {len(streams[int(current_index)])} is not 1. Unable to process request.", status=404)
         
         current_stream = streams[int(current_index)][0]
-        stream: str = current_stream.get("url") + f"&id={id}&index={current_index}:0"
+        stream: str = current_stream.get("url")# + f"&id={id}&index={current_index}:0"
         if not stream: return Response("Stream URL not found", status=404)
 
         logger.info(f"Redirecting to proxied stream URL: {stream}")
@@ -330,7 +341,16 @@ class Proxy:
                     return Response("Returning failure to reload webpage.", status=503)
 
         try:
-            if request.method == "POST":
+            if request.method == "HEAD":
+                upstream_response = session.head(
+                    media_url,
+                    timeout=(5, 30),
+                    headers=arg_headers,
+                    # stream=True,
+                    verify=False,
+                    allow_redirects=True,
+                )
+            elif request.method == "POST":
                 upstream_response = session.post(
                     media_url,
                     timeout=(5, 30),
@@ -370,9 +390,10 @@ class Proxy:
             or "application/vnd.apple.mpegurl" in content_type
         )
 
-        is_ts = (
+        is_segment = (
             ".ts" in media_url
-            or "video/mp2t" in content_type.lower()
+            or ".m4s" in media_url
+            # or "video/mp4" not in content_type.lower()
         )
 
         if is_m3u8 and upstream_response.status_code in (200, 203, 206):
@@ -409,7 +430,7 @@ class Proxy:
 
                     speed = bytes_read / elapsed / 1024  # KB/s
 
-                    if elapsed > 5 and speed < 256 and is_ts:  # KB/s
+                    if elapsed > 5 and speed < 256 and is_segment:  # KB/s
                         logger.info(f"Speed: {speed} KB/s")
                         if id and index: 
                             logger.warning(f"Terminating stream due to slow speed. Speed: {speed} KB/s")
