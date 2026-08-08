@@ -228,6 +228,7 @@ class TmdbCatalog(Tmdb):
                                     "poster": f"{self.image_base}{poster_path}" if poster_path else None
                                 }
                                 metas.append(meta)
+                            time.sleep(0.1)  # To avoid hitting rate limits
                         
                         catalog[catalog_id] = {"metas": metas}
                     else:
