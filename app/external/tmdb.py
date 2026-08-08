@@ -233,7 +233,8 @@ class TmdbCatalog(Tmdb):
                     else:
                         catalog[catalog_id] = {"metas": []}
 
-                    time.sleep(1)  # To avoid hitting rate limits
+                    time.sleep(0.1)  # To avoid hitting rate limits
+                time.sleep(1)  # To avoid hitting rate limits
             time.sleep(3)  # To avoid hitting rate limits
         
         return catalog if catalog else None
