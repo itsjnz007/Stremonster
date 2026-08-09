@@ -399,11 +399,6 @@ class Proxy:
             or "application/vnd.apple.mpegurl" in content_type
         )
 
-        is_segment = (
-            ".ts" in media_url
-            or ".m4s" in media_url
-        )
-
         if is_m3u8 and upstream_response.status_code in (200, 203, 206):
             content = upstream_response.content
             updated_content = Proxy.parse_segment(
@@ -438,7 +433,7 @@ class Proxy:
 
                     speed = bytes_read / elapsed / 1024  # KB/s
 
-                    if elapsed > 5 and speed < 256 and is_segment:  # KB/s
+                    if elapsed > 5 and speed < 256:  # KB/s
                         logger.info(f"Speed: {speed} KB/s")
                         if id and index: 
                             logger.warning(f"Terminating stream due to slow speed. Speed: {speed} KB/s")
