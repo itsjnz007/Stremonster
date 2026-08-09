@@ -106,13 +106,13 @@ def get_web_stream(type: str, id: str) -> Response:
         if content_type == 'application/vnd.apple.mpegurl': return TUNNEL_URL + f"/redirect.m3u8?id={id}"
         return TUNNEL_URL + f"/redirect?id={id}"
     
-    def build_web_response(streams: List[WebResponse], unified: bool = False) -> List[WebResponse]:
+    def build_web_response(streams: List[WebResponse], stream_idx: int, unified: bool = False) -> List[WebResponse]:
         imdb_id = id.split(':')[0] if type == 'series' else id
         if len(streams) > 1: unified = False
         return [WebResponse(
             title = "Stream from\n" + streams[idx]['title'],
             name = streams[idx]['name'],
-            url = streams[idx]['url'] if not unified else build_unified_stream_url(streams[idx]['contentType']),
+            url = streams[idx]['url']+f"&index={stream_idx}:{idx}" if not unified else build_unified_stream_url(streams[idx]['contentType']),
             headers = {},
             subtitles = streams[idx]['subtitles'],
             contentType = streams[idx]['contentType'],
@@ -128,7 +128,7 @@ def get_web_stream(type: str, id: str) -> Response:
         return [
             {
                 **streams[idx],
-                'url': streams[idx]['url'] + f"&id={id}&index={source_index}:{idx}"
+                'url': streams[idx]['url'] + f"&id={id}"
             }
             for idx in range(len(streams))
         ]
@@ -150,8 +150,8 @@ def get_web_stream(type: str, id: str) -> Response:
 
                 thread_pool_web.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator))
                 if not TUNNEL_URL: raise Exception("TUNNEL_URL is not set. Please set it in the config.")
-                if not user_agent: return build_web_response(first_result, unified=True)
-                else: return build_web_response(first_result, unified=True)
+                if not user_agent: return build_web_response(first_result, 0, unified=True)
+                else: return build_web_response(first_result, 0, unified=True)
 
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
             (lambda tmdb_id: [result] if (result := viduki_scraper.get_movie(tmdb_id)) else None, 'viduki'),
@@ -202,7 +202,7 @@ def get_web_stream(type: str, id: str) -> Response:
                     if not results: results = tamilblasters_scraper.get_movie(title, year=release_year, threadpool=thread_pool_web)
                     if results:
                         web_cache.set(id, results)
-                        return build_web_response(results)
+                        return build_web_response(results, 0, unified=True)
             
             tasks_movie: List[Callable[[str], Optional[List[WebResponse]]]] = [
                 lambda _, f=func: f(tmdb_id or "unknown")
@@ -243,8 +243,8 @@ def get_web_stream(type: str, id: str) -> Response:
             logger.error(f"Cache for {id} is invalid or empty...")
             return respond_with({'streams': []})
         logger.info("Returning cached web result...")
-        if not user_agent: formatted_result = {'streams': build_web_response(stream_group[stream_index], unified=True)}
-        else: formatted_result = {'streams': build_web_response(stream_group[stream_index], unified=True)}
+        if not user_agent: formatted_result = {'streams': build_web_response(stream_group[stream_index], stream_index, unified=True)}
+        else: formatted_result = {'streams': build_web_response(stream_group[stream_index], stream_index, unified=True)}
         logger.info(f"Responding with: {formatted_result}")
         return respond_with(formatted_result)
 
