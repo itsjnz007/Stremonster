@@ -288,22 +288,28 @@ class Proxy:
     @staticmethod
     def redirect() -> Response:
         id = request.args.get("id")
-        if not id: return Response("Missing 'id' parameter", status=400)
+        if not id: 
+            logger.error("Missing 'id' parameter")
+            return Response("Missing 'id' parameter", status=400)
 
         cache = web_cache.get(id)
-        if not cache: return Response("Stream not found", status=404)
+        if not cache: 
+            logger.error(f"Stream not found for id {id}. Unable to process request.")
+            return Response("Stream not found", status=404)
 
         current_index: Optional[int] = cache.get("current_index")
-        if not current_index: return Response("Missing 'current_index' in cache", status=404)
-        
-        streams = cache.get("streams", [])
+        if not current_index: 
+            logger.error(f"Missing 'current_index' in cache for id {id}. Unable to process request.")
+            return Response("Missing 'current_index' in cache", status=404)
+
+        streams: Optional[list[list[dict[str, Any]]]] = cache.get("streams")
         if not streams: return Response("No streams found", status=404)
         if len(streams[int(current_index)]) != 1:
             logger.error(f"Stream length {len(streams[int(current_index)])} is not 1. Unable to process request.")
             return Response(f"Stream length {len(streams[int(current_index)])} is not 1. Unable to process request.", status=404)
         
         current_stream = streams[int(current_index)][0]
-        stream: str = current_stream.get("url")#+ f"&id={id}&index={current_index}:0"
+        stream = current_stream.get("url")#+ f"&id={id}&index={current_index}:0"
         if not stream: return Response("Stream URL not found", status=404)
 
         logger.info(f"Redirecting to proxied stream URL: {stream}")
