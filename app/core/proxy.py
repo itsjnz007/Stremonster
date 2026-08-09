@@ -178,7 +178,7 @@ class Proxy:
     
     
     @staticmethod
-    def add_proxy(url: str, headers: str, id: Optional[str] = None, index: Optional[str] = None, stream_type: str = "stream.ts") -> str:
+    def add_proxy(url: str, headers: str, id: Optional[str] = None, stream_type: str = "stream.ts") -> str:
 
         if not TUNNEL_URL: raise Exception("TUNNEL_URL not set")
 
@@ -192,7 +192,7 @@ class Proxy:
             + "&headers=" + quote(headers_str, safe="")
         )
         if id: proxy_url += f"&id={quote(id, safe='')}"
-        if index: proxy_url +=  f"&index={quote(index, safe='')}"
+        # if index: proxy_url +=  f"&index={quote(index, safe='')}"
         return proxy_url
 
 
@@ -240,7 +240,7 @@ class Proxy:
                     def replace_uri(match: re.Match[str]):
                         full_url = resolve_url(match.group(2))
                         stream_type = get_stream_type(match.group(2))
-                        proxied_url = Proxy.add_proxy(full_url, headers, stream_type=stream_type, id=id, index=index)
+                        proxied_url = Proxy.add_proxy(full_url, headers, stream_type=stream_type, id=id) + (f"&index={index}" if index else "")
                         return f'{match.group(1)}{proxied_url}{match.group(3)}'
                     
                     rewritten.append(uri_pattern.sub(replace_uri, line))
@@ -251,7 +251,7 @@ class Proxy:
             # Handle segment URLs (lines not starting with #)
             else:
                 stream_type = get_stream_type(line)
-                rewritten.append(Proxy.add_proxy(resolve_url(line), headers, stream_type=stream_type, id=id, index=index))
+                rewritten.append(Proxy.add_proxy(resolve_url(line), headers, stream_type=stream_type, id=id) + (f"&index={index}" if index else ""))
 
         return "\n".join(rewritten)
     
@@ -321,6 +321,8 @@ class Proxy:
 
     @staticmethod
     def proxy(content_type: Optional[str] = None) -> Response:
+
+        print("request -> ", request.headers)
         start_time = time.time()
 
         # Proxy arguments
