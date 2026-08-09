@@ -298,7 +298,7 @@ class Proxy:
             return Response("Stream not found", status=404)
 
         current_index: Optional[int] = cache.get("current_index")
-        if not current_index: 
+        if current_index is None: 
             logger.error(f"Missing 'current_index' in cache for id {id}. Unable to process request.")
             return Response("Missing 'current_index' in cache", status=404)
 
