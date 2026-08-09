@@ -347,8 +347,8 @@ class Proxy:
                 source_index = int(index.split(':')[0])
                 logger.debug(f"current_index: {current_index} | source_index: {source_index}")
                 if current_index != source_index:
-                    logger.error("Returning failure to reload webpage.")
-                    return Response("Returning failure to reload webpage.", status=503)
+                    logger.error("Stream aborted")
+                    return Response("Stream aborted", status=410)
 
         try:
             if request.method == "HEAD":
