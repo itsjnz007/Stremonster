@@ -420,62 +420,54 @@ class Proxy:
 
 
         def generate_media():
-            WINDOW_SECONDS = 5.0
+            MIN_EVALUATION_SECONDS = 5.0  # Must run for at least 5 wall-clock seconds before judging
             MIN_SPEED_KBS = 256.0
             
-            # Store tuples of (read_duration, bytes_count, timestamp)
             window: deque[tuple[float, int, float]] = deque()
-            
-            # Obtain the raw iterator from requests/httpx
+            stream_start_time = time.monotonic()  # Track real start time
             chunks = upstream_response.iter_content(chunk_size=32 * 1024)
             
             try:
                 while True:
-                    # --- 1. MEASURE UPSTREAM NETWORK READ ONLY ---
                     t0 = time.monotonic()
                     try:
                         chunk = next(chunks)
                     except StopIteration:
-                        break  # Stream finished successfully
+                        break
                     
-                    read_time = time.monotonic() - t0  # Time taken to pull data from upstream socket
+                    read_time = time.monotonic() - t0
                     now = time.monotonic()
                     chunk_len = len(chunk)
 
                     if not chunk:
                         continue
 
-                    # --- 2. SPEED CALCULATION ---
-                    # Guard against zero division if chunk returns near-instantly from memory/socket buffer
-                    actual_read_time = max(read_time, 0.0001) 
-                    
-                    # Record (timestamp, chunk_bytes, read_seconds)
+                    actual_read_time = max(read_time, 0.0001)
                     window.append((now, chunk_len, actual_read_time))
                     
-                    # Evict entries older than WINDOW_SECONDS
-                    while window and window[0][0] < now - WINDOW_SECONDS:
+                    # Evict old window items (> 5 seconds ago)
+                    while window and window[0][0] < now - MIN_EVALUATION_SECONDS:
                         window.popleft()
 
-                    # Calculate speed based on actual time spent reading network sockets
-                    if len(window) > 1:
+                    # --- CRITICAL FIX: GUARD WITH REAL ELAPSED TIME ---
+                    elapsed_wall_time = now - stream_start_time
+
+                    # Only evaluate IF the stream has actively been running for >= 5 wall-clock seconds
+                    if elapsed_wall_time >= MIN_EVALUATION_SECONDS:
                         total_bytes = sum(item[1] for item in window)
                         total_read_time = sum(item[2] for item in window)
                         
-                        # Speed = Total KB / Total Seconds spent reading
-                        rolling_speed = (total_bytes / 1024) / total_read_time
-                        
-                        if rolling_speed < MIN_SPEED_KBS:
-                            logger.warning(
-                                f"Terminating stream. Upstream network speed dropped to: {rolling_speed:.2f} KB/s "
-                                f"(Read Time: {total_read_time:.2f}s over last {WINDOW_SECONDS}s)"
-                            )
-                            if id and index:
-                                raise Exception(f"Slow upstream speed: {rolling_speed:.2f} KB/s")
-                            else:
-                                logger.warning("'request_id' not available, skipping source switch")
+                        if total_read_time > 0:
+                            rolling_speed = (total_bytes / 1024) / total_read_time
+                            
+                            if rolling_speed < MIN_SPEED_KBS:
+                                logger.warning(
+                                    f"Terminating stream. Upstream network speed dropped to: {rolling_speed:.2f} KB/s "
+                                    f"(Read Time: {total_read_time:.2f}s | Wall Time: {elapsed_wall_time:.2f}s)"
+                                )
+                                if id and index:
+                                    raise Exception(f"Slow upstream speed: {rolling_speed:.2f} KB/s")
 
-                    # --- 3. YIELD TO CLIENT (STREMIO) ---
-                    # Client slowness or player pauses happen here and won't skew read_time
                     yield chunk
 
             except Exception as e:
