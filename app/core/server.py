@@ -99,20 +99,20 @@ def get_web_stream(type: str, id: str) -> Response:
     user_agent = request.headers.get('User-Agent')
     logger.debug(f"User-Agent: {user_agent}")
 
-    def build_unified_stream_url(stream_idx: int, content_type: Optional[str] = None) -> str:
+    def build_unified_stream_url(content_type: Optional[str] = None) -> str:
         if not TUNNEL_URL:
             raise Exception("TUNNEL_URL is not set. Please set it in the config.")
-        if content_type == 'video/mp4': return TUNNEL_URL + f"/redirect.mp4?id={id}&index={stream_idx}:0"
-        if content_type == 'application/vnd.apple.mpegurl': return TUNNEL_URL + f"/redirect.m3u8?id={id}&index={stream_idx}:0"
-        return TUNNEL_URL + f"/redirect?id={id}&index={stream_idx}:0"
-
+        if content_type == 'video/mp4': return TUNNEL_URL + f"/redirect.mp4?id={id}"
+        if content_type == 'application/vnd.apple.mpegurl': return TUNNEL_URL + f"/redirect.m3u8?id={id}"
+        return TUNNEL_URL + f"/redirect?id={id}"
+    
     def build_web_response(streams: List[WebResponse], unified: bool = False) -> List[WebResponse]:
         imdb_id = id.split(':')[0] if type == 'series' else id
         if len(streams) > 1: unified = False
         return [WebResponse(
             title = "Stream from\n" + streams[idx]['title'],
             name = streams[idx]['name'],
-            url = streams[idx]['url'] if not unified else build_unified_stream_url(idx, streams[idx]['contentType']),
+            url = streams[idx]['url'] if not unified else build_unified_stream_url(streams[idx]['contentType']),
             headers = {},
             subtitles = streams[idx]['subtitles'],
             contentType = streams[idx]['contentType'],
