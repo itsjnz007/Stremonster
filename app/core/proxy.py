@@ -309,8 +309,10 @@ class Proxy:
             return Response(f"Stream length {len(streams[int(current_index)])} is not 1. Unable to process request.", status=404)
         
         current_stream = streams[int(current_index)][0]
-        stream = current_stream.get("url")#+ f"&id={id}&index={current_index}:0"
+        stream = current_stream.get("url")
         if not stream: return Response("Stream URL not found", status=404)
+
+        stream += f"&id={id}&index={current_index}:0"
 
         logger.info(f"Redirecting to proxied stream URL: {stream}")
         return Response(status=302, headers={"Location": stream})
@@ -354,7 +356,6 @@ class Proxy:
                     media_url,
                     timeout=(5, 30),
                     headers=arg_headers,
-                    # stream=True,
                     verify=False,
                     allow_redirects=True,
                 )
@@ -401,7 +402,6 @@ class Proxy:
         is_segment = (
             ".ts" in media_url
             or ".m4s" in media_url
-            # or "video/mp4" not in content_type.lower()
         )
 
         if is_m3u8 and upstream_response.status_code in (200, 203, 206):
