@@ -55,8 +55,8 @@ class Catalog:
 
     def build_catalog(self, pages: int = 10) -> dict[str, Any] | None:
         logger.info(f"Building catalog with {pages} pages...")
-        # catalog_cache = self.cache.get("catalog", 60*24-1)  # Cache for 1 day
-        # if catalog_cache: return catalog_cache
+        catalog_cache = self.cache.get("catalog", 60*6)  # Cache for 6 hours
+        if catalog_cache: return catalog_cache
 
         catalog = self.tmdb_catalog.get_catalog(pages=pages)
         if catalog:
@@ -65,7 +65,7 @@ class Catalog:
             # Also cache each individual catalog entry
             for catalog_id, catalog_data in catalog.items():
                 self.cache.set(catalog_id, catalog_data)
-
+        logger.info(f"Catalog build complete.")
         return catalog
     
     def get_catalog(self, catalog_id: str) -> dict[str, Any] | None:
