@@ -1,3 +1,4 @@
+from collections import deque
 import os
 
 from app.config import TUNNEL_URL
@@ -347,7 +348,7 @@ class Proxy:
                 source_index = int(index.split(':')[0])
                 logger.debug(f"current_index: {current_index} | source_index: {source_index}")
                 if current_index != source_index:
-                    logger.error("Stream aborted")
+                    logger.error(f"Stream aborted for id {id}")
                     return Response("Stream aborted", status=410)
 
         try:
@@ -419,27 +420,62 @@ class Proxy:
 
 
         def generate_media():
-            speed = 0.0
+            WINDOW_SECONDS = 5.0
+            MIN_SPEED_KBS = 256.0
+            
+            # Store tuples of (read_duration, bytes_count, timestamp)
+            window: deque[tuple[float, int, float]] = deque()
+            
+            # Obtain the raw iterator from requests/httpx
+            chunks = upstream_response.iter_content(chunk_size=32 * 1024)
+            
             try:
-                start = time.monotonic()
-                bytes_read = 0
+                while True:
+                    # --- 1. MEASURE UPSTREAM NETWORK READ ONLY ---
+                    t0 = time.monotonic()
+                    try:
+                        chunk = next(chunks)
+                    except StopIteration:
+                        break  # Stream finished successfully
+                    
+                    read_time = time.monotonic() - t0  # Time taken to pull data from upstream socket
+                    now = time.monotonic()
+                    chunk_len = len(chunk)
 
-                for chunk in upstream_response.iter_content(32 * 1024):
                     if not chunk:
                         continue
 
-                    bytes_read += len(chunk)
-                    elapsed = time.monotonic() - start
+                    # --- 2. SPEED CALCULATION ---
+                    # Guard against zero division if chunk returns near-instantly from memory/socket buffer
+                    actual_read_time = max(read_time, 0.0001) 
+                    
+                    # Record (timestamp, chunk_bytes, read_seconds)
+                    window.append((now, chunk_len, actual_read_time))
+                    
+                    # Evict entries older than WINDOW_SECONDS
+                    while window and window[0][0] < now - WINDOW_SECONDS:
+                        window.popleft()
 
-                    speed = bytes_read / elapsed / 1024  # KB/s
+                    # Calculate speed based on actual time spent reading network sockets
+                    if len(window) > 1:
+                        total_bytes = sum(item[1] for item in window)
+                        total_read_time = sum(item[2] for item in window)
+                        
+                        # Speed = Total KB / Total Seconds spent reading
+                        rolling_speed = (total_bytes / 1024) / total_read_time
+                        
+                        if rolling_speed < MIN_SPEED_KBS:
+                            logger.warning(
+                                f"Terminating stream. Upstream network speed dropped to: {rolling_speed:.2f} KB/s "
+                                f"(Read Time: {total_read_time:.2f}s over last {WINDOW_SECONDS}s)"
+                            )
+                            if id and index:
+                                raise Exception(f"Slow upstream speed: {rolling_speed:.2f} KB/s")
+                            else:
+                                logger.warning("'request_id' not available, skipping source switch")
 
-                    if elapsed > 5 and speed < 256:  # KB/s
-                        logger.info(f"Speed: {speed} KB/s")
-                        if id and index: 
-                            logger.warning(f"Terminating stream due to slow speed. Speed: {speed} KB/s")
-                            raise Exception(f"Terminating stream due to slow speed. Speed: {speed} KB/s")
-                        else: logger.warning("'request_id' not available, skipping source switch")
-
+                    # --- 3. YIELD TO CLIENT (STREMIO) ---
+                    # Client slowness or player pauses happen here and won't skew read_time
                     yield chunk
 
             except Exception as e:
@@ -450,13 +486,16 @@ class Proxy:
                         current_index = int(web_res.get('current_index'))
                         source_index = int(index.split(':')[0])
                         logger.debug(f"current_index: {current_index} | source_index: {source_index}")
-                        if current_index == source_index: web_cache.switch_source(id)
-                        else: logger.debug('Ignoring source switch since the source has already been switched.')
-                else: logger.warning("'id' or 'index' not available, skipping source switch")
+                        if current_index == source_index: 
+                            web_cache.switch_source(id)
+                        else: 
+                            logger.debug('Ignoring source switch since source already switched.')
+                else: 
+                    logger.warning("'id' or 'index' not available, skipping source switch")
 
             finally: 
                 upstream_response.close()
-                logger.info(f"{upstream_response.status_code} | {speed} KB/s | {time.time() - start_time} seconds | Proxying url {request.url}")
+                logger.info(f"{upstream_response.status_code} | {time.time() - start_time} seconds | Proxying url {request.url}")
 
         resp = Response(
             stream_with_context(generate_media()), 
