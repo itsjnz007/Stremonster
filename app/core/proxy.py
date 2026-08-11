@@ -321,7 +321,7 @@ class Proxy:
 
     @staticmethod
     def proxy(content_type: Optional[str] = None) -> Response:
-        
+
         start_time = time.time()
 
         # Proxy arguments
@@ -488,7 +488,7 @@ class Proxy:
 
             finally: 
                 upstream_response.close()
-                logger.info(f"{upstream_response.status_code} | {time.time() - start_time} seconds | Proxying url {request.url}")
+                # logger.info(f"{upstream_response.status_code} | {time.time() - start_time} seconds | Proxying url {request.url}")
 
         resp = Response(
             stream_with_context(generate_media()), 
