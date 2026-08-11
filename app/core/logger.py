@@ -19,12 +19,24 @@ class ColoredFormatter(logging.Formatter):
     RESET = "\033[0m"
 
     def format(self, record: logging.LogRecord) -> str:
+        # ensure emoji is available to the format string
+        try:
+            record.emoji = self.emojie(record.levelno)
+        except Exception:
+            record.emoji = ""
         message = super().format(record)
         color = self.COLORS.get(record.levelname, "")
         if color and hasattr(sys.stdout, "isatty") and sys.stdout.isatty():
             return f"{color}{message}{self.RESET}"
         return message
 
+    def emojie(self, level: int = logging.INFO) -> str:
+        if level == logging.WARNING:
+            return "⚠️"
+        elif level == logging.ERROR:
+            return "‼️"
+        else:
+            return ""
 
 class Logger:
     def __init__(self, module_name: str, level: int = logging.INFO, log_file: str = f"{CACHE_DIR}/app.log"):
@@ -39,12 +51,14 @@ class Logger:
             os.makedirs(log_dir)
 
         # 2. Structural log formatting (includes your custom method layout)
-        log_formatter = logging.Formatter(
-            fmt=f"[%(asctime)s] [%(levelname)s] [{self.module_name}] %(message)s",
+        # include emoji via %(emoji)s (set by ColoredFormatter.format)
+        fmt_string = f"[%(asctime)s] [%(emoji)s %(levelname)s] [{self.module_name}] %(message)s"
+        log_formatter = ColoredFormatter(
+            fmt=fmt_string,
             datefmt="%Y-%m-%d %H:%M:%S"
         )
         console_formatter = ColoredFormatter(
-            fmt=f"[%(asctime)s] [%(levelname)s] [{self.module_name}] %(message)s",
+            fmt=fmt_string,
             datefmt="%Y-%m-%d %H:%M:%S"
         )
 
