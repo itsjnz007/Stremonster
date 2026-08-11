@@ -321,8 +321,7 @@ class Proxy:
 
     @staticmethod
     def proxy(content_type: Optional[str] = None) -> Response:
-
-        print("request -> ", request.headers)
+        
         start_time = time.time()
 
         # Proxy arguments
