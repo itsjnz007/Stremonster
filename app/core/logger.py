@@ -32,9 +32,9 @@ class ColoredFormatter(logging.Formatter):
 
     def emojie(self, level: int = logging.INFO) -> str:
         if level == logging.WARNING:
-            return "⚠️"
+            return "⚠️  "
         elif level == logging.ERROR:
-            return "‼️"
+            return "‼️  "
         else:
             return ""
 
@@ -52,7 +52,7 @@ class Logger:
 
         # 2. Structural log formatting (includes your custom method layout)
         # include emoji via %(emoji)s (set by ColoredFormatter.format)
-        fmt_string = f"[%(asctime)s] [%(emoji)s %(levelname)s] [{self.module_name}] %(message)s"
+        fmt_string = f"[%(asctime)s] [%(emoji)s%(levelname)s] [{self.module_name}] %(message)s"
         log_formatter = ColoredFormatter(
             fmt=fmt_string,
             datefmt="%Y-%m-%d %H:%M:%S"

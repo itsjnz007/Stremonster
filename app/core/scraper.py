@@ -195,11 +195,11 @@ class Scraper:
             start_time = time.time()
             while not subtitle_urls:
                 if stop_event and stop_event.is_set(): 
-                    self.logger.info(f"Fetch subtitle skipped for {domain} due to stop event.")
-                    return
+                    self.logger.warning(f"Fetch subtitle skipped for {domain} due to stop event.")
+                    break
                 if time.time() - start_time > (self.subtitle_timeout / 1000):
-                    self.logger.info(f"Fetch subtitle skipped for {domain} due to timeout.")
-                    return
+                    self.logger.warning(f"Fetch subtitle skipped for {domain} due to timeout.")
+                    break
                 await asyncio.sleep(0.1)
 
             if stream_url:
@@ -246,7 +246,6 @@ class Scraper:
         future = asyncio.run_coroutine_threadsafe(self._get_stream_async(url, stop_event, title=title, name=name), Scraper._loop)
         try:
             result = future.result(timeout=(self.timeout / 1000) + 15)
-            self.logger.info(f'result (before proxy): {result}')
             if result: 
                 result = Proxy.get_proxy_url(result)
                 if result: 
