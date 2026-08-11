@@ -41,4 +41,4 @@ class FourAnimoScraper(Scraper):
 
 if __name__ == "__main__":
     scraper = FourAnimoScraper()
-    print(scraper.get_series('21', '1000'))
+    print(scraper.get_series('178025', '13'))
