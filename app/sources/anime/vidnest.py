@@ -19,6 +19,6 @@ class VidnestScraper(Scraper):
     
 if __name__ == "__main__":
     scraper = VidnestScraper()
-    response = scraper.get_series("166613", "12")
+    response = scraper.get_series("165159", "127")
     print(response)
   

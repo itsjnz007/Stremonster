@@ -123,11 +123,22 @@ class Scraper:
         subtitle_counter = 0
         start_time = time.time()
 
-        def handle_request(request: Request):
+        pending_requests: set[str] = set()
+
+        def on_request_done(request: Request):
+            nonlocal pending_requests
+            pending_requests.discard(request.url)
+
+        def on_request(request: Request):
             nonlocal stream_url
             nonlocal stream_headers
             nonlocal subtitle_urls
             nonlocal subtitle_counter
+            nonlocal pending_requests
+
+            if not any(ignored in request.url for ignored in ["google-analytics", "doubleclick"]):
+                pending_requests.add(request.url)
+
             if self.log_requests: self.logger.info(f"Request -> {request.url}")
             if not stream_url and re.search(self.stream_url_pattern, request.url, re.I):
                 stream_url = request.url
@@ -157,26 +168,38 @@ class Scraper:
                 self.logger.info(f'💬 Subtitles from {domain}: {subtitle_urls}')
 
         try:
-            page.on("request", handle_request)
+            page.on("request", on_request)
+            page.on("requestfinished", on_request_done)
+            page.on("requestfailed", on_request_done)
             await page.goto(url)
             if self.page_hook: await self.page_hook(page, local_stop_event)
 
             # Wait 30 seconds for stream url
             start_time = time.time()
+            idle_begin_time = None
             while not stream_url:
+                if len(pending_requests)==0 and not idle_begin_time: idle_begin_time = time.time()
+                elif idle_begin_time and len(pending_requests)>0: idle_begin_time = None
                 if stop_event and stop_event.is_set(): 
-                    self.logger.info(f"❌ Task skipped for {domain}")
+                    self.logger.warning(f"Fetch stream skipped for {domain} due to stop event.")
                     return
-                if time.time() - start_time > (self.timeout / 1000): break
+                if idle_begin_time and time.time() - idle_begin_time > 3:
+                    self.logger.warning(f"Fetch stream skipped for {domain} due to network idle.")
+                    return
+                if time.time() - start_time > (self.timeout / 1000): 
+                    self.logger.warning(f"Fetch stream skipped for {domain} due to timeout.")
+                    return
                 await asyncio.sleep(0.1)
 
             # Wait additional 3 seconds for subtitles url
             start_time = time.time()
             while not subtitle_urls:
                 if stop_event and stop_event.is_set(): 
-                    self.logger.info(f"❌ Task skipped for {domain}")
+                    self.logger.info(f"Fetch subtitle skipped for {domain} due to stop event.")
                     return
-                if time.time() - start_time > (self.subtitle_timeout / 1000): break
+                if time.time() - start_time > (self.subtitle_timeout / 1000):
+                    self.logger.info(f"Fetch subtitle skipped for {domain} due to timeout.")
+                    return
                 await asyncio.sleep(0.1)
 
             if stream_url:

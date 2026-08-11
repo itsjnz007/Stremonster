@@ -18,7 +18,7 @@ class FourAnimoScraper(Scraper):
                 selector = ".jw-icon-display.jw-icon[aria-label='Play']:visible"
                 
                 # Wait for the element to be present
-                await page.wait_for_selector(selector, timeout=15000)
+                await page.wait_for_selector(selector, timeout=10000)
                 
                 # Click the first match specifically
                 await page.locator(selector).first.click(force=True)
@@ -34,7 +34,7 @@ class FourAnimoScraper(Scraper):
                           )
     
     def get_series(self, anilist_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        url = f"{self.base_url}/api/embed/hd-1/ani/{anilist_id}/{episode}/sub?k=1&autoPlay=1"
+        url = f"{self.base_url}/embed/hd-1/ani/{anilist_id}/{episode}/sub?k=1&autoPlay=1"
         result = self.get_stream(url, stop_event, title="4animo (Anime)")
         return result
         
