@@ -467,7 +467,19 @@ class Proxy:
                                     f"(Read Time: {total_read_time:.2f}s | Wall Time: {elapsed_wall_time:.2f}s)"
                                 )
                                 if id and index:
-                                    raise Exception(f"Slow upstream speed: {rolling_speed:.2f} KB/s")
+                                    logger.warning(f"Slow upstream speed: {rolling_speed:.2f} KB/s")
+                                    web_res = web_cache.get(id)
+                                    if web_res:
+                                        current_index = int(web_res.get('current_index'))
+                                        source_index = int(index.split(':')[0])
+                                        logger.debug(f"current_index: {current_index} | source_index: {source_index}")
+                                        if current_index == source_index: 
+                                            switched = web_cache.switch_source(id)
+                                            if switched: break
+                                        else: 
+                                            logger.debug('Ignoring source switch since source already switched.')
+                                    else: 
+                                        logger.warning("'id' or 'index' not available, skipping source switch")
 
                     yield chunk
 

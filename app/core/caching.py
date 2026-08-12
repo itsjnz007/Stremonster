@@ -132,13 +132,13 @@ class WebCache(Caching):
             cache[key]["ts"] = timestamp  # Update timestamp on append
             self._save_to_disk(self._get_cache_path(), cache)
     
-    def switch_source(self, key: str) -> None:
+    def switch_source(self, key: str) -> bool:
         """Switch to the next source in the list for a given key."""
         with self._write_lock:
             cache = self._get_cache()
             if key not in cache or not cache[key]["value"]["streams"]:
                 logger.warning(f"No streams available to switch for key: '{key}'")
-                return
+                return False
 
             current_index = cache[key]["value"]["current_index"]
             total_streams = len(cache[key]["value"]["streams"])
@@ -147,7 +147,8 @@ class WebCache(Caching):
             cache[key]["ts"] = datetime.now(timezone.utc).isoformat()  # Update timestamp on switch
             self._save_to_disk(self._get_cache_path(), cache)
             logger.info(f"Switching source for key: '{key}' to index: '{new_index}'")
-
+            if current_index == new_index: return False
+            return True
 
 class TorrentCache(Caching):
     cache_path: ClassVar[Path] = Path(CACHE_DIR) / "torrent_results.json"
