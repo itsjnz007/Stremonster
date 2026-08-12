@@ -179,7 +179,7 @@ def get_web_stream(type: str, id: str) -> Response:
 
         anime_series_scrapers: List[Tuple[Callable[[str, str, str, str, str, Optional[str], str, str], Optional[List[WebResponse]]], str]] = [
             (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := vidplay_scraper.get_series(id, tmdb_id, season, episode)) else None, 'vidplay'),
-            (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := four_animo_scraper.get_series(ani_id, str(ani_eps))) else None, '4anime'),
+            # (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := four_animo_scraper.get_series(ani_id, str(ani_eps))) else None, '4anime'),
             (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := vidnest_scraper.get_series(ani_id, str(ani_eps))) else None, 'vidnest'),
             (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := miruro_scraper.get_series(mal_id, str(mal_eps))) else None, 'miruro'),
             (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := miruro_scraper.get_series(ani_id, str(ani_eps))) else None, 'miruro'),
