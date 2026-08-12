@@ -16,7 +16,7 @@ class VidplayScraper(Scraper):
     
     def get_series(self, imdb_id: str, tmdb_id: Optional[str], season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/stream/embed?imdbid={imdb_id}&type=series&season={season}&episode={episode}" + f"&tmdbid={tmdb_id}" if tmdb_id else ""
-        result = self.get_stream(url, stop_event, title="4animo (Anime)")
+        result = self.get_stream(url, stop_event, title=f"{self.source.title()} (Anime)")
         return result
         
 
