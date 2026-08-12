@@ -473,11 +473,10 @@ class Proxy:
                                         current_index = int(web_res.get('current_index'))
                                         source_index = int(index.split(':')[0])
                                         logger.debug(f"current_index: {current_index} | source_index: {source_index}")
-                                        if current_index == source_index: 
-                                            switched = web_cache.switch_source(id)
-                                            if switched: break
+                                        if current_index == source_index and web_cache.switch_source(id): 
+                                            break
                                         else: 
-                                            logger.debug('Ignoring source switch since source already switched.')
+                                            logger.debug('Ignoring source switch since source already switched or no other source available.')
                                     else: 
                                         logger.warning("'id' or 'index' not available, skipping source switch")
 
