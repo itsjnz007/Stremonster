@@ -6,7 +6,7 @@ import requests
 from typing import Dict
 from app.core.logger import Logger
 from typing import Optional
-import logging
+import logging, time
 from app.core.caching import TvdbCache
 
 logger = Logger('anilist', level=logging.INFO)
@@ -26,13 +26,15 @@ class AniBridgeV3Resolver:
 
     def _get_database(self):
             logger.info(f"Sourcing distribution payload from Release channel...")
-            try:
-                # Mirroring target distribution binaries
-                response = requests.get(RAW_MAPPINGS_URL, timeout=15)
-                response.raise_for_status()
-                return response.json()
-            except Exception as e:
-                raise IOError(f"Failed to bootstrap database asset file from GitHub Releases: {e}")
+            while True:
+                try:
+                    # Mirroring target distribution binaries
+                    response = requests.get(RAW_MAPPINGS_URL, timeout=30)
+                    response.raise_for_status()
+                    return response.json()
+                except Exception as e:
+                    logger.error(f"Failed to bootstrap database asset file from GitHub Releases: {e}")
+                    time.sleep(5)
             
     def convert_episode(self, source_rule: str, target_rule: str, current_episode: int) -> int:
         def parse_range(rule: str):

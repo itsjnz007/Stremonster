@@ -16,7 +16,7 @@ from urllib3.util.retry import Retry
 logger = Logger("tmdb", level=logging.INFO)
 
 session = requests.Session()
-retries = Retry(total=2, backoff_factor=2, status_forcelist=[502, 503, 504])
+retries = Retry(total=10, backoff_factor=2, status_forcelist=[502, 503, 504])
 session.mount('https://', HTTPAdapter(max_retries=retries))
 
 class Tmdb:
