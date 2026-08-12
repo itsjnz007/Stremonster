@@ -20,7 +20,7 @@ from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as 
     vidnest as vidnest_general, viduki as viduki, fmovies as fmovies, \
     videasy as videasy
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo, \
-    vidplay as vidplay
+    yomi as yomi
 from app.sources.regional import tamilblasters as tamilblasters, moviesda as moviesda
 from app.core.catalog import Catalog
 
@@ -54,7 +54,7 @@ videasy_scraper = videasy.VideasyScraper()
 four_animo_scraper = four_animo.FourAnimoScraper()
 miruro_scraper = miruro.MiruroScraper()
 vidnest_scraper = vidnest.VidnestScraper()
-vidplay_scraper = vidplay.VidplayScraper()
+yomi_scraper = yomi.YomiScraper()
 
 # Regional Scrapers
 tamilblasters_scraper = tamilblasters.TamilBlasters()
@@ -178,7 +178,7 @@ def get_web_stream(type: str, id: str) -> Response:
         ]
 
         anime_series_scrapers: List[Tuple[Callable[[str, str, str, str, str, Optional[str], str, str], Optional[List[WebResponse]]], str]] = [
-            # (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := vidplay_scraper.get_series(id, tmdb_id, season, episode)) else None, 'vidplay'),
+            (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := yomi_scraper.get_series(ani_id, str(ani_eps))) else None, 'yomi'),
             (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := four_animo_scraper.get_series(ani_id, str(ani_eps))) else None, '4anime'),
             (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := vidnest_scraper.get_series(ani_id, str(ani_eps))) else None, 'vidnest'),
             (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := miruro_scraper.get_series(mal_id, str(mal_eps))) else None, 'miruro'),
