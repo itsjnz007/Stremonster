@@ -11,7 +11,7 @@ from threading import Event
 
 class AetherScraper(Scraper):
     def __init__(self):
-        super().__init__(source="aether", base_url="https://aether.bar/", headless=False)
+        super().__init__(source="aether", base_url="https://aether.bar/")
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/media/tmdb-movie-{tmdb_id}"
