@@ -157,7 +157,7 @@ def get_web_stream(type: str, id: str) -> Response:
                 else: return build_web_response(first_result, 0, unified=True)
 
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
-            (lambda tmdb_id: [result] if (result := aether_scraper.get_movie(tmdb_id)) else None, 'aether'),
+            # (lambda tmdb_id: [result] if (result := aether_scraper.get_movie(tmdb_id)) else None, 'aether'),
             (lambda tmdb_id: [result] if (result := viduki_scraper.get_movie(tmdb_id)) else None, 'viduki'),
             (lambda tmdb_id: [result] if (result := videasy_scraper.get_movie(tmdb_id)) else None, 'videasy'),
             (lambda tmdb_id: [result] if (result := vidnest_general_scraper.get_movie(tmdb_id)) else None, 'vidnest'),
@@ -169,7 +169,7 @@ def get_web_stream(type: str, id: str) -> Response:
         ]
 
         series_scrapers: List[Tuple[Callable[[str, str, str], Optional[List[WebResponse]]], str]] = [
-            (lambda tmdb, s, e: [result] if (result := aether_scraper.get_series(tmdb, s, e)) else None, 'aether'),
+            # (lambda tmdb, s, e: [result] if (result := aether_scraper.get_series(tmdb, s, e)) else None, 'aether'),
             (lambda tmdb, s, e: [result] if (result := viduki_scraper.get_series(tmdb, s, e)) else None, 'viduki'),
             (lambda tmdb, s, e: [result] if (result := videasy_scraper.get_series(tmdb, s, e)) else None, 'videasy'),
             (lambda tmdb, s, e: [result] if (result := vidnest_general_scraper.get_series(tmdb, s, e)) else None, 'vidlink'),
