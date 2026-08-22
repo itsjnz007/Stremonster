@@ -14,7 +14,8 @@ class YomiScraper(Scraper):
                           base_url="https://yomi.to"
                           )
     
-    def get_series(self, anilist_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+    def get_series(self, anilist_id: Optional[str], episode: Optional[str], stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+        if not anilist_id or not episode: return
         url = f"{self.base_url}/watch/{anilist_id}/{episode}"
         result = self.get_stream(url, stop_event, title=f"{self.source.title()} (Anime)")
         return result

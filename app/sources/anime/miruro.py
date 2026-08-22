@@ -12,7 +12,8 @@ class MiruroScraper(Scraper):
         super().__init__(base_url="https://www.miruro.tv", source="miruro",
                           stream_url_pattern= r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/seg)\S*')
     
-    def get_series(self, animal_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+    def get_series(self, animal_id: Optional[str], episode: Optional[str], stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+        if not animal_id or not episode: return
         url = f"{self.base_url}/watch/{animal_id}?ep={episode}"
         result = self.get_stream(url, stop_event, title="Miruro (Anime)")
         return result
