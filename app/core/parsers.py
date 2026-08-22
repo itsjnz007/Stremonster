@@ -25,21 +25,28 @@ class Parsers:
         
         return bool(re.search(pattern, norm_item))
 
+
     def normalize_text(self, text: str) -> str:
-        """Removes special characters and maps numerical synonyms to digits."""
-        # 1. Map number words to digits to standardize
-        num_map = {
+        """Maps numerical synonyms/symbols to digits, then removes special characters."""
+        # 1. Map symbols and number words before removing punctuation
+        mapping = {
+            "&": "and",
             "one": "1", "two": "2", "three": "3", "four": "4", "five": "5"
         }
         
-        # 2. Lowercase and replace non-alphanumeric with spaces
-        text = re.sub(r'[^a-zA-Z0-9\s]', ' ', text.lower())
+        text = text.lower()
         
-        # 3. Standardize words
-        words = text.split()
-        normalized_words = [num_map.get(w, w) for w in words]
+        # Replace keys while maintaining boundaries for word-based keys
+        pattern = re.compile(
+            r'|'.join(r'\b{}\b'.format(re.escape(k)) if k.isalnum() else re.escape(k) for k in mapping.keys())
+        )
+        text = pattern.sub(lambda m: mapping[m.group(0)], text)
         
-        return " ".join(normalized_words)
+        # 2. Replace remaining non-alphanumeric characters with spaces
+        text = re.sub(r'[^a-zA-Z0-9\s]', ' ', text)
+        
+        # 3. Clean up extra spaces
+        return " ".join(text.split())
     
 
     def find_all_matches(
