@@ -105,7 +105,7 @@ class AniBridgeV3Resolver:
             logger.error(f'Could not extract anilist mapping for tvdb_id {tvdb_id}. mal_id: {mal_id}, source_range: {source_range}, target_range: {target_range}')
             return None, None
         eps_number = self.convert_episode(source_range, target_range, int(episode))
-        return mal_id, eps_number
+        return mal_id, str(eps_number)
     
     def get_anilist_info(self, imdb_id: str, season: str, episode: str):
         tvdb_id: Optional[str] = self.get_tvdb_id(imdb_id)
@@ -122,7 +122,7 @@ class AniBridgeV3Resolver:
             logger.error(f'Could not extract anilist mapping for tvdb_id {tvdb_id}. mal_id: {mal_id}, source_range: {source_range}, target_range: {target_range}')
             return None, None
         eps_number = self.convert_episode(source_range, target_range, int(episode))
-        return mal_id, eps_number
+        return mal_id, str(eps_number)
         
 
 
