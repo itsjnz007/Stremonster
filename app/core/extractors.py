@@ -101,7 +101,7 @@ class StreamExtractor:
 
         def process_results(tasks: List[Callable[[Any], Optional[List[WebResponse]]]], seek: int) -> List[WebResponse] | None:
             nonlocal seek_state
-            self.logger.warning(f"Using states 'current_index': {current_index}, 'stream_length': {stream_length}, 'seek_state': {seek_state}")
+            self.logger.debug(f"Using states 'current_index': {current_index}, 'stream_length': {stream_length}, 'seek_state': {seek_state}")
             results_iter = self.threadpool.get_all(tasks[seek_state:seek_state+seek])
             seek_state += seek
             first_result: Optional[List[WebResponse]] = next(results_iter, None)
@@ -124,7 +124,7 @@ class StreamExtractor:
                 else: return self.build_web_response(id, type, first_result, 0, unified=True)
 
             elif len(tasks)>seek_state:
-                return process_results(tasks=tasks, seek=1)
+                return process_results(tasks=tasks, seek=seek)
             self.logger.warning(f"Stream seek exceeded available tasks. Ignoring stream fetch for id '{id}'.")
 
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
