@@ -24,37 +24,9 @@ thread_pool_torrent = MultiThreading(max_workers=1)
 tmdb_cache = TmdbCache()
 web_cache = WebCache()
 torrent_cache = TorrentCache()
-# ignore_source_cache = IgnoreSourceCache()
 processing_cache = ProcessingCache()
 catalog = Catalog(tmdb_cache)
-
 stream_extractor = StreamExtractor()
-
-# # catalog.build_catalog(pages=1)  # Pre-build catalog on startup
-# anibride = AniBridgeV3Resolver()
-
-# # General Scrapers
-# flicky_scraper = flicky.FlickyScraper()
-# vidking_scraper = vidking.VidkingScraper()
-# vidsrc_scraper = vidsrc.VidsrcScraper()
-# cineby_scraper = cineby.CinebyScraper()
-# vidnest_general_scraper = vidnest_general.VidnestScraper()
-# viduki_scraper = viduki.VidukiScraper()
-# fmovies_scraper = fmovies.FmoviesScraper()
-# videasy_scraper = videasy.VideasyScraper()
-# aether_scraper = aether.AetherScraper()
-
-# # Anime Scrapers
-# four_animo_scraper = four_animo.FourAnimoScraper()
-# miruro_scraper = miruro.MiruroScraper()
-# vidnest_scraper = vidnest.VidnestScraper()
-# yomi_scraper = yomi.YomiScraper()
-
-# # Regional Scrapers
-# tamilblasters_scraper = tamilblasters.TamilBlasters()
-# moviesda_scraper = moviesda.Moviesda()
-
-# tmdb_client = Tmdb(tmdb_cache)
 
 
 # Web-based links addon (fast, no torrents)
@@ -136,22 +108,10 @@ def get_torrent_stream(type: str, id: str) -> Response:
         else:
             logger.info(f"Total time taken to fetch web stream: {time.time() - start_time:.2f} seconds")
             return torrentio_module.get_series(id, thread_pool_torrent, True)
+
+    while processing_cache.get_status(id, 'torrent') and start_time+120>time.time(): time.sleep(1)
         
-    # def respond_otherwise(results: dict[str, List[TorrentResponse]]):
-    #     # If web is still processing, wait briefly for it to finish (so we prefer web results)
-    #     status = processing_cache.get_status(id) or {}
-    #     web_status = status.get('web') or {}
-    #     wait_total, wait_step, wait_limit = 0.0, 0.1, 30
-    #     while web_status.get('processing') and wait_total < wait_limit:
-    #         time.sleep(wait_step)
-    #         wait_total += wait_step
-    #         status = processing_cache.get_status(id) or {}
-    #         web_status = status.get('web') or {}
-    #     if web_status.get('completed') and not web_status.get('has_results'):
-    #         return respond_with(results)
-    #     return respond_with({'streams': []})
-        
-    cache = torrent_cache.get(key=id, upto_mins=60*3)
+    cache = torrent_cache.get(key=id, upto_mins=USE_CACHE_UPTO)
     if cache:
         logger.info("Returning cached torrent result...")
         return respond_with(cache)

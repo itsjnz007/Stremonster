@@ -10,6 +10,7 @@ import logging
 from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as vidsrc, cineby as cineby, \
     vidnest as vidnest_general, viduki as viduki, fmovies as fmovies, \
     videasy as videasy, aether as aether
+from app.sources.general import *
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo, \
     yomi as yomi
 from app.sources.regional import tamilblasters as tamilblasters, moviesda as moviesda
@@ -17,6 +18,7 @@ from app.core.caching import TmdbCache, WebCache
 from app.config import TUNNEL_URL, USE_CACHE_UPTO
 from app.external.tmdb import Tmdb
 from app.external.anilist import AniBridgeV3Resolver
+
 
 # General Scrapers
 flicky_scraper = flicky.FlickyScraper()
@@ -27,7 +29,10 @@ vidnest_general_scraper = vidnest_general.VidnestScraper()
 viduki_scraper = viduki.VidukiScraper()
 fmovies_scraper = fmovies.FmoviesScraper()
 videasy_scraper = videasy.VideasyScraper()
-aether_scraper = aether.AetherScraper()
+
+# Aether
+nebula = aether.Nebula()
+link = aether.Link()
 
 # Anime Scrapers
 four_animo_scraper = four_animo.FourAnimoScraper()
@@ -123,7 +128,8 @@ class StreamExtractor:
             self.logger.warning(f"Stream seek exceeded available tasks. Ignoring stream fetch for id '{id}'.")
 
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
-            # (lambda tmdb_id: [result] if (result := aether_scraper.get_movie(tmdb_id)) else None, 'aether'),
+            (lambda tmdb_id: [result] if (result := nebula.get_movie(tmdb_id)) else None, 'nebula'),
+            (lambda tmdb_id: [result] if (result := link.get_movie(tmdb_id)) else None, 'link'),
             (lambda tmdb_id: [result] if (result := viduki_scraper.get_movie(tmdb_id)) else None, 'viduki'),
             (lambda tmdb_id: [result] if (result := videasy_scraper.get_movie(tmdb_id)) else None, 'videasy'),
             (lambda tmdb_id: [result] if (result := vidnest_general_scraper.get_movie(tmdb_id)) else None, 'vidnest'),
