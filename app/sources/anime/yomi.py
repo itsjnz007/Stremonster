@@ -26,7 +26,7 @@ class YomiScraper(Scraper):
         return Proxy.get_proxy_url(WebResponse(
             url=stream_url,
             name="1080p / 720p",
-            title=self.source.title(),
+            title=self.source.title()+" (Anime)",
             headers=headers,
             subtitles=[
                 Subtitle(
@@ -45,7 +45,6 @@ class YomiScraper(Scraper):
     
     def get_series(self, mal_id: Optional[str], episode: Optional[str], stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         response_1 = requests.get(f"https://megaplay.buzz/stream/mal/{mal_id}/{episode}/sub", headers=self.headers)
-        # print(response_1.text)
         if response_1.status_code in [200]:
             html = response_1.text
             match = re.search(
@@ -57,7 +56,6 @@ class YomiScraper(Scraper):
             )
             if match: 
                 data_id, real_id, media_id = match.groups() # type: ignore
-                print(data_id)
                 response_2 = requests.get(f"https://megaplay.buzz/stream/getSources?id={data_id}&id={data_id}", headers=self.headers)
                 print(response_2.text)
                 if response_2.status_code in [200]:
