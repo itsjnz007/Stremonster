@@ -11,9 +11,10 @@ from typing import Any, ClassVar
 from app.models.responses import WebResponse
 from app.config import CACHE_DIR
 from app.core.logger import Logger
-# from urllib.parse import parse_qs, urlparse
+from app.core.multithreading import MultiThreading
 import logging
 
+threadpool = MultiThreading(1)
 
 logger = Logger('caching', logging.INFO)
 
@@ -117,23 +118,29 @@ class WebCache(Caching):
         with self._write_lock:
             cache = self._get_cache()
             timestamp = datetime.now(timezone.utc).isoformat()
-            cache[key] = {"value": {"current_index": 0, "streams": copy.deepcopy([value])}, "ts": timestamp}
+            cache[key] = {"value": {"current_index": 0, "seek_state": 0, "streams": copy.deepcopy([value])}, "ts": timestamp}
             self._save_to_disk(self._get_cache_path(), cache)
 
-    def extend(self, key: str, web_responses: list[WebResponse]) -> None:
+    def extend(self, key: str, web_responses: list[WebResponse], seek_state: int) -> None:
         """Append a WebResponse to the list of streams for a given key."""
         with self._write_lock:
             cache = self._get_cache()
             timestamp = datetime.now(timezone.utc).isoformat()
             if key not in cache:
-                cache[key] = {"value": {"current_index": 0, "streams": []}, "ts": timestamp}
+                cache[key] = {"value": {"current_index": 0, "seek_state": seek_state, "streams": []}, "ts": timestamp}
 
+            cache[key]["value"]["seek_state"] = seek_state
             cache[key]["value"]["streams"].extend(copy.deepcopy([web_responses]))
             cache[key]["ts"] = timestamp  # Update timestamp on append
             self._save_to_disk(self._get_cache_path(), cache)
     
     def switch_source(self, key: str) -> bool:
         """Switch to the next source in the list for a given key."""
+        from app.core.extractors import StreamExtractor
+
+        stream_extractor = StreamExtractor()
+        type = "series" if len(key.split(":"))>1 else "movie"
+        threadpool.run_in_background(lambda _: stream_extractor.extract(key, type, seek=1))
         with self._write_lock:
             cache = self._get_cache()
             if key not in cache or not cache[key]["value"]["streams"]:
@@ -205,19 +212,18 @@ class ProcessingCache(Caching):
             cache = self._get_cache()
             timestamp = datetime.now(timezone.utc).isoformat()
             entry = cache.get(key, {})
-            entry.setdefault("web", {"processing": False, "completed": False, "has_results": False})
-            entry.setdefault("torrent", {"processing": False, "completed": False, "has_results": False})
+            entry.setdefault("web", {"processing": False, "has_results": False})
+            entry.setdefault("torrent", {"processing": False, "has_results": False})
             entry[kind]["processing"] = False
-            entry[kind]["completed"] = True
             entry[kind]["has_results"] = bool(has_results)
             entry["ts"] = timestamp
             cache[key] = entry
             # self._save_to_disk(self._get_cache_path(), cache)
 
-    def get_status(self, key: str) -> dict[str, dict[str, bool]] | None:
-        entry = self._get_cache().get(key)
+    def get_status(self, key: str, kind: str) -> bool:
+        entry = self._get_cache().get(key, {}).get(kind, {}).get('processing', False)
         if not entry:
-            return None
+            return False
         return copy.deepcopy(entry)
 
 if __name__ == "__main__":

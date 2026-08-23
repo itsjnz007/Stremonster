@@ -264,7 +264,9 @@ class Proxy:
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Headers"] = "*"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, HEAD"
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
         response.headers["Connection"] = "close"
         response.headers["Accept-Ranges"] = "bytes"
         return response
@@ -350,7 +352,7 @@ class Proxy:
                 logger.debug(f"current_index: {current_index} | source_index: {source_index}")
                 if current_index != source_index:
                     logger.error(f"Stream aborted for id {id}")
-                    return Response("Stream aborted", status=410)
+                    return Response("Stream aborted", status=503)
 
         try:
             if request.method == "HEAD":
@@ -476,7 +478,7 @@ class Proxy:
                                         if current_index == source_index and web_cache.switch_source(id): 
                                             break
                                         else: 
-                                            logger.debug('Ignoring source switch since source already switched or no other source available.')
+                                            logger.warning('Ignoring source switch since source already switched or no other source available.')
                                     else: 
                                         logger.warning("'id' or 'index' not available, skipping source switch")
 
