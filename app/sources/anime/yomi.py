@@ -57,7 +57,9 @@ class YomiScraper(Scraper):
             )
             if match: 
                 data_id, real_id, media_id = match.groups() # type: ignore
-                response_2 = requests.get(f"https://megaplay.buzz/stream/getSources?id={data_id}", headers=self.headers)
+                print(data_id)
+                response_2 = requests.get(f"https://megaplay.buzz/stream/getSources?id={data_id}&id={data_id}", headers=self.headers)
+                print(response_2.text)
                 if response_2.status_code in [200]:
                     json = response_2.json()
                     return self.build_response(
@@ -68,4 +70,4 @@ class YomiScraper(Scraper):
 
 if __name__ == "__main__":
     scraper = YomiScraper()
-    print(scraper.get_series('56566', '3'))
+    print(scraper.get_series('56566', '129'))
