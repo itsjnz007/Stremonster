@@ -16,7 +16,7 @@ class YomiScraper(Scraper):
     }
 
     def __init__(self):
-        super().__init__(source="yomi",
+        super().__init__(source="megaplay",
                           stream_url_pattern=r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/mp4)\S*',
                           base_url="https://yomi.to"
                           )
