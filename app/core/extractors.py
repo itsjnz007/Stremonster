@@ -141,7 +141,8 @@ class StreamExtractor:
         ]
 
         series_scrapers: List[Tuple[Callable[[str, str, str], Optional[List[WebResponse]]], str]] = [
-            # (lambda tmdb, s, e: [result] if (result := aether_scraper.get_series(tmdb, s, e)) else None, 'aether'),
+            (lambda tmdb_id, s, e: [result] if (result := nebula.get_series(tmdb_id, s, e)) else None, 'nebula'),
+            (lambda tmdb_id, s, e: [result] if (result := link.get_series(tmdb_id, s, e)) else None, 'link'),
             (lambda tmdb, s, e: [result] if (result := viduki_scraper.get_series(tmdb, s, e)) else None, 'viduki'),
             (lambda tmdb, s, e: [result] if (result := videasy_scraper.get_series(tmdb, s, e)) else None, 'videasy'),
             (lambda tmdb, s, e: [result] if (result := vidnest_general_scraper.get_series(tmdb, s, e)) else None, 'vidlink'),

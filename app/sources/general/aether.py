@@ -71,5 +71,5 @@ class Link(AetherScraper):
 if __name__ == "__main__":
     scraper = Link()
 
-    res = scraper.get_movie("1288445")
+    res = scraper.get_series("203614", "1", "1")
     print(f"Response: {res}")
