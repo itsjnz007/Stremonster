@@ -14,7 +14,7 @@ from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo a
     yomi as yomi
 from app.sources.regional import tamilblasters as tamilblasters, moviesda as moviesda
 from app.core.caching import TmdbCache, WebCache
-from app.config import TUNNEL_URL
+from app.config import TUNNEL_URL, USE_CACHE_UPTO
 from app.external.tmdb import Tmdb
 from app.external.anilist import AniBridgeV3Resolver
 
@@ -78,7 +78,7 @@ class StreamExtractor:
         ) for idx in range(len(streams))]
 
     def extract(self, id: str, type: str, seek: int = 1, user_agent: Optional[str] = None) -> List[WebResponse] | None:
-        cache: Optional[dict[str, Any]] = self.web_cache.get(id)
+        cache: Optional[dict[str, Any]] = self.web_cache.get(id, USE_CACHE_UPTO)
         current_index: int = cache.get('current_index', 0) if cache else 0
         stream_length: int = len(cache.get('streams', [])) if cache else 0
         seek_state: int = cache.get('seek_state', 0) if cache else 0

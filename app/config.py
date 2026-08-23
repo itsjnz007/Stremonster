@@ -77,9 +77,7 @@ MANIFEST_CATALOG: dict[str, object] = {
     "catalogs": get_catalog_metadata()
 }
 
-ABSOLUTE_EPISODE_FOR = [
-    "tt0388629",
-]
+USE_CACHE_UPTO: int = 60*3
 
 if __name__ == "__main__":
     from pprint import pprint

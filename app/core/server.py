@@ -9,7 +9,7 @@ from app.sources import torrentio as torrentio_module
 from flask import Flask, request
 from flask.wrappers import Response
 from app.core.logger import Logger
-from app.config import MANIFEST_CATALOG, MANIFEST_TORRENTS, MANIFEST_WEB
+from app.config import MANIFEST_CATALOG, MANIFEST_TORRENTS, MANIFEST_WEB, USE_CACHE_UPTO
 from app.core.caching import TmdbCache, WebCache, TorrentCache, ProcessingCache
 from app.core.multithreading import MultiThreading
 from app.core.proxy import respond_with, Proxy
@@ -97,7 +97,7 @@ def get_web_stream(type: str, id: str) -> Response:
 
     while processing_cache.get_status(id, 'web') and start_time+120>time.time(): time.sleep(1)
 
-    cache = web_cache.get(id, 60*3)
+    cache = web_cache.get(id, USE_CACHE_UPTO)
     if cache: 
         stream_index: Optional[int] = cache.get("current_index")
         stream_group: list[list[WebResponse]] = cache.get("streams", [])
