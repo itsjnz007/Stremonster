@@ -20,16 +20,16 @@ class AetherScraper():
 
     headers = {
         "Origin": "https://aether.ist",
-        "Referer": "https://aether.ist/"
+        "Referer": "https://aether.ist/",
     }
 
-    def build_response(self, url: Optional[str]) -> Optional[WebResponse]:
+    def build_response(self, url: Optional[str], headers: dict[str, str] = headers) -> Optional[WebResponse]:
         if not url: return
         return Proxy.get_proxy_url(WebResponse(
             url=url,
             name="1080p / 720p",
             title=self.source.title(),
-            headers=self.headers,
+            headers=headers,
             subtitles=[],
             contentType = None,
             behaviorHints = None,
@@ -51,16 +51,20 @@ class Nebula(AetherScraper):
         if response.status_code in [200]: return self.build_response(response.json().get('streams', [{}])[0].get('url'))
 
 class Link(AetherScraper):
+    headers_2 = {
+        "Origin": "https://nextgencloudfabric.com",
+        "Referer": "https://nextgencloudfabric.com/"
+    }
     def __init__(self, source: str = "link") -> None:
         super().__init__(source)
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         response = requests.get(f"https://link.aether.cx/movie/{tmdb_id}", headers=self.headers)
-        if response.status_code in [200]: return self.build_response(response.json().get('stream'))
+        if response.status_code in [200]: return self.build_response(response.json().get('stream'), headers=self.headers_2)
 
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         response = requests.get(f"https://link.aether.cx/tv/{tmdb_id}/{season}/{episode}", headers=self.headers)
-        if response.status_code in [200]: return self.build_response(response.json().get('stream'))
+        if response.status_code in [200]: return self.build_response(response.json().get('stream'), headers=self.headers_2)
         
     
 
