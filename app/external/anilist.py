@@ -108,6 +108,7 @@ class AniBridgeV3Resolver:
             eps_number = self.convert_episode(source_range, target_range, int(episode))
             return mal_id, str(eps_number)
         except Exception as e:
+            logger.error(f"Exception while fetching mal info: {e}")
             return None, None
     
     def get_anilist_info(self, imdb_id: str, season: str, episode: str):
@@ -127,7 +128,8 @@ class AniBridgeV3Resolver:
                 return None, None
             eps_number = self.convert_episode(source_range, target_range, int(episode))
             return mal_id, str(eps_number)
-        except:
+        except Exception as e:
+            logger.error(f"Exception while fetching anilist info: {e}")
             return None, None
         
 
