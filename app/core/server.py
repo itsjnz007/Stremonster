@@ -174,6 +174,10 @@ def proxy_stream_m4s():
 def proxy_vvt():
     return Proxy.proxy("text/vtt")
 
+@app.route("/proxy.srt")
+def proxy_srt():
+    return Proxy.proxy("text/plain")
+
 @app.route("/proxy")
 def proxy() -> Response | tuple[dict[str, str], int]:
     return Proxy.proxy()

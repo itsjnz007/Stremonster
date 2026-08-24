@@ -32,7 +32,7 @@ class FourAnimoScraper(Scraper):
                     sources = json.get('sources', []),
                     if sources:
                         source_url = self.base_url + sources[0][0].get('file')
-                        tracks = json.get('tracks', [])
+                        tracks = [self.base_url + url for url in json.get('tracks', [])]
 
                         return self.build_response(
                             source_url,
