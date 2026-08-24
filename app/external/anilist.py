@@ -91,38 +91,44 @@ class AniBridgeV3Resolver:
         logger.error(f"No TVDB mapping found for IMDB ID: {imdb_id}")
     
     def get_mal_info(self, imdb_id: str, season: str, episode: str):
-        tvdb_id: Optional[str] = self.get_tvdb_id(imdb_id)
-        if not tvdb_id: 
-            logger.error(f"No tvdb mapping found for imdb id: {imdb_id}")
+        try:
+            tvdb_id: Optional[str] = self.get_tvdb_id(imdb_id)
+            if not tvdb_id: 
+                logger.error(f"No tvdb mapping found for imdb id: {imdb_id}")
+                return None, None
+            logger.debug(f"Found tvdb id '{tvdb_id}' mapping for imdb id: {imdb_id}")
+            mapping = self.mappings_db.get(f'tvdb_show:{tvdb_id}:s{season}')
+            if not mapping: 
+                logger.error(f"Could not find mapping for tvdb_id {tvdb_id}")
+                return None, None
+            mal_id, source_range, target_range = self.extract_mapping(mapping, 'mal')
+            if not mal_id or not source_range or not target_range:
+                logger.error(f'Could not extract anilist mapping for tvdb_id {tvdb_id}. mal_id: {mal_id}, source_range: {source_range}, target_range: {target_range}')
+                return None, None
+            eps_number = self.convert_episode(source_range, target_range, int(episode))
+            return mal_id, str(eps_number)
+        except Exception as e:
             return None, None
-        logger.debug(f"Found tvdb id '{tvdb_id}' mapping for imdb id: {imdb_id}")
-        mapping = self.mappings_db.get(f'tvdb_show:{tvdb_id}:s{season}')
-        if not mapping: 
-            logger.error(f"Could not find mapping for tvdb_id {tvdb_id}")
-            return None, None
-        mal_id, source_range, target_range = self.extract_mapping(mapping, 'mal')
-        if not mal_id or not source_range or not target_range:
-            logger.error(f'Could not extract anilist mapping for tvdb_id {tvdb_id}. mal_id: {mal_id}, source_range: {source_range}, target_range: {target_range}')
-            return None, None
-        eps_number = self.convert_episode(source_range, target_range, int(episode))
-        return mal_id, str(eps_number)
     
     def get_anilist_info(self, imdb_id: str, season: str, episode: str):
-        tvdb_id: Optional[str] = self.get_tvdb_id(imdb_id)
-        if not tvdb_id: 
-            logger.error(f"No tvdb mapping found for imdb id: {imdb_id}")
+        try:
+            tvdb_id: Optional[str] = self.get_tvdb_id(imdb_id)
+            if not tvdb_id: 
+                logger.error(f"No tvdb mapping found for imdb id: {imdb_id}")
+                return None, None
+            logger.debug(f"Found tvdb id '{tvdb_id}' mapping for imdb id: {imdb_id}")
+            mapping = self.mappings_db.get(f'tvdb_show:{tvdb_id}:s{season}')
+            if not mapping: 
+                logger.error(f"Could not find mapping for tvdb_id {tvdb_id}")
+                return None, None
+            mal_id, source_range, target_range = self.extract_mapping(mapping, 'anilist')
+            if not mal_id or not source_range or not target_range:
+                logger.error(f'Could not extract anilist mapping for tvdb_id {tvdb_id}. mal_id: {mal_id}, source_range: {source_range}, target_range: {target_range}')
+                return None, None
+            eps_number = self.convert_episode(source_range, target_range, int(episode))
+            return mal_id, str(eps_number)
+        except:
             return None, None
-        logger.debug(f"Found tvdb id '{tvdb_id}' mapping for imdb id: {imdb_id}")
-        mapping = self.mappings_db.get(f'tvdb_show:{tvdb_id}:s{season}')
-        if not mapping: 
-            logger.error(f"Could not find mapping for tvdb_id {tvdb_id}")
-            return None, None
-        mal_id, source_range, target_range = self.extract_mapping(mapping, 'anilist')
-        if not mal_id or not source_range or not target_range:
-            logger.error(f'Could not extract anilist mapping for tvdb_id {tvdb_id}. mal_id: {mal_id}, source_range: {source_range}, target_range: {target_range}')
-            return None, None
-        eps_number = self.convert_episode(source_range, target_range, int(episode))
-        return mal_id, str(eps_number)
         
 
 
