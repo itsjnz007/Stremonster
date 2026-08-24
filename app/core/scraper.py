@@ -269,7 +269,7 @@ class Scraper:
                 headers=headers or self.headers,
                 subtitles=[
                     Subtitle(
-                        id=i.get('label', 'eng'),
+                        id=i.get('label', 'English'),
                         lang="eng",
                         url=i.get('file', '')
                     )
