@@ -69,7 +69,7 @@ class StreamExtractor:
         imdb_id = id.split(':')[0] if type == 'series' else id
         if len(streams) > 1: unified = False
         return [WebResponse(
-            title = "Stream from\n" + streams[idx]['title'],
+            title = "from\n" + streams[idx]['title'],
             name = streams[idx]['name'],
             url = streams[idx]['url']+f"&index={stream_idx}:{idx}" if not unified else self.build_unified_stream_url(id, streams[idx]['contentType']),
             headers = {},
