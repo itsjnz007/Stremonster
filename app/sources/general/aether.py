@@ -9,67 +9,61 @@ from threading import Event
 import requests
 from app.core.logger import Logger
 import logging
-from app.core.proxy import Proxy
+from app.core.scraper import Scraper
 
 logger = Logger('aether', logging.INFO)
 
-
-class AetherScraper():
-    def __init__(self, source: str = "aether") -> None:
-        self.source = source
-
-    headers = {
-        "Origin": "https://aether.ist",
-        "Referer": "https://aether.ist/",
-    }
-
-    def build_response(self, url: Optional[str], headers: dict[str, str] = headers) -> Optional[WebResponse]:
-        if not url: return
-        return Proxy.get_proxy_url(WebResponse(
-            url=url,
-            name="1080p / 720p",
-            title=self.source.title(),
-            headers=headers,
-            subtitles=[],
-            contentType = None,
-            behaviorHints = None,
-            cacheMaxAge = None,
-            staleRevalidate = None,
-            staleError = None,
-        ))
-
-class Nebula(AetherScraper):
+class Nebula(Scraper):
     def __init__(self, source: str = "nebula") -> None:
-        super().__init__(source)
+        super().__init__(base_url = "https://nebula.aether.cx", source=source)
         
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        response = requests.get(f"https://nebula.aether.cx/movie/{tmdb_id}?ser=tik", headers=self.headers)
+        response = requests.get(f"{self.base_url}/movie/{tmdb_id}?ser=tik", headers=self.headers)
         if response.status_code in [200]: return self.build_response(response.json().get('streams', [{}])[0].get('url'))
 
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        response = requests.get(f"https://nebula.aether.cx/tv/{tmdb_id}/{season}/{episode}?ser=tik", headers=self.headers)
+        response = requests.get(f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}?ser=tik", headers=self.headers)
         if response.status_code in [200]: return self.build_response(response.json().get('streams', [{}])[0].get('url'))
 
-class Link(AetherScraper):
+class Lul(Scraper):
+    def __init__(self, source: str = "lul") -> None:
+        super().__init__(base_url = "https://lul.aether.cx", source=source)
+        
+    def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+        response = requests.get(f"{self.base_url}/movie/{tmdb_id}", headers=self.headers)
+        if response.status_code in [200]: return self.build_response(response.json().get('stream'))
+
+    def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+        response = requests.get(f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}", headers=self.headers)
+        if response.status_code in [200]: return self.build_response(response.json().get('stream'))
+
+class Link(Scraper):
     headers_2 = {
         "Origin": "https://nextgencloudfabric.com",
         "Referer": "https://nextgencloudfabric.com/"
     }
     def __init__(self, source: str = "link") -> None:
-        super().__init__(source)
+        super().__init__(base_url = "https://link.aether.cx", source=source)
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        response = requests.get(f"https://link.aether.cx/movie/{tmdb_id}", headers=self.headers)
+        response = requests.get(f"{self.base_url}/movie/{tmdb_id}", headers=self.headers)
         if response.status_code in [200]: return self.build_response(response.json().get('stream'), headers=self.headers_2)
 
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        response = requests.get(f"https://link.aether.cx/tv/{tmdb_id}/{season}/{episode}", headers=self.headers)
+        response = requests.get(f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}", headers=self.headers)
         if response.status_code in [200]: return self.build_response(response.json().get('stream'), headers=self.headers_2)
         
     
 
 if __name__ == "__main__":
-    scraper = Link()
+    scraper = Nebula()
+    res = scraper.get_movie("634649")
+    print(f"Response: {res}")
 
-    res = scraper.get_series("203614", "1", "1")
+    scraper = Lul()
+    res = scraper.get_movie("652")
+    print(f"Response: {res}")
+
+    scraper = Link()
+    res = scraper.get_movie("652")
     print(f"Response: {res}")

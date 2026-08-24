@@ -48,6 +48,10 @@ class Scraper:
         self.log_requests = log_requests
         self.page_hook = page_hook
         self.base_url = base_url
+        self.headers = {
+            "Origin": base_url,
+            "Referer": base_url + '/'
+        }
 
     def _start_loop(self):
         Scraper._loop = asyncio.new_event_loop()
@@ -247,12 +251,36 @@ class Scraper:
         try:
             result = future.result(timeout=(self.timeout / 1000) + 15)
             if result: 
-                result = Proxy.get_proxy_url(result)
+                result = Proxy.apply_proxy(result)
                 if result: 
                     return result
         except Exception as e:
             self.logger.error(f"Scraping error: {e}")
             return None
+
+    def build_response(self, stream_url: Optional[str], subtitles: list[dict[str, str]] = [], headers: dict[str, str] | None = None) -> Optional[WebResponse]:
+
+            if not stream_url: return
+    
+            return Proxy.apply_proxy(WebResponse(
+                url=stream_url,
+                name="1080p / 720p",
+                title=self.source.title()+" (Anime)",
+                headers=headers or self.headers,
+                subtitles=[
+                    Subtitle(
+                        id=i.get('label', 'eng'),
+                        lang="eng",
+                        url=i.get('file', '')
+                    )
+                    for i in subtitles
+                ],
+                contentType = None,
+                behaviorHints = None,
+                cacheMaxAge = None,
+                staleRevalidate = None,
+                staleError = None,
+            ))
 
     @classmethod
     async def _shutdown_async(cls):

@@ -6,40 +6,40 @@ from app.core.scraper import Scraper
 from app.models.responses import WebResponse
 from typing import Optional
 from threading import Event
-from playwright.async_api import Page
+import requests, re
 
 class FourAnimoScraper(Scraper):
     def __init__(self):
-        async def play_button_hook(page: Page, _: Optional[Event]) -> None:
-            try:
-                # Use a more specific selector: 
-                # The .jw-icon-display class is the one that appears in the center of the video
-                # The :visible pseudo-class ensures we only try to click the one currently shown
-                selector = ".jw-icon-display.jw-icon[aria-label='Play']:visible"
-                
-                # Wait for the element to be present
-                await page.wait_for_selector(selector, timeout=10000)
-                
-                # Click the first match specifically
-                await page.locator(selector).first.click(force=True)
-                
-                print("Successfully clicked the main display play button.")
-            except Exception as e:
-                print(f"Hook error: {e}")
-
         super().__init__(source="4animo",
-                          stream_url_pattern= r'https?://[^\s]+\?t=[^\s&]+&type=[^\s]+',
-                          page_hook=play_button_hook,
                           base_url="https://cdn.4animo.xyz"
                           )
     
-    def get_series(self, anilist_id: Optional[str], episode: Optional[str], stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        if not anilist_id or not episode: return
+    def get_series(self, anilist_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/embed/hd-1/ani/{anilist_id}/{episode}/sub?k=1&autoPlay=1"
-        result = self.get_stream(url, stop_event, title="4animo (Anime)")
-        return result
+        self.logger.info(f"GET stream: {url}")
+        response_1 = requests.get(url, headers=self.headers)
+        if response_1.status_code in [200]:
+            html = response_1.text
+            match = re.search(
+                r'''var\s+sourcesUrl\s*=\s*['"]([^'"]+)['"]''',
+                html
+            )
+            if match: 
+                api_path = match.groups()[0]
+                response_2 = requests.get(f"{self.base_url}{api_path}", headers=self.headers)
+                if response_2.status_code in [200]:
+                    json = response_2.json()
+                    sources = json.get('sources', []),
+                    if sources:
+                        source_url = self.base_url + sources[0][0].get('file')
+                        tracks = json.get('tracks', [])
+
+                        return self.build_response(
+                            source_url,
+                            tracks
+                        )
         
 
 if __name__ == "__main__":
     scraper = FourAnimoScraper()
-    print(scraper.get_series('178025', '13'))
+    print(scraper.get_series('56566', '129'))

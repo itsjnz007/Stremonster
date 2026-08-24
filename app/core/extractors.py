@@ -32,6 +32,7 @@ videasy_scraper = videasy.VideasyScraper()
 
 # Aether
 nebula = aether.Nebula()
+lul = aether.Lul()
 link = aether.Link()
 
 # Anime Scrapers
@@ -129,6 +130,7 @@ class StreamExtractor:
 
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
             (lambda tmdb_id: [result] if (result := nebula.get_movie(tmdb_id)) else None, 'nebula'),
+            (lambda tmdb_id: [result] if (result := lul.get_movie(tmdb_id)) else None, 'lul'),
             (lambda tmdb_id: [result] if (result := link.get_movie(tmdb_id)) else None, 'link'),
             (lambda tmdb_id: [result] if (result := viduki_scraper.get_movie(tmdb_id)) else None, 'viduki'),
             (lambda tmdb_id: [result] if (result := videasy_scraper.get_movie(tmdb_id)) else None, 'videasy'),
@@ -142,6 +144,7 @@ class StreamExtractor:
 
         series_scrapers: List[Tuple[Callable[[str, str, str], Optional[List[WebResponse]]], str]] = [
             (lambda tmdb_id, s, e: [result] if (result := nebula.get_series(tmdb_id, s, e)) else None, 'nebula'),
+            (lambda tmdb_id, s, e: [result] if (result := lul.get_series(tmdb_id, s, e)) else None, 'lul'),
             (lambda tmdb_id, s, e: [result] if (result := link.get_series(tmdb_id, s, e)) else None, 'link'),
             (lambda tmdb, s, e: [result] if (result := viduki_scraper.get_series(tmdb, s, e)) else None, 'viduki'),
             (lambda tmdb, s, e: [result] if (result := videasy_scraper.get_series(tmdb, s, e)) else None, 'videasy'),
@@ -154,11 +157,11 @@ class StreamExtractor:
         ]
 
         anime_series_scrapers: List[Tuple[Callable[[Optional[str], Optional[str], Optional[str], Optional[str], str, Optional[str], str, str], Optional[List[WebResponse]]], str]] = [
-            (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := yomi_scraper.get_series(mal_id, mal_eps)) else None, 'yomi'),
+            (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (mal_id and mal_eps) and (result := yomi_scraper.get_series(mal_id, mal_eps)) else None, 'yomi'),
+            (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (ani_id and ani_eps) and (result := four_animo_scraper.get_series(ani_id, ani_eps)) else None, '4anime'),
+            (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := vidnest_scraper.get_series(ani_id, ani_eps)) else None, 'vidnest'),
             (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := miruro_scraper.get_series(mal_id, mal_eps)) else None, 'miruro'),
             (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := miruro_scraper.get_series(ani_id, ani_eps)) else None, 'miruro'),
-            (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := vidnest_scraper.get_series(ani_id, ani_eps)) else None, 'vidnest'),
-            (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := four_animo_scraper.get_series(ani_id, ani_eps)) else None, '4anime'),
         ]
 
         if type == 'movie':
@@ -194,23 +197,23 @@ class StreamExtractor:
             
             # orig_lang = self.tmdb_client.get_original_lang(imdb_id)
             # if orig_lang == "ja":
-            
+
             mal_id, mal_eps = anibride.get_mal_info(imdb_id, season, episode)
             ani_id, ani_eps = anibride.get_anilist_info(imdb_id, season, episode)
 
+            tasks_series: List[Callable[[Tuple[str, str, str]], Optional[List[WebResponse]]]] = [
+                lambda _, f=func: f(tmdb_id or "unknown", season, episode)
+                for func, _ in series_scrapers
+            ]
             if (mal_id and mal_eps) or (ani_id and ani_eps):
-
                 tasks_anime_series: List[Callable[[Tuple[Any]], Optional[List[WebResponse]]]] = [
                     lambda _, f=func: f(ani_id, ani_eps, mal_id, mal_eps, id, tmdb_id, season, episode)
                     for func, _ in anime_series_scrapers
-                ] 
-                return process_results(tasks_anime_series, seek)
+                ]
+
+                return process_results(tasks_anime_series + tasks_series, seek)
 
             else:
-                tasks_series: List[Callable[[Tuple[str, str, str]], Optional[List[WebResponse]]]] = [
-                    lambda _, f=func: f(tmdb_id or "unknown", season, episode)
-                    for func, _ in series_scrapers
-                ]
                 return process_results(tasks_series, seek)
 
 
