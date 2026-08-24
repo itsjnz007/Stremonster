@@ -192,10 +192,13 @@ class StreamExtractor:
                 self.logger.warning(f"No TMDB ID found for IMDB ID {imdb_id}")
                 return None
             
-            orig_lang = self.tmdb_client.get_original_lang(imdb_id)
-            if orig_lang == "ja":
-                mal_id, mal_eps = anibride.get_mal_info(imdb_id, season, episode)
-                ani_id, ani_eps = anibride.get_anilist_info(imdb_id, season, episode)
+            # orig_lang = self.tmdb_client.get_original_lang(imdb_id)
+            # if orig_lang == "ja":
+            
+            mal_id, mal_eps = anibride.get_mal_info(imdb_id, season, episode)
+            ani_id, ani_eps = anibride.get_anilist_info(imdb_id, season, episode)
+
+            if (mal_id and mal_eps) or (ani_id and ani_eps):
 
                 tasks_anime_series: List[Callable[[Tuple[Any]], Optional[List[WebResponse]]]] = [
                     lambda _, f=func: f(ani_id, ani_eps, mal_id, mal_eps, id, tmdb_id, season, episode)
