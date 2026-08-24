@@ -117,6 +117,7 @@ def get_torrent_stream(type: str, id: str) -> Response:
             logger.info(f"Total time taken to fetch web stream: {time.time() - start_time:.2f} seconds")
             return torrentio_module.get_series(id, thread_pool_torrent, True)
 
+    time.sleep(3)
     while (processing_cache.get_status(id, 'torrent') or (processing_cache.get_status(id, 'web'))) and start_time+120>time.time(): time.sleep(1)
         
     cache = torrent_cache.get(key=id, upto_mins=USE_CACHE_UPTO)
