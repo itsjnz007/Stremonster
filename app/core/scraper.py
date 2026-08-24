@@ -265,7 +265,7 @@ class Scraper:
             return Proxy.apply_proxy(WebResponse(
                 url=stream_url,
                 name="1080p / 720p",
-                title=self.source.title()+" (Anime)",
+                title=self.source.title(),
                 headers=headers or self.headers,
                 subtitles=[
                     Subtitle(
