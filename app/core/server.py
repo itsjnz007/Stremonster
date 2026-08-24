@@ -65,7 +65,6 @@ def get_web_stream(type: str, id: str) -> Response:
     
     start_time = time.time()
     user_agent = request.headers.get('User-Agent')
-    logger.debug(f"User-Agent: {user_agent}")
 
     while processing_cache.get_status(id, 'web') and start_time+120>time.time(): time.sleep(1)
 
@@ -99,7 +98,15 @@ def get_web_stream(type: str, id: str) -> Response:
 def get_torrent_stream(type: str, id: str) -> Response:
     logger.info(f"GET /torrent/stream/{type}/{id}.json")
     if type not in ('movie', 'series'): return respond_with({'error': 'Invalid type'})
+
     start_time = time.time()
+    user_agent = request.headers.get('User-Agent', '')
+    has_browser_token = any(token in user_agent.lower() for token in [
+        'chrome', 'firefox', 'safari', 'edg', 'opera', 'msie', 'trident'
+    ])
+
+    if has_browser_token: 
+        logger.warning("Torrent requested from browser. Ignoring request.")
 
     def calculate():
         if type == "movie":
