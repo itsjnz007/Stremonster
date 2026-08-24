@@ -397,6 +397,12 @@ class Proxy:
 
         if not content_type: content_type = upstream_response.headers.get("content-type", "").lower()
 
+        # Drop ImageX / PNG obfuscation headers sent by TikTok CDN
+        sanitized_headers = dict(upstream_response.headers)
+        keys_to_remove = [k for k in sanitized_headers if 'imagex' in k.lower() or 'png' in k.lower()]
+        for k in keys_to_remove:
+            sanitized_headers.pop(k, None)
+
         is_m3u8 = (
             ".m3u8" in media_url
             or "mpegurl" in content_type.lower()
@@ -416,19 +422,20 @@ class Proxy:
                 updated_content,
                 status=upstream_response.status_code,
                 mimetype=content_type,
-                headers=upstream_response.headers,
+                headers=sanitized_headers,
             )
             logger.info(f"{upstream_response.status_code} | {time.time() - start_time} seconds | Parsing m3u8 {request.url}")
             return Proxy.apply_headers(resp)
 
-
         def generate_media():
-            MIN_EVALUATION_SECONDS = 5.0  # Must run for at least 5 wall-clock seconds before judging
+            MIN_EVALUATION_SECONDS = 5.0
             MIN_SPEED_KBS = 256.0
             
             window: deque[tuple[float, int, float]] = deque()
-            stream_start_time = time.monotonic()  # Track real start time
+            stream_start_time = time.monotonic()
             chunks = upstream_response.iter_content(chunk_size=32 * 1024)
+            
+            first_chunk = True
             
             try:
                 while True:
@@ -440,9 +447,23 @@ class Proxy:
                     
                     read_time = time.monotonic() - t0
                     now = time.monotonic()
-                    chunk_len = len(chunk)
 
                     if not chunk:
+                        continue
+
+                    # Strip leading non-MPEG-TS junk/image bytes from the initial chunk
+                    if first_chunk:
+                        first_chunk = False
+                        if ".ts" in media_url or "mp2t" in content_type:
+                            sync_idx = chunk.find(b'\x47')
+                            if sync_idx > 0:
+                                logger.warning(f"Stripped {sync_idx} bytes of non-video header data before MPEG-TS sync byte.")
+                                chunk = chunk[sync_idx:]
+                            elif sync_idx == -1:
+                                logger.error("No MPEG-TS sync byte (0x47) found in the initial chunk payload.")
+
+                    chunk_len = len(chunk)
+                    if chunk_len == 0:
                         continue
 
                     actual_read_time = max(read_time, 0.0001)
@@ -452,10 +473,8 @@ class Proxy:
                     while window and window[0][0] < now - MIN_EVALUATION_SECONDS:
                         window.popleft()
 
-                    # --- CRITICAL FIX: GUARD WITH REAL ELAPSED TIME ---
                     elapsed_wall_time = now - stream_start_time
 
-                    # Only evaluate IF the stream has actively been running for >= 5 wall-clock seconds
                     if elapsed_wall_time >= MIN_EVALUATION_SECONDS:
                         total_bytes = sum(item[1] for item in window)
                         total_read_time = sum(item[2] for item in window)
@@ -501,13 +520,12 @@ class Proxy:
 
             finally: 
                 upstream_response.close()
-                # logger.info(f"{upstream_response.status_code} | {time.time() - start_time} seconds | Proxying url {request.url}")
 
         resp = Response(
             stream_with_context(generate_media()), 
             status=upstream_response.status_code,
             content_type=content_type,
-            headers=upstream_response.headers,
+            headers=sanitized_headers,
         )
 
         return Proxy.apply_headers(resp)
