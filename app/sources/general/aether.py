@@ -18,11 +18,15 @@ class Nebula(Scraper):
         super().__init__(base_url = "https://nebula.aether.cx", source=source)
         
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        response = requests.get(f"{self.base_url}/movie/{tmdb_id}?ser=tik", headers=self.headers)
+        url = f"{self.base_url}/movie/{tmdb_id}?ser=tik"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers=self.headers)
         if response.status_code in [200]: return self.build_response(response.json().get('streams', [{}])[0].get('url'))
 
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        response = requests.get(f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}?ser=tik", headers=self.headers)
+        url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}?ser=tik"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers=self.headers)
         if response.status_code in [200]: return self.build_response(response.json().get('streams', [{}])[0].get('url'))
 
 class Lul(Scraper):
@@ -30,11 +34,15 @@ class Lul(Scraper):
         super().__init__(base_url = "https://lul.aether.cx", source=source)
         
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        response = requests.get(f"{self.base_url}/movie/{tmdb_id}", headers=self.headers)
+        url = f"{self.base_url}/movie/{tmdb_id}"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers=self.headers)
         if response.status_code in [200]: return self.build_response(response.json().get('stream'))
 
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        response = requests.get(f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}", headers=self.headers)
+        url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers=self.headers)
         if response.status_code in [200]: return self.build_response(response.json().get('stream'))
 
 class Link(Scraper):
@@ -46,11 +54,15 @@ class Link(Scraper):
         super().__init__(base_url = "https://link.aether.cx", source=source)
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        response = requests.get(f"{self.base_url}/movie/{tmdb_id}", headers=self.headers)
+        url = f"{self.base_url}/movie/{tmdb_id}"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers=self.headers)
         if response.status_code in [200]: return self.build_response(response.json().get('stream'), headers=self.headers_2)
 
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        response = requests.get(f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}", headers=self.headers)
+        url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers=self.headers)
         if response.status_code in [200]: return self.build_response(response.json().get('stream'), headers=self.headers_2)
         
     
