@@ -107,6 +107,7 @@ def get_torrent_stream(type: str, id: str) -> Response:
 
     if has_browser_token: 
         logger.warning("Torrent requested from browser. Ignoring request.")
+        return Response("Torrent requested from browser. Ignoring request.", 503)
 
     def calculate():
         if type == "movie":
