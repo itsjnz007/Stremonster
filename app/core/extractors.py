@@ -157,8 +157,8 @@ class StreamExtractor:
         ]
 
         anime_series_scrapers: List[Tuple[Callable[[Optional[str], Optional[str], Optional[str], Optional[str], str, Optional[str], str, str], Optional[List[WebResponse]]], str]] = [
-            (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (mal_id and mal_eps) and (result := yomi_scraper.get_series(mal_id, mal_eps)) else None, 'yomi'),
-            (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (ani_id and ani_eps) and (result := four_animo_scraper.get_series(ani_id, ani_eps)) else None, '4anime'),
+            (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: result if (mal_id and mal_eps) and (result := yomi_scraper.get_series(mal_id, mal_eps)) else None, 'yomi'),
+            (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: result if (ani_id and ani_eps) and (result := four_animo_scraper.get_series(ani_id, ani_eps)) else None, '4animo'),
             (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := vidnest_scraper.get_series(ani_id, ani_eps)) else None, 'vidnest'),
             (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := miruro_scraper.get_series(mal_id, mal_eps)) else None, 'miruro'),
             (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := miruro_scraper.get_series(ani_id, ani_eps)) else None, 'miruro'),

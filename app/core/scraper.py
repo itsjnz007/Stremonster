@@ -258,14 +258,14 @@ class Scraper:
             self.logger.error(f"Scraping error: {e}")
             return None
 
-    def build_response(self, stream_url: Optional[str], subtitles: list[dict[str, str]] = [], headers: dict[str, str] | None = None) -> Optional[WebResponse]:
+    def build_response(self, stream_url: Optional[str], subtitles: list[dict[str, str]] = [], headers: dict[str, str] | None = None, title: Optional[str] = None) -> Optional[WebResponse]:
 
             if not stream_url: return
     
             return Proxy.apply_proxy(WebResponse(
                 url=stream_url,
                 name="1080p / 720p",
-                title=self.source.title(),
+                title=title or self.source.title(),
                 headers=headers or self.headers,
                 subtitles=[
                     Subtitle(
