@@ -102,6 +102,7 @@ class StreamExtractor:
 
         def process_results(tasks: List[Callable[[Any], Optional[List[WebResponse]]]], seek: int) -> List[WebResponse] | None:
             nonlocal seek_state
+            if seek > len(tasks): seek = len(tasks)
             self.logger.debug(f"Using states 'current_index': {current_index}, 'stream_length': {stream_length}, 'seek_state': {seek_state}")
             results_iter = self.threadpool.get_all(tasks[seek_state:seek_state+seek])
             seek_state += seek
@@ -123,10 +124,10 @@ class StreamExtractor:
                 if not TUNNEL_URL: raise Exception("TUNNEL_URL is not set. Please set it in the config.")
                 if not user_agent: return self.build_web_response(id, type, first_result, 0, unified=True)
                 else: return self.build_web_response(id, type, first_result, 0, unified=True)
-
+            
             elif len(tasks)>seek_state:
                 return process_results(tasks=tasks, seek=seek)
-            self.logger.warning(f"Stream seek exceeded available tasks. Ignoring stream fetch for id '{id}'.")
+            self.logger.error(f"Stream seek exceeded available tasks. Ignoring stream fetch for id '{id}'.")
 
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
             (lambda tmdb_id: [result] if (result := nebula.get_movie(tmdb_id)) else None, 'nebula'),
@@ -174,13 +175,14 @@ class StreamExtractor:
             orig_lang = self.tmdb_client.get_original_lang(id)
             release_year = self.tmdb_client.get_release_year(id)
             if orig_lang in ['ta', 'ml', 'kn', 'hi'] and release_year:
+                self.logger.info(f"Original language is {orig_lang}, using regional scrapers for ID {id} (TMDB ID: {tmdb_id})")
                 title = self.tmdb_client.get_title(id)
                 if title:
-                    results = moviesda_scraper.get_movie(title, year=release_year)
-                    if not results: results = tamilblasters_scraper.get_movie(title, year=release_year, threadpool=self.threadpool)
-                    if results:
-                        self.web_cache.set(id, results)
-                        return self.build_web_response(id, type, results, 0, unified=True)
+                    tasks: List[Callable[[Any], Optional[List[WebResponse]]]] = [
+                        lambda _: moviesda_scraper.get_movie(title, release_year),
+                        lambda _: tamilblasters_scraper.get_movie(title, release_year, threadpool=self.threadpool),
+                    ]
+                    return process_results(tasks, 1)
             
             tasks_movie: List[Callable[[str], Optional[List[WebResponse]]]] = [
                 lambda _, f=func: f(tmdb_id or "unknown")

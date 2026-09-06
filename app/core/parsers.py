@@ -56,7 +56,10 @@ class Parsers:
         metadata_list: List[Metadata]
     ) -> List[Metadata]:
         
-        target_title_norm = self.normalize_text(input_title)
+        target_title_norms = {
+            self.normalize_text(input_title),
+            self.normalize_text(input_title.split(':', 1)[0]),
+        }
         target_year = str(input_year).strip() if input_year else None
         
         matches: list[Metadata] = []
@@ -68,7 +71,7 @@ class Parsers:
                 continue
                 
             # 2. Compare Title:
-            if self.normalize_text(item.title) == target_title_norm:
+            if self.normalize_text(item.title) in target_title_norms:
             # if self.is_match(self.normalize_text(item.title), target_title_norm):
                 matches.append(item)
                 
@@ -138,7 +141,8 @@ if __name__ == "__main__":
         Metadata(title="Lokah: Chapter One", url="", year="2026", languages=["Tamil", "Hindi"]),
         Metadata(title="Kara", url="", year=None, languages=["Tamil"]),
         Metadata(title="Karaa", url="", year="2026", languages=["Hindi"]),
-        Metadata(title="Bison Kaalamaadan", url="", year="2025")
+        Metadata(title="Bison Kaalamaadan", url="", year="2025"),
+        Metadata(title="Toxic", url="", year="2026")
     ]
 
     # Test Case 1: Match "Lokah chapter 1" (2026 matches)
@@ -151,3 +155,5 @@ if __name__ == "__main__":
     print(f"Match 3: {parsers.find_all_matches('karaa', '2025', database)}")
 
     print(f"Match 4: {parsers.find_all_matches('Bison: Kaalamaadan', '2025', database)}")
+
+    print(f"Match 5: {parsers.find_all_matches('Toxic: A Fairy Tale for Grown-ups', '2026', database)}")

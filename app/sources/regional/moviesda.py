@@ -1,6 +1,7 @@
 # from re import match
 import sys
 from pathlib import Path
+from typing import Optional
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 from app.core.scraper import Scraper
@@ -130,7 +131,7 @@ class Moviesda(Scraper):
                          base_url="https://www.moviesda.vision",
                          )
     
-    def get_movie(self, title: str, year: str) -> list[WebResponse]:
+    def get_movie(self, title: str, year: Optional[str]) -> list[WebResponse]:
         self.title, self.year = title, year
         url = f"{self.base_url}/mobile/search?find={title}&per_page=1"
 
