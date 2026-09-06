@@ -49,7 +49,9 @@ class TamilBlasters(Scraper):
             return []
 
     def __init__(self):
-        super().__init__(source="tamilblasters", timeout=10000, base_url="https://www.1tamilblasters.republican")
+        super().__init__(source="tamilblasters", timeout=10000, base_url="https://www.1tamilblasters.republican",
+                         headless=False
+                         )
     
     def get_movie(self, title: str, year: str, threadpool: MultiThreading) -> list[WebResponse]:
         self.title, self.year = title, year
@@ -57,7 +59,7 @@ class TamilBlasters(Scraper):
 
         self._ensure_browser()
         future = asyncio.run_coroutine_threadsafe(self.search_page(url), self._loop) # type: ignore
-        results = future.result(timeout=60)
+        results = future.result(timeout=90)
 
         responses = [
             r for r in threadpool.get_all([
@@ -79,5 +81,5 @@ if __name__ == "__main__":
     scraper = TamilBlasters()
     threading = MultiThreading()
     print(
-        scraper.get_movie("Dark", "2026", threading)
+        scraper.get_movie("Toxic", "2026", threading)
     )

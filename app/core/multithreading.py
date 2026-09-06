@@ -35,7 +35,7 @@ class MultiThreading:
         delayed_task = self._delayed_task(task, delay)
         return self.executor.submit(delayed_task)
 
-    def get_all(self, tasks: Iterable[Callable[[Any], Any]], delay_between: float = 1):
+    def get_all(self, tasks: Iterable[Callable[[Any], Any]], delay_between: float = 2):
         self.stop_event.clear()
         delayed_tasks = [
             self._delayed_task(task, i * delay_between)
