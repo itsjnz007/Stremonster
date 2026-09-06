@@ -50,7 +50,7 @@ class TamilBlasters(Scraper):
 
     def __init__(self):
         super().__init__(source="tamilblasters", timeout=10000, base_url="https://www.1tamilblasters.republican",
-                         headless=False
+                        #  headless=False
                          )
     
     def get_movie(self, title: str, year: str, threadpool: MultiThreading) -> list[WebResponse]:
