@@ -12,7 +12,7 @@ from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as 
     videasy as videasy, aether as aether
 from app.sources.general import *
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo, \
-    yomi as yomi
+    yomi as yomi, anikoto as anikoto
 from app.sources.regional import tamilblasters as tamilblasters, moviesda as moviesda
 from app.core.caching import TmdbCache, WebCache
 from app.config import TUNNEL_URL, USE_CACHE_UPTO
@@ -40,7 +40,7 @@ four_animo_scraper = four_animo.FourAnimoScraper()
 miruro_scraper = miruro.MiruroScraper()
 vidnest_scraper = vidnest.VidnestScraper()
 yomi_scraper = yomi.YomiScraper()
-
+anikoto_scraper = anikoto.AnikotoScraper()
 # Regional Scrapers
 tamilblasters_scraper = tamilblasters.TamilBlasters()
 moviesda_scraper = moviesda.Moviesda()
@@ -158,7 +158,8 @@ class StreamExtractor:
         ]
 
         anime_series_scrapers: List[Tuple[Callable[[Optional[str], Optional[str], Optional[str], Optional[str], str, Optional[str], str, str], Optional[List[WebResponse]]], str]] = [
-            (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: result if (mal_id and mal_eps) and (result := yomi_scraper.get_series(mal_id, mal_eps)) else None, 'yomi'),
+            # (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: result if (mal_id and mal_eps) and (result := yomi_scraper.get_series(mal_id, mal_eps)) else None, 'yomi'),
+            (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (mal_id and mal_eps) and (result := anikoto_scraper.get_series(mal_id, mal_eps)) else None, 'anikoto'),
             (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: result if (ani_id and ani_eps) and (result := four_animo_scraper.get_series(ani_id, ani_eps)) else None, '4animo'),
             (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := vidnest_scraper.get_series(ani_id, ani_eps)) else None, 'vidnest'),
             (lambda ani_id, ani_eps, mal_id, mal_eps, imdb_id, tmdb_id, season, episode: [result] if (result := miruro_scraper.get_series(mal_id, mal_eps)) else None, 'miruro'),

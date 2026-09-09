@@ -116,6 +116,7 @@ class Scraper:
             viewport={"width": 854, "height": 480},
             locale="en-US",
             java_script_enabled=True,
+            extra_http_headers={"Referer": f"{self.base_url}/", "Origin": f"{self.base_url}"},
         )
         assert context
         await context.add_init_script(path='./app/core/plugins/anti-anti-debug.js')
