@@ -188,7 +188,7 @@ class Scraper:
                 if stop_event and stop_event.is_set(): 
                     self.logger.warning(f"Fetch stream skipped for {domain} due to stop event.")
                     return
-                if idle_begin_time and time.time() - idle_begin_time > 3:
+                if idle_begin_time and time.time() - idle_begin_time > 5:
                     self.logger.warning(f"Fetch stream skipped for {domain} due to network idle.")
                     return
                 if time.time() - start_time > (self.timeout / 1000): 
