@@ -19,7 +19,7 @@ from app.core.catalog import Catalog
 logger = Logger("server")
 app = Flask(__name__)
 
-thread_pool_torrent = MultiThreading(max_workers=1)
+thread_pool_torrent = MultiThreading(max_workers=2)
 
 tmdb_cache = TmdbCache()
 web_cache = WebCache()
