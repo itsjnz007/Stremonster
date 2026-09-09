@@ -46,7 +46,7 @@ class FourAnimoScraper(Scraper):
                     'file': urljoin(self.base_url, str(track_data.get('file', ''))),
                     'label': str(track_data.get('label', 'English')),
                 })
-        return self.build_response(source_url, tracks, title=f"{self.source.title()} ({language})")
+        return self.build_response(source_url, tracks, title=f"{self.source.title()} ({language.upper()})")
 
     def _get_sub(self, anilist_id: str, episode: str) -> Optional[WebResponse]:
         return self._get_stream(anilist_id, episode, 'sub')
