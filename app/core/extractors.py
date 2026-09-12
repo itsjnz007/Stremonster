@@ -58,20 +58,20 @@ class StreamExtractor:
 
     def __init__(self) -> None: pass
 
-    def build_unified_stream_url(self, id: str, content_type: Optional[str] = None) -> str:
+    def build_unified_stream_url(self, id: str, idx: int, content_type: Optional[str] = None) -> str:
         if not TUNNEL_URL:
             raise Exception("TUNNEL_URL is not set. Please set it in the config.")
-        if content_type == 'video/mp4': return TUNNEL_URL + f"/redirect.mp4?id={id}"
-        if content_type == 'application/vnd.apple.mpegurl': return TUNNEL_URL + f"/redirect.m3u8?id={id}"
-        return TUNNEL_URL + f"/redirect?id={id}"
-    
+        if content_type == 'video/mp4': return TUNNEL_URL + f"/redirect.mp4?id={id}&idx={idx}"
+        if content_type == 'application/vnd.apple.mpegurl': return TUNNEL_URL + f"/redirect.m3u8?id={id}&idx={idx}"
+        return TUNNEL_URL + f"/redirect?id={id}&idx={idx}"
+
     def build_web_response(self, id: str, type: str, streams: List[WebResponse], stream_idx: int, unified: bool = False) -> List[WebResponse]:
         imdb_id = id.split(':')[0] if type == 'series' else id
-        if len(streams) > 1: unified = False
+        # if len(streams) > 1: unified = False
         return [WebResponse(
             title = "from\n" + streams[idx]['title'],
             name = streams[idx]['name'],
-            url = streams[idx]['url']+f"&index={stream_idx}:{idx}" if not unified else self.build_unified_stream_url(id, streams[idx]['contentType']),
+            url = streams[idx]['url']+f"&index={stream_idx}:{idx}" if not unified else self.build_unified_stream_url(id, idx, streams[idx]['contentType']),
             headers = {},
             subtitles = streams[idx]['subtitles'],
             contentType = streams[idx]['contentType'],

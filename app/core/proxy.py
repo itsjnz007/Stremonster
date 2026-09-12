@@ -295,6 +295,11 @@ class Proxy:
             logger.error("Missing 'id' parameter")
             return Response("Missing 'id' parameter", status=400)
 
+        idx = request.args.get("idx")
+        if not idx: 
+            logger.error("Missing 'idx' parameter")
+            return Response("Missing 'idx' parameter", status=400)
+
         cache = web_cache.get(id)
         if not cache: 
             logger.error(f"Stream not found for id {id}. Unable to process request.")
@@ -307,11 +312,11 @@ class Proxy:
 
         streams: Optional[list[list[dict[str, Any]]]] = cache.get("streams")
         if not streams: return Response("No streams found", status=404)
-        if len(streams[int(current_index)]) != 1:
-            logger.error(f"Stream length {len(streams[int(current_index)])} is not 1. Unable to process request.")
-            return Response(f"Stream length {len(streams[int(current_index)])} is not 1. Unable to process request.", status=404)
+        # if len(streams[int(current_index)]) != 1:
+        #     logger.error(f"Stream length {len(streams[int(current_index)])} is not 1. Unable to process request.")
+        #     return Response(f"Stream length {len(streams[int(current_index)])} is not 1. Unable to process request.", status=404)
         
-        current_stream = streams[int(current_index)][0]
+        current_stream = streams[int(current_index)][int(idx)]
         stream = current_stream.get("url")
         if not stream: return Response("Stream URL not found", status=404)
 
@@ -424,7 +429,7 @@ class Proxy:
                 mimetype=content_type,
                 headers=sanitized_headers,
             )
-            logger.info(f"{upstream_response.status_code} | {time.time() - start_time} seconds | Parsing m3u8 {request.url}")
+            # logger.info(f"{upstream_response.status_code} | {time.time() - start_time} seconds | Parsing m3u8 {request.url}")
             return Proxy.apply_headers(resp)
 
         def generate_media():
@@ -527,5 +532,7 @@ class Proxy:
             content_type=content_type,
             headers=sanitized_headers,
         )
+
+        logger.info(f"{upstream_response.status_code} | {time.time() - start_time} seconds | Processing {request.url}")
 
         return Proxy.apply_headers(resp)
