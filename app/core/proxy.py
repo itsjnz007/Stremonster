@@ -499,10 +499,15 @@ class Proxy:
                                         current_index = int(web_res.get('current_index'))
                                         source_index = int(index.split(':')[0])
                                         logger.debug(f"current_index: {current_index} | source_index: {source_index}")
-                                        if current_index == source_index and web_cache.switch_source(id): 
-                                            break
+                                        if current_index == source_index:
+                                            if web_cache.switch_source(id): 
+                                                break
+                                            else:
+                                                logger.warning('Ignoring source switch since no other sources available. Resetting speed evaluation window.')
+                                                window.clear()
+                                                stream_start_time = time.monotonic()
                                         else: 
-                                            logger.warning('Ignoring source switch since source already switched or no other source available.')
+                                            logger.warning('Ignoring source switch since source already switched.')
                                     else: 
                                         logger.warning("'id' or 'index' not available, skipping source switch")
 
