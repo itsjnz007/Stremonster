@@ -64,6 +64,15 @@ def get_web_stream(type: str, id: str) -> Response:
     logger.info(f"GET /web/stream/{type}/{id}.json")
     if type not in ('movie', 'series'): 
         return respond_with({'error': 'Invalid type'})
+
+    def prefetch_next_episode():
+        if type == "series":
+            next_episode_id = cinemeta.get_next_episode(id)
+            if next_episode_id:
+                logger.info(f"Pre-fetching next episode streams for series ID {id} in 120 seconds...")
+                thread_pool_torrent.run_in_background(lambda _: stream_extractor.extract(next_episode_id, type, seek=3, user_agent=user_agent), delay=120)
+            else:
+                logger.warning(f"No next episode found for series ID {id}.")
     
     start_time = time.time()
     user_agent = request.headers.get('User-Agent')
@@ -81,6 +90,7 @@ def get_web_stream(type: str, id: str) -> Response:
         if not user_agent: formatted_result = {'streams': stream_extractor.build_web_response(id, type, stream_group[stream_index], stream_index, unified=True)}
         else: formatted_result = {'streams': stream_extractor.build_web_response(id, type, stream_group[stream_index], stream_index, unified=True)}
         logger.info(f"Responding with: {formatted_result}")
+        prefetch_next_episode()
         return respond_with(formatted_result)
 
     logger.info("Cache invalid, recalculating...")
@@ -88,17 +98,11 @@ def get_web_stream(type: str, id: str) -> Response:
     streams = stream_extractor.extract(id, type, seek=3, user_agent=user_agent)
     if streams:
         processing_cache.finish(id, 'web', True)
+        prefetch_next_episode()
         return respond_with({'streams': streams})
     processing_cache.finish(id, 'web', False)
 
     logger.info(f"Total time taken: {time.time() - start_time:.2f}s")
-    if type == "series":
-        next_episode_id = cinemeta.get_next_episode(id)
-        if next_episode_id:
-            logger.info(f"Pre-fetching next episode streams for series ID {id} in 120 seconds...")
-            thread_pool_torrent.run_in_background(lambda _: stream_extractor.extract(next_episode_id, type, seek=3, user_agent=user_agent), delay=120)
-        else:
-            logger.warning(f"No next episode found for series ID {id}.")
     return respond_with({'streams': []})
 
 
