@@ -20,7 +20,7 @@ from app.external.cinemeta import Cinemeta
 logger = Logger("server")
 app = Flask(__name__)
 
-thread_pool_torrent = MultiThreading(max_workers=2)
+thread_pool_torrent = MultiThreading(max_workers=3)
 
 cinemeta = Cinemeta()
 tmdb_cache = TmdbCache()
@@ -59,20 +59,23 @@ def get_catalog(media_type: str, catalog_id: str) -> Response:
         logger.error(f"Error fetching catalog {catalog_id}: {e}")
         return Response("Failed to fetch catalog", status=500)
 
+def prefetch_next_episode(id: str):
+    if not id or len(id.split(":")) <= 1:
+        logger.error(f"Invalid ID for prefetching next episode: {id}")
+        return
+    next_episode_id = cinemeta.get_next_episode(id)
+    if next_episode_id and not web_cache.get(next_episode_id, USE_CACHE_UPTO):
+        logger.info(f"Pre-fetching next episode streams for series ID {id} in 120 seconds...")
+        thread_pool_torrent.run_in_background(lambda _: stream_extractor.extract(next_episode_id, "series", seek=3), delay=120)
+    else:
+        logger.warning(f"No next episode found for series ID {id} or item already cached.")
+
 @app.route('/web/stream/<type>/<id>.json')
 def get_web_stream(type: str, id: str) -> Response:
     logger.info(f"GET /web/stream/{type}/{id}.json")
     if type not in ('movie', 'series'): 
         return respond_with({'error': 'Invalid type'})
 
-    def prefetch_next_episode():
-        if type == "series":
-            next_episode_id = cinemeta.get_next_episode(id)
-            if next_episode_id and web_cache.get(next_episode_id, USE_CACHE_UPTO):
-                logger.info(f"Pre-fetching next episode streams for series ID {id} in 120 seconds...")
-                thread_pool_torrent.run_in_background(lambda _: stream_extractor.extract(next_episode_id, type, seek=3, user_agent=user_agent), delay=120)
-            else:
-                logger.warning(f"No next episode found for series ID {id}.")
     
     start_time = time.time()
     user_agent = request.headers.get('User-Agent')
@@ -90,7 +93,6 @@ def get_web_stream(type: str, id: str) -> Response:
         if not user_agent: formatted_result = {'streams': stream_extractor.build_web_response(id, type, stream_group[stream_index], stream_index, unified=True)}
         else: formatted_result = {'streams': stream_extractor.build_web_response(id, type, stream_group[stream_index], stream_index, unified=True)}
         logger.info(f"Responding with: {formatted_result}")
-        prefetch_next_episode()
         return respond_with(formatted_result)
 
     logger.info("Cache invalid, recalculating...")
@@ -98,7 +100,6 @@ def get_web_stream(type: str, id: str) -> Response:
     streams = stream_extractor.extract(id, type, seek=3, user_agent=user_agent)
     if streams:
         processing_cache.finish(id, 'web', True)
-        prefetch_next_episode()
         return respond_with({'streams': streams})
     processing_cache.finish(id, 'web', False)
 
@@ -155,14 +156,20 @@ def get_torrent_stream(type: str, id: str) -> Response:
         
 @app.route('/redirect')
 def redirect() -> Response:
+    id = request.args.get('id')
+    if id and len(id.split(":")) > 1: prefetch_next_episode(id)
     return Proxy.redirect()
 
 @app.route('/redirect.m3u8')
 def redirect_m3u8() -> Response:
+    id = request.args.get('id')
+    if id and len(id.split(":")) > 1: prefetch_next_episode(id)
     return Proxy.redirect()
 
 @app.route('/redirect.mp4')
 def redirect_mp4() -> Response:
+    id = request.args.get('id')
+    if id and len(id.split(":")) > 1: prefetch_next_episode(id)
     return Proxy.redirect()
 
 @app.route("/stream.m3u8")
