@@ -68,7 +68,7 @@ def get_web_stream(type: str, id: str) -> Response:
     def prefetch_next_episode():
         if type == "series":
             next_episode_id = cinemeta.get_next_episode(id)
-            if next_episode_id:
+            if next_episode_id and web_cache.get(next_episode_id, USE_CACHE_UPTO):
                 logger.info(f"Pre-fetching next episode streams for series ID {id} in 120 seconds...")
                 thread_pool_torrent.run_in_background(lambda _: stream_extractor.extract(next_episode_id, type, seek=3, user_agent=user_agent), delay=120)
             else:
