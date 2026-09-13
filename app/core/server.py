@@ -15,12 +15,14 @@ from app.core.multithreading import MultiThreading
 from app.core.proxy import respond_with, Proxy
 from app.core.extractors import StreamExtractor
 from app.core.catalog import Catalog
+from app.external.cinemeta import Cinemeta
 
 logger = Logger("server")
 app = Flask(__name__)
 
 thread_pool_torrent = MultiThreading(max_workers=2)
 
+cinemeta = Cinemeta()
 tmdb_cache = TmdbCache()
 web_cache = WebCache()
 torrent_cache = TorrentCache()
@@ -90,6 +92,13 @@ def get_web_stream(type: str, id: str) -> Response:
     processing_cache.finish(id, 'web', False)
 
     logger.info(f"Total time taken: {time.time() - start_time:.2f}s")
+    if type == "series":
+        next_episode_id = cinemeta.get_next_episode(id)
+        if next_episode_id:
+            logger.info(f"Pre-fetching next episode streams for series ID {id} in 120 seconds...")
+            thread_pool_torrent.run_in_background(lambda _: stream_extractor.extract(next_episode_id, type, seek=3, user_agent=user_agent), delay=120)
+        else:
+            logger.warning(f"No next episode found for series ID {id}.")
     return respond_with({'streams': []})
 
 
