@@ -5,7 +5,7 @@ from app.config import TUNNEL_URL
 from flask import Response, request, jsonify, stream_with_context
 from urllib.parse import quote, urlparse
 from app.core.logger import Logger
-import json, re, urllib3, logging, time, requests, pycurl
+import json, re, urllib3, logging, time, requests, pycurl, subprocess
 from typing import Optional, Any
 from app.core.caching import WebCache
 from app.models.responses import WebResponse
@@ -129,6 +129,65 @@ class Proxy:
         return None
 
     @staticmethod
+    def test_stream(stream: WebResponse) -> bool:
+        """Decode the beginning of a stream, including its first HLS segment."""
+        ffmpeg_headers = "".join(
+            f"{key}: {value}\r\n"
+            for key, value in (stream.get("headers") or {}).items()
+            if value is not None
+        )
+        command = [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-nostdin",
+            "-rw_timeout",
+            "10000000",
+            "-analyzeduration",
+            "5000000",
+            "-probesize",
+            "5000000",
+        ]
+        if ffmpeg_headers:
+            command.extend(["-headers", ffmpeg_headers])
+        command.extend([
+            "-i",
+            stream["url"],
+            "-t",
+            "3",
+            "-map",
+            "0:v:0?",
+            "-map",
+            "0:a:0?",
+            "-f",
+            "null",
+            "-",
+        ])
+
+        try:
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=False,
+            )
+        except FileNotFoundError:
+            logger.error("Unable to test stream: ffmpeg is not installed")
+            return False
+        except subprocess.TimeoutExpired:
+            logger.error("Unable to test stream: ffmpeg timed out")
+            return False
+
+        if result.returncode != 0:
+            logger.error(f"Stream playback test failed: {result.stderr.strip()}")
+            return False
+
+        logger.info("Stream playback test passed")
+        return True
+
+    @staticmethod
     def apply_proxy(stream: WebResponse) -> Optional[WebResponse]:
         if not stream.get('headers'): stream['headers'] = {}
         stream['headers']["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0"
@@ -161,8 +220,12 @@ class Proxy:
             stream['contentType'] = Proxy.get_content_type(r)
             if not stream.get('contentType'): 
                 logger.error("Unable to determine content-type for proxying. Rejecting source.")
+                r.close()
                 return None
             logger.info(f"Detected content-type: {stream['contentType']}")
+        r.close()
+
+
         stream_type = "stream.mp4" if stream['contentType'] == "video/mp4" else "stream.m3u8"
 
         headers_str = json.dumps(stream['headers'])
@@ -174,7 +237,12 @@ class Proxy:
             }
             for sub in stream['subtitles']
         ]
+        if not Proxy.test_stream(stream):
+            logger.error("Stream failed playback validation. Rejecting source.")
+            return None
+
         return stream
+        
     
     
     @staticmethod

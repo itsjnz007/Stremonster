@@ -77,5 +77,5 @@ if __name__ == "__main__":
     print(f"Response: {res}")
 
     scraper = Link()
-    res = scraper.get_movie("652")
+    res = scraper.get_series("3308", "2", "21")
     print(f"Response: {res}")
