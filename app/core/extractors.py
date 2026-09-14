@@ -7,9 +7,11 @@ from app.core.multithreading import MultiThreading
 from typing import List, Callable, Any, Optional, Iterator, Tuple
 from app.core.logger import Logger
 import logging
-from app.sources.general import flicky as flicky, vidking as vidking, vidsrc as vidsrc, cineby as cineby, \
-    vidnest as vidnest_general, viduki as viduki, fmovies as fmovies, \
-    videasy as videasy, aether as aether
+from app.sources.general import \
+    vidking as vidking, \
+    vidsrc as vidsrc, \
+    vidnest as vidnest_general, viduki as viduki, \
+    aether as aether
 from app.sources.general import *
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo, \
     yomi as yomi, anikoto as anikoto
@@ -21,14 +23,10 @@ from app.external.anilist import AniBridgeV3Resolver
 
 
 # General Scrapers
-flicky_scraper = flicky.FlickyScraper()
 vidking_scraper = vidking.VidkingScraper()
 vidsrc_scraper = vidsrc.VidsrcScraper()
-cineby_scraper = cineby.CinebyScraper()
 vidnest_general_scraper = vidnest_general.VidnestScraper()
 viduki_scraper = viduki.VidukiScraper()
-fmovies_scraper = fmovies.FmoviesScraper()
-videasy_scraper = videasy.VideasyScraper()
 
 # Aether
 nebula = aether.Nebula()
@@ -134,13 +132,7 @@ class StreamExtractor:
             (lambda tmdb_id: [result] if (result := link.get_movie(tmdb_id)) else None, 'link'),
             (lambda tmdb_id: [result] if (result := lul.get_movie(tmdb_id)) else None, 'lul'),
             (lambda tmdb_id: [result] if (result := viduki_scraper.get_movie(tmdb_id)) else None, 'viduki'),
-            (lambda tmdb_id: [result] if (result := videasy_scraper.get_movie(tmdb_id)) else None, 'videasy'),
             (lambda tmdb_id: [result] if (result := vidnest_general_scraper.get_movie(tmdb_id)) else None, 'vidnest'),
-            (lambda tmdb_id: [result] if (result := vidsrc_scraper.get_movie(tmdb_id)) else None, 'vidsrc'),
-            (lambda tmdb_id: [result] if (result := fmovies_scraper.get_movie(tmdb_id)) else None, 'fmovies'),
-            # (lambda tmdb_id: [result] if (result := cineby_scraper.get_movie(tmdb_id)) else None, 'cineby'),
-            (lambda tmdb_id: [result] if (result := flicky_scraper.get_movie(tmdb_id)) else None, 'flicky'),
-            # (lambda tmdb_id: [result] if (result := vidking_scraper.get_movie(tmdb_id)) else None, 'vidking'),
         ]
 
         series_scrapers: List[Tuple[Callable[[str, str, str], Optional[List[WebResponse]]], str]] = [
@@ -148,13 +140,7 @@ class StreamExtractor:
             (lambda tmdb_id, s, e: [result] if (result := link.get_series(tmdb_id, s, e)) else None, 'link'),
             (lambda tmdb_id, s, e: [result] if (result := lul.get_series(tmdb_id, s, e)) else None, 'lul'),
             (lambda tmdb, s, e: [result] if (result := viduki_scraper.get_series(tmdb, s, e)) else None, 'viduki'),
-            (lambda tmdb, s, e: [result] if (result := videasy_scraper.get_series(tmdb, s, e)) else None, 'videasy'),
-            (lambda tmdb, s, e: [result] if (result := vidnest_general_scraper.get_series(tmdb, s, e)) else None, 'vidlink'),
-            # (lambda tmdb, s, e: [result] if (result := vidsrc_scraper.get_series(tmdb, s, e)) else None, 'vidsrc'),
-            # (lambda tmdb, s, e: [result] if (result := fmovies_scraper.get_series(tmdb, s, e)) else None, 'fmovies'),
-            # (lambda tmdb, s, e: [result] if (result := cineby_scraper.get_series(tmdb, s, e)) else None, 'cineby'),
-            # (lambda tmdb, s, e: [result] if (result := flicky_scraper.get_series(tmdb, s, e)) else None, 'flicky'),
-            # (lambda tmdb, s, e: [result] if (result := vidking_scraper.get_series(tmdb, s, e)) else None, 'vidking'),
+            (lambda tmdb, s, e: [result] if (result := vidnest_general_scraper.get_series(tmdb, s, e)) else None, 'vidnest'),
         ]
 
         anime_series_scrapers: List[Tuple[Callable[[Optional[str], Optional[str], Optional[str], Optional[str], str, Optional[str], str, str], Optional[List[WebResponse]]], str]] = [

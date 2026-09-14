@@ -36,7 +36,8 @@ class Scraper:
                  subtitle_url_pattern: str = SUBTITLE_PATTERN,
                  log_requests: bool = False,
                  page_hook: Optional[Callable[[Page, Optional[Event]], Awaitable[None]]] = None,
-    ):
+                 extra_http_headers: Optional[dict[str, str]] = None
+    ) -> None:
         self.logger = Logger(f"scraper.{source}", level=logging.DEBUG)
         self.source = source.upper()
         self.timeout = timeout
@@ -52,6 +53,7 @@ class Scraper:
             "Origin": base_url,
             "Referer": base_url + '/'
         }
+        self.extra_http_headers = extra_http_headers
 
     def _start_loop(self):
         Scraper._loop = asyncio.new_event_loop()
@@ -116,7 +118,8 @@ class Scraper:
             viewport={"width": 854, "height": 480},
             locale="en-US",
             java_script_enabled=True,
-            extra_http_headers={"Referer": f"{self.base_url}/", "Origin": f"{self.base_url}"},
+            # extra_http_headers={"Referer": f"{self.base_url}/", "Origin": f"{self.base_url}"},
+            extra_http_headers=self.extra_http_headers
         )
         assert context
         await context.add_init_script(path='./app/core/plugins/anti-anti-debug.js')

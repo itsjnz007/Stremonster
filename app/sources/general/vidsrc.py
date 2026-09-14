@@ -10,7 +10,7 @@ from playwright.async_api import Page
 
 async def page_hook(page: Page, _: Optional[Event]) -> None:
     player_iframe = page.frame_locator("#player_iframe")
-    target_button = player_iframe.locator("#pl_but")
+    target_button = player_iframe.locator("#bigPlay")
     await target_button.wait_for(state="attached")
     await target_button.click()
     
@@ -18,7 +18,9 @@ class VidsrcScraper(Scraper):
     def __init__(self):
         super().__init__(source="vidsrc", 
                          base_url="https://vsembed.ru",
-                         page_hook=page_hook
+                         page_hook=page_hook,
+                        #  log_requests=True,
+                        #  headless=False
         )
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
@@ -34,5 +36,5 @@ class VidsrcScraper(Scraper):
 if __name__ == "__main__":
     scraper = VidsrcScraper()
     
-    response = scraper.get_movie("157336")
+    response = scraper.get_series("3308", "2", "21")
     print(f"Response: {response}")
