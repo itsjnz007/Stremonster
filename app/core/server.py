@@ -20,7 +20,7 @@ from app.external.cinemeta import Cinemeta
 logger = Logger("server")
 app = Flask(__name__)
 
-thread_pool_torrent = MultiThreading(max_workers=3)
+thread_pool_torrent = MultiThreading(max_workers=2)
 
 cinemeta = Cinemeta()
 tmdb_cache = TmdbCache()
