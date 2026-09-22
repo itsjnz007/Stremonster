@@ -130,7 +130,6 @@ class Moviesda(Scraper):
                          timeout=500,
                          base_url="https://www.moviesda.vision",
                          stream_url_pattern=r'https?://(?![^?\s]*www\.google-analytics\.com)\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/mp4)\S*',
-                         headless=False
                          )
     
     def get_movie(self, title: str, year: Optional[str]) -> list[WebResponse]:
