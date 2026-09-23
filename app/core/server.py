@@ -10,7 +10,7 @@ from flask import Flask, request
 from flask.wrappers import Response
 from app.core.logger import Logger
 from app.config import MANIFEST_CATALOG, MANIFEST_TORRENTS, MANIFEST_WEB, USE_CACHE_UPTO
-from app.core.caching import TmdbCache, WebCache, TorrentCache, ProcessingCache
+from app.core.caching import TmdbCache, WebCache, TorrentCache, processing_cache
 from app.core.multithreading import MultiThreading
 from app.core.proxy import respond_with, Proxy
 from app.core.extractors import StreamExtractor
@@ -26,7 +26,6 @@ cinemeta = Cinemeta()
 tmdb_cache = TmdbCache()
 web_cache = WebCache()
 torrent_cache = TorrentCache()
-processing_cache = ProcessingCache()
 catalog = Catalog(tmdb_cache)
 stream_extractor = StreamExtractor()
 

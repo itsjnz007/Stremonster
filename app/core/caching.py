@@ -140,7 +140,9 @@ class WebCache(Caching):
 
         stream_extractor = StreamExtractor()
         type = "series" if len(key.split(":"))>1 else "movie"
-        threadpool.run_in_background(lambda _: stream_extractor.extract(key, type, seek=1))
+        if not processing_cache.get_status(key, 'web'):
+            logger.info(f"Recalculating streams for key: '{key}' in background...")
+            threadpool.run_in_background(lambda _: stream_extractor.extract(key, type, seek=1))
         with self._write_lock:
             cache = self._get_cache()
             if key not in cache or not cache[key]["value"]["streams"]:
@@ -225,6 +227,9 @@ class ProcessingCache(Caching):
         if not entry:
             return False
         return copy.deepcopy(entry)
+
+
+processing_cache = ProcessingCache()
 
 if __name__ == "__main__":
     web_cache = WebCache()
