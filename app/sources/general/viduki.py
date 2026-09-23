@@ -9,7 +9,9 @@ from threading import Event
 
 class VidukiScraper(Scraper):
     def __init__(self):
-        super().__init__(source="viduki", base_url="https://www.viduki.net")
+        super().__init__(source="viduki", base_url="https://www.viduki.net",
+                        #  headless=False
+                         )
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/1/movie/{tmdb_id}"
@@ -26,3 +28,6 @@ if __name__ == "__main__":
     
     series_response = scraper.get_series("48891", "5", "2")
     print(f"Series response: {series_response}")
+
+    movie_response = scraper.get_movie("550") # Movie ID for "Fight Club"
+    print(f"Movie response: {movie_response}")

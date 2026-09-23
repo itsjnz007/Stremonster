@@ -17,19 +17,20 @@ async def page_hook(page: Page, _: Optional[Event]) -> None:
 class VidsrcScraper(Scraper):
     def __init__(self):
         super().__init__(source="vidsrc", 
-                         base_url="https://vsembed.ru",
-                         page_hook=page_hook,
+                        #  base_url="https://vidsrc.sbs",
+                        base_url="https://cinesrc.st",
+                        #  page_hook=page_hook,
                         #  log_requests=True,
                         #  headless=False
         )
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        url = f"{self.base_url}/embed/movie/{tmdb_id}"
+        url = f"{self.base_url}/embed/movie/{tmdb_id}?autoplay=true"
         result = self.get_stream(url, stop_event)
         return result
     
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        url = f"{self.base_url}/embed/tv/{tmdb_id}/{season}/{episode}"
+        url = f"{self.base_url}/embed/tv/{tmdb_id}?s={season}&e={episode}&autoplay=true"
         result = self.get_stream(url, stop_event)
         return result
 
