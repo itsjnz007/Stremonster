@@ -497,7 +497,7 @@ class Proxy:
                 mimetype=content_type,
                 headers=sanitized_headers,
             )
-            # logger.info(f"{upstream_response.status_code} | {time.time() - start_time} seconds | Parsing m3u8 {request.url}")
+            logger.info(f"{upstream_response.status_code} | {round(time.time() - start_time, 2)} seconds | Parsing m3u8 {request.url}")
             return Proxy.apply_headers(resp)
 
         def generate_media():
@@ -606,6 +606,6 @@ class Proxy:
             headers=sanitized_headers,
         )
 
-        logger.info(f"{upstream_response.status_code} | {time.time() - start_time} seconds | Processing {request.url}")
+        logger.info(f"{upstream_response.status_code} | {round(time.time() - start_time, 2)} seconds | Streaming id {id} - origin {request.headers.get('Origin')} - range {request.headers.get('Range')} - url {media_url}")
 
         return Proxy.apply_headers(resp)
