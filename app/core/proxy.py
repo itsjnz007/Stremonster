@@ -606,6 +606,6 @@ class Proxy:
             headers=sanitized_headers,
         )
 
-        logger.info(f"{upstream_response.status_code} | {round(time.time() - start_time, 2)}s | Streaming 'id' {id} - 'origin' {arg_headers.get('Origin')} - 'range' {request_headers.get('Range')}")
+        logger.info(f"{upstream_response.status_code} | {round(time.time() - start_time, 2)}s | Streaming 'id' {id} - 'origin' {arg_headers.get('Origin')} - 'url' {media_url.split('/')[-1]}")
 
         return Proxy.apply_headers(resp)
