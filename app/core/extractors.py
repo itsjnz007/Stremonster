@@ -110,7 +110,12 @@ class StreamExtractor:
             if first_result:
                 first_result = append_id_to_streams(first_result)
                 self.logger.debug(f"First result obtained, caching and draining remaining results for ID {id}, first result: {first_result}")
-                self.web_cache.set(id, first_result) if not seek_state else self.web_cache.extend(id, first_result, seek_state=seek_state)
+                if seek_state:
+                    self.logger.info(f"Setting web cache for ID {id} with seek_state {seek_state}")
+                    self.web_cache.set(id, first_result, seek_state=seek_state)
+                else:
+                    self.logger.info(f"Extending web cache for ID {id} with seek_state {seek_state}")
+                    self.web_cache.extend(id, first_result, seek_state=seek_state)
 
                 def drain_remaining(iterator: Iterator[Optional[List[WebResponse]]]) -> None:
                     for _, response in enumerate(iterator, start=1):

@@ -113,12 +113,14 @@ class WebCache(Caching):
     cache_path: ClassVar[Path] = Path(CACHE_DIR) / "web_results.json"
     cache: ClassVar[dict[str, Any]] = {}
 
-    def set(self, key: str, value: list[WebResponse]) -> None:
+    def set(self, key: str, value: list[WebResponse], seek_state: int = 0) -> None:
+        if seek_state < 1:
+            raise ValueError("seek_state must be >= 1 when setting a WebResponse")
         """Set a WebResponse for a given key."""
         with self._write_lock:
             cache = self._get_cache()
             timestamp = datetime.now(timezone.utc).isoformat()
-            cache[key] = {"value": {"current_index": 0, "seek_state": 0, "streams": copy.deepcopy([value])}, "ts": timestamp}
+            cache[key] = {"value": {"current_index": 0, "seek_state": seek_state, "streams": copy.deepcopy([value])}, "ts": timestamp}
             self._save_to_disk(self._get_cache_path(), cache)
 
     def extend(self, key: str, web_responses: list[WebResponse], seek_state: int) -> None:
