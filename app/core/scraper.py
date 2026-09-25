@@ -31,7 +31,7 @@ class Scraper:
                  headless: bool = True, 
                  source: str = "scraper", 
                  timeout: int = 30000, 
-                 subtitle_timeout: float = 0, 
+                 subtitle_timeout: float = 3000, 
                  stream_url_pattern: str = STREAM_URL_PATTERN, 
                  subtitle_url_pattern: str = SUBTITLE_PATTERN,
                  log_requests: bool = False,
@@ -41,7 +41,6 @@ class Scraper:
         self.logger = Logger(f"scraper.{source}", level=logging.DEBUG)
         self.source = source.upper()
         self.timeout = timeout
-        self.subtitle_timeout = 3000
         self.subtitle_timeout = subtitle_timeout
         self.headless = headless
         self.stream_url_pattern = stream_url_pattern
