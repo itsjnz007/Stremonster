@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.core.proxy import Proxy
-from playwright.async_api import Browser, async_playwright, Request
+from playwright.async_api import Browser, async_playwright, Request, Response
 from app.models.responses import *
 import re, time
 from app.core.logger import Logger
@@ -136,20 +136,28 @@ class Scraper:
             nonlocal pending_requests
             pending_requests.discard(request.url)
 
-        def on_request(request: Request):
+        async def on_response(response: Response):
             nonlocal stream_url
             nonlocal stream_headers
             nonlocal subtitle_urls
             nonlocal subtitle_counter
             nonlocal pending_requests
 
-            if not any(ignored in request.url for ignored in ["google-analytics", "doubleclick"]):
-                pending_requests.add(request.url)
+            if not any(ignored in response.url for ignored in ["google-analytics", "doubleclick"]):
+                pending_requests.add(response.url)
 
-            if self.log_requests: self.logger.info(f"Request -> {request.url}")
-            if not stream_url and re.search(self.stream_url_pattern, request.url, re.I):
-                stream_url = request.url
-                raw_headers = request.headers
+            if self.log_requests: self.logger.info(f"Request -> {response.url}")
+            is_stream_url = re.search(self.stream_url_pattern, response.url, re.I)
+            is_hls_playlist = False
+            if response.ok and not stream_url and not is_stream_url:
+                try:
+                    is_hls_playlist = re.search(r"^\s*#EXTM3U", await response.text(), re.I)
+                except Exception:
+                    pass
+
+            if response.ok and not stream_url and (is_hls_playlist or is_stream_url):
+                stream_url = response.url
+                raw_headers = response.headers
                 clean_headers: dict[str, Any] = {}
                 
                 for key, value in raw_headers.items():
@@ -163,19 +171,20 @@ class Scraper:
                 local_stop_event.set()
                 self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
 
-            if re.search(self.subtitle_url_pattern, request.url, re.I):
+            if re.search(self.subtitle_url_pattern, response.url, re.I):
                 subtitle_urls.append(
                     Subtitle(
                         id=f"eng-{subtitle_counter}",
                         lang="eng",
-                        url=request.url
+                        url=response.url
                     )
                 )
                 subtitle_counter += 1
                 self.logger.info(f'💬 Subtitles from {domain}: {subtitle_urls}')
 
         try:
-            page.on("request", on_request)
+            # page.on("request", on_request)
+            page.on("response", on_response)
             page.on("requestfinished", on_request_done)
             page.on("requestfailed", on_request_done)
             await page.goto(url)
