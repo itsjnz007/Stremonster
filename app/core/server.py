@@ -71,6 +71,7 @@ def prefetch_next_episode(id: str):
 
 @app.route('/web/stream/<type>/<id>.json')
 def get_web_stream(type: str, id: str) -> Response:
+    processing_cache.start(id, 'web')
     logger.info(f"GET /web/stream/{type}/{id}.json")
     if type not in ('movie', 'series'): 
         return respond_with({'error': 'Invalid type'})
@@ -95,7 +96,6 @@ def get_web_stream(type: str, id: str) -> Response:
         return respond_with(formatted_result)
 
     logger.info("Cache invalid, recalculating...")
-    processing_cache.start(id, 'web')
     streams = stream_extractor.extract(id, type, seek=3, user_agent=user_agent)
     if streams:
         processing_cache.finish(id, 'web', True)
@@ -109,6 +109,7 @@ def get_web_stream(type: str, id: str) -> Response:
 
 @app.route('/torrent/stream/<type>/<id>.json')
 def get_torrent_stream(type: str, id: str) -> Response:
+    processing_cache.start(id, 'torrent')
     logger.info(f"GET /torrent/stream/{type}/{id}.json")
     if type not in ('movie', 'series'): return respond_with({'error': 'Invalid type'})
 
@@ -130,7 +131,7 @@ def get_torrent_stream(type: str, id: str) -> Response:
             logger.info(f"Total time taken to fetch web stream: {time.time() - start_time:.2f} seconds")
             return torrentio_module.get_series(id, thread_pool_torrent, True)
 
-    time.sleep(0.5)
+    time.sleep(1)
     while processing_cache.get_status(id, 'torrent') and start_time+120>time.time(): time.sleep(0.1)
         
     cache = torrent_cache.get(key=id, upto_mins=USE_CACHE_UPTO)
@@ -140,7 +141,6 @@ def get_torrent_stream(type: str, id: str) -> Response:
         # return respond_otherwise(cache)
     else:
         while processing_cache.get_status(id, 'web') and start_time+120>time.time(): time.sleep(0.1)
-        processing_cache.start(id, 'torrent')
         result = calculate()
         processing_cache.finish(id, 'torrent', bool(result))
         if result:

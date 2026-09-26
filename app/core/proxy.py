@@ -11,12 +11,18 @@ from app.core.caching import WebCache
 from app.models.responses import WebResponse
 from typing import Optional
 from flask import request, Response, stream_with_context
+from app.core.multithreading import MultiThreading
+from app.core.extractors import StreamExtractor
+from app.external.cinemeta import Cinemeta
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = Logger("proxy", logging.INFO)
 session = requests.Session()
 web_cache = WebCache()
+threadpool = MultiThreading(1)
+stream_extractor = StreamExtractor()
+cinemeta = Cinemeta()
 
 
 def respond_with(data: dict[str, Any]) -> Response:
@@ -389,6 +395,12 @@ class Proxy:
         if not stream: return Response("Stream URL not found", status=404)
 
         stream += f"&id={id}&index={current_index}:0"
+
+        if id and len(id.split(":"))>1:
+            assert id
+            logger.info("Series found. Calculating cache for next episode.")
+            next_eps_id = cinemeta.get_next_episode(id)
+            if next_eps_id: threadpool.run_in_background(lambda _: stream_extractor.extract(next_eps_id, type="series", seek=3), delay=30)
 
         logger.info(f"Redirecting to proxied stream URL: {stream}")
         return Response(status=302, headers={"Location": stream})
