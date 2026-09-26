@@ -77,7 +77,7 @@ MANIFEST_CATALOG: dict[str, object] = {
     "catalogs": get_catalog_metadata()
 }
 
-USE_CACHE_UPTO: int = 1# 60*3
+USE_CACHE_UPTO: int = 60*3
 
 if __name__ == "__main__":
     from pprint import pprint
