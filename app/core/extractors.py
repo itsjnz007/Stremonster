@@ -133,18 +133,18 @@ class StreamExtractor:
             self.logger.error(f"Stream seek exceeded available tasks. Ignoring stream fetch for id '{id}'.")
 
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
-            (lambda tmdb_id: [result] if (result := subtitulado.get_movie(tmdb_id)) else None, 'subtitulado'),
             (lambda tmdb_id: [result] if (result := link.get_movie(tmdb_id)) else None, 'link'),
             (lambda tmdb_id: [result] if (result := lul.get_movie(tmdb_id)) else None, 'lul'),
+            (lambda tmdb_id: [result] if (result := subtitulado.get_movie(tmdb_id)) else None, 'subtitulado'),
             (lambda tmdb_id: [result] if (result := vidsrc_scraper.get_movie(tmdb_id)) else None, 'vidsrc'),
             (lambda tmdb_id: [result] if (result := viduki_scraper.get_movie(tmdb_id)) else None, 'viduki'),
             (lambda tmdb_id: [result] if (result := vidnest_general_scraper.get_movie(tmdb_id)) else None, 'vidnest'),
         ]
 
         series_scrapers: List[Tuple[Callable[[str, str, str], Optional[List[WebResponse]]], str]] = [
-            (lambda tmdb_id, s, e: [result] if (result := subtitulado.get_series(tmdb_id, s, e)) else None, 'subtitulado'),
             (lambda tmdb_id, s, e: [result] if (result := link.get_series(tmdb_id, s, e)) else None, 'link'),
             (lambda tmdb_id, s, e: [result] if (result := lul.get_series(tmdb_id, s, e)) else None, 'lul'),
+            (lambda tmdb_id, s, e: [result] if (result := subtitulado.get_series(tmdb_id, s, e)) else None, 'subtitulado'),
             (lambda tmdb_id, s, e: [result] if (result := vidsrc_scraper.get_series(tmdb_id, s, e)) else None, 'vidsrc'),
             (lambda tmdb, s, e: [result] if (result := viduki_scraper.get_series(tmdb, s, e)) else None, 'viduki'),
             (lambda tmdb, s, e: [result] if (result := vidnest_general_scraper.get_series(tmdb, s, e)) else None, 'vidnest'),

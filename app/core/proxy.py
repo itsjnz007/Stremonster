@@ -129,7 +129,7 @@ class Proxy:
         return None
 
     @staticmethod
-    def test_stream(stream: WebResponse) -> bool:
+    def test_stream(stream: WebResponse, test_seconds: int = 10) -> bool:
         """Decode the beginning of a stream, including its first HLS segment."""
         ffmpeg_headers = "".join(
             f"{key}: {value}\r\n"
@@ -155,7 +155,7 @@ class Proxy:
             "-i",
             stream["url"],
             "-t",
-            "3",
+            f"{test_seconds}",
             "-map",
             "0:v:0?",
             "-map",
