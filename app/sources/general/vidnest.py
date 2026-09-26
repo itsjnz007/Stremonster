@@ -26,5 +26,5 @@ class VidnestScraper(Scraper):
 if __name__ == "__main__":
     scraper = VidnestScraper()
     
-    series_response = scraper.get_movie("1301421")
+    series_response = scraper.get_series("3308", "5", "1")
     print(f"Series response: {series_response}")

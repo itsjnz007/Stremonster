@@ -157,14 +157,14 @@ class Scraper:
 
             if response.ok and not stream_url and (is_hls_playlist or is_stream_url):
                 stream_url = response.url
-                raw_headers = response.headers
+                raw_headers = await response.request.all_headers()
                 clean_headers: dict[str, Any] = {}
                 
                 for key, value in raw_headers.items():
                     # Strip outer escaped or duplicate quotes if present
                     cleaned_val = value.replace('\"', '')
                     clean_headers[key.lower()] = cleaned_val
-                
+
                 stream_headers = {}
                 if clean_headers.get('referer'): stream_headers['referer'] = clean_headers['referer']
                 if clean_headers.get('origin'): stream_headers['origin'] = clean_headers['origin']
