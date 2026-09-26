@@ -13,21 +13,21 @@ from app.core.scraper import Scraper
 
 logger = Logger('aether', logging.INFO)
 
-class Nebula(Scraper):
-    def __init__(self, source: str = "nebula") -> None:
-        super().__init__(base_url = "https://nebula.aether.cx", source=source)
+class Subtitulado(Scraper):
+    def __init__(self, source: str = "subtitulado") -> None:
+        super().__init__(base_url = "https://le.aether.cx", source=source)
         
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        url = f"{self.base_url}/movie/{tmdb_id}?ser=tik"
+        url = f"{self.base_url}/movie/{tmdb_id}?lang=sub"
         self.logger.info(f"GET stream: {url}")
         response = requests.get(url, headers=self.headers)
-        if response.status_code in [200]: return self.build_response(response.json().get('streams', [{}])[0].get('url'))
+        if response.status_code in [200]: return self.build_response(response.json().get('url'))
 
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}?ser=tik"
         self.logger.info(f"GET stream: {url}")
         response = requests.get(url, headers=self.headers)
-        if response.status_code in [200]: return self.build_response(response.json().get('streams', [{}])[0].get('url'))
+        if response.status_code in [200]: return self.build_response(response.json().get('url'))
 
 class Lul(Scraper):
     def __init__(self, source: str = "lul") -> None:
@@ -68,7 +68,7 @@ class Link(Scraper):
     
 
 if __name__ == "__main__":
-    scraper = Nebula()
+    scraper = Subtitulado()
     res = scraper.get_movie("634649")
     print(f"Response: {res}")
 
