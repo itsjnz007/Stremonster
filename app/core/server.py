@@ -79,7 +79,7 @@ def get_web_stream(type: str, id: str) -> Response:
     start_time = time.time()
     user_agent = request.headers.get('User-Agent')
 
-    while processing_cache.get_status(id, 'web') and start_time+120>time.time(): time.sleep(1)
+    while processing_cache.get_status(id, 'web') and start_time+120>time.time(): time.sleep(0.1)
 
     cache = web_cache.get(id, USE_CACHE_UPTO)
     if cache: 
@@ -130,8 +130,8 @@ def get_torrent_stream(type: str, id: str) -> Response:
             logger.info(f"Total time taken to fetch web stream: {time.time() - start_time:.2f} seconds")
             return torrentio_module.get_series(id, thread_pool_torrent, True)
 
-    time.sleep(1)
-    while (processing_cache.get_status(id, 'torrent') or (processing_cache.get_status(id, 'web'))) and start_time+120>time.time(): time.sleep(1)
+    time.sleep(0.5)
+    while processing_cache.get_status(id, 'torrent') and start_time+120>time.time(): time.sleep(0.1)
         
     cache = torrent_cache.get(key=id, upto_mins=USE_CACHE_UPTO)
     if cache:
@@ -139,6 +139,7 @@ def get_torrent_stream(type: str, id: str) -> Response:
         return respond_with(cache)
         # return respond_otherwise(cache)
     else:
+        while processing_cache.get_status(id, 'web') and start_time+120>time.time(): time.sleep(0.1)
         processing_cache.start(id, 'torrent')
         result = calculate()
         processing_cache.finish(id, 'torrent', bool(result))
