@@ -16,9 +16,12 @@ parsers = Parsers()
 
 class TamilMv(Scraper):
     async def search_page(self, url: str) -> list[WebResponse]:
+        context = None
+        page = None
         try:
             assert Scraper._browser is not None
             context = await Scraper._browser.new_context()
+            assert context
             page = await context.new_page()
             await page.goto(url)
 
@@ -149,6 +152,16 @@ class TamilMv(Scraper):
         except Exception as e:
             self.logger.error(f"Hook error: {e}")
             return []
+
+        finally:
+            try:
+                if page:
+                    await page.close()
+            except Exception: pass
+            try:
+                if context:
+                    await context.close()
+            except Exception: pass
 
 
     def __init__(self):
