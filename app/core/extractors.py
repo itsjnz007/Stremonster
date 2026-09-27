@@ -15,7 +15,7 @@ from app.sources.general import \
 from app.sources.general import *
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo, \
     yomi as yomi, anikoto as anikoto
-from app.sources.regional import tamilblasters as tamilblasters, moviesda as moviesda
+from app.sources.regional import tamilblasters as tamilblasters, moviesda as moviesda, tamilmv as tamilmv
 from app.core.caching import TmdbCache, WebCache
 from app.config import TUNNEL_URL, USE_CACHE_UPTO
 from app.external.tmdb import Tmdb
@@ -39,9 +39,11 @@ miruro_scraper = miruro.MiruroScraper()
 vidnest_scraper = vidnest.VidnestScraper()
 yomi_scraper = yomi.YomiScraper()
 anikoto_scraper = anikoto.AnikotoScraper()
+
 # Regional Scrapers
 tamilblasters_scraper = tamilblasters.TamilBlasters()
 moviesda_scraper = moviesda.Moviesda()
+tamilmv_scraper = tamilmv.TamilMv()
 
 # Other
 anibride = AniBridgeV3Resolver()
@@ -174,9 +176,10 @@ class StreamExtractor:
                 if title:
                     tasks: List[Callable[[Any], Optional[List[WebResponse]]]] = [
                         lambda _: moviesda_scraper.get_movie(title, release_year),
+                        lambda _: tamilmv_scraper.get_movie(title, release_year),
                         lambda _: tamilblasters_scraper.get_movie(title, release_year, threadpool=self.threadpool),
                     ]
-                    return process_results(tasks, 1)
+                    return process_results(tasks, 2)
             
             tasks_movie: List[Callable[[str], Optional[List[WebResponse]]]] = [
                 lambda _, f=func: f(tmdb_id or "unknown")
