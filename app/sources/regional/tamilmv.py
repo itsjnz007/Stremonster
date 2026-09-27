@@ -175,5 +175,5 @@ class TamilMv(Scraper):
 if __name__ == "__main__":
     scraper = TamilMv()
     print(
-        scraper.get_movie("Vishwanath and sons", "2026")
+        scraper.get_movie("gatta kusthi 2", "2026")
     )

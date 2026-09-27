@@ -179,7 +179,7 @@ class StreamExtractor:
                         lambda _: tamilmv_scraper.get_movie(title, release_year),
                         lambda _: tamilblasters_scraper.get_movie(title, release_year, threadpool=self.threadpool),
                     ]
-                    return process_results(tasks, 2)
+                    return process_results(tasks, 1)
             
             tasks_movie: List[Callable[[str], Optional[List[WebResponse]]]] = [
                 lambda _, f=func: f(tmdb_id or "unknown")
