@@ -176,7 +176,7 @@ class Proxy:
                 command,
                 capture_output=True,
                 text=True,
-                timeout=15,
+                timeout=30,
                 check=False,
             )
         except FileNotFoundError:
