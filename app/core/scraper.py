@@ -31,7 +31,7 @@ class Scraper:
                  headless: bool = True, 
                  source: str = "scraper", 
                  timeout: int = 30000, 
-                 subtitle_timeout: float = 3000, 
+                 subtitle_timeout: float = 1000, 
                  stream_url_pattern: str = STREAM_URL_PATTERN, 
                  subtitle_url_pattern: str = SUBTITLE_PATTERN,
                  log_requests: bool = False,

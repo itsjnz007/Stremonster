@@ -5,7 +5,7 @@ from app.config import TUNNEL_URL
 from flask import Response, request, jsonify, stream_with_context
 from urllib.parse import quote, urlparse
 from app.core.logger import Logger
-import json, re, urllib3, logging, time, requests, pycurl, subprocess
+import json, re, urllib3, logging, time, requests, pycurl
 from typing import Optional, Any
 from app.core.caching import WebCache
 from app.models.responses import WebResponse
@@ -135,63 +135,11 @@ class Proxy:
         return None
 
     @staticmethod
-    def test_stream(stream: WebResponse, test_seconds: int = 10) -> bool:
-        """Decode the beginning of a stream, including its first HLS segment."""
-        ffmpeg_headers = "".join(
-            f"{key}: {value}\r\n"
-            for key, value in (stream.get("headers") or {}).items()
-            if value is not None
-        )
-        command = [
-            "ffmpeg",
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-nostdin",
-            "-rw_timeout",
-            "10000000",
-            "-analyzeduration",
-            "5000000",
-            "-probesize",
-            "5000000",
-        ]
-        if ffmpeg_headers:
-            command.extend(["-headers", ffmpeg_headers])
-        command.extend([
-            "-i",
-            stream["url"],
-            "-t",
-            f"{test_seconds}",
-            "-map",
-            "0:v:0?",
-            "-map",
-            "0:a:0?",
-            "-f",
-            "null",
-            "-",
-        ])
+    def test_stream(stream: WebResponse) -> bool:
+        response = requests.head(stream['url'])
+        if response.status_code in [200, 206]: return True
+        return False
 
-        try:
-            result = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,
-            )
-        except FileNotFoundError:
-            logger.error("Unable to test stream: ffmpeg is not installed")
-            return False
-        except subprocess.TimeoutExpired:
-            logger.error("Unable to test stream: ffmpeg timed out")
-            return False
-
-        if result.returncode != 0:
-            logger.error(f"Stream playback test failed: {result.stderr.strip()}")
-            return False
-
-        logger.info("Stream playback test passed")
-        return True
 
     @staticmethod
     def apply_proxy(stream: WebResponse) -> Optional[WebResponse]:
@@ -235,6 +183,8 @@ class Proxy:
         stream_type = "stream.mp4" if stream['contentType'] == "video/mp4" else "stream.m3u8"
 
         headers_str = json.dumps(stream['headers'])
+
+        
         stream['url'] = Proxy.add_proxy(stream['url'], headers_str, stream_type=stream_type)
         stream['subtitles'] = [
             {
@@ -280,6 +230,7 @@ class Proxy:
         base_path = "/".join(parsed.path.split("/")[:-1])
 
         is_master = "#EXT-X-STREAM-INF" in text
+        is_fmp4 = "#EXT-X-MAP" in text
 
         def resolve_url(url: str) -> str:
             """Converts relative URLs to absolute."""
@@ -294,7 +245,8 @@ class Proxy:
         def get_stream_type(target: str) -> str:
             if is_master: return "stream.m3u8"  # Master playlists should always be treated as m3u8
             ext = os.path.splitext(urlparse(target).path)[1]
-            if ext in [".mp4", ".m4s", ".ts", ".m3u8"]:
+            if is_fmp4: return "stream.m4s"
+            elif ext in [".mp4", ".m4s", ".ts", ".m3u8"]:
                 return f"stream{ext}"
             return "stream.ts"
 
@@ -539,7 +491,7 @@ class Proxy:
                     # Strip leading non-MPEG-TS junk/image bytes from the initial chunk
                     if first_chunk:
                         first_chunk = False
-                        if ".ts" in media_url or "mp2t" in content_type:
+                        if (".ts" in media_url or "mp2t" in content_type) and not ("styp" in chunk[:16].hex() or "ftyp" in chunk[:16].hex()):
                             sync_idx = chunk.find(b'\x47')
                             if sync_idx > 0:
                                 logger.warning(f"Stripped {sync_idx} bytes of non-video header data before MPEG-TS sync byte.")
