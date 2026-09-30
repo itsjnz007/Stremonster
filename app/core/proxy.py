@@ -5,7 +5,7 @@ from app.config import TUNNEL_URL
 from flask import Response, request, jsonify, stream_with_context
 from urllib.parse import quote, urlparse
 from app.core.logger import Logger
-import json, re, urllib3, logging, time, requests, pycurl
+import json, re, urllib3, logging, time, requests, pycurl, subprocess
 from typing import Optional, Any
 from app.core.caching import WebCache
 from app.models.responses import WebResponse
@@ -135,10 +135,76 @@ class Proxy:
         return None
 
     @staticmethod
-    def test_stream(stream: WebResponse) -> bool:
-        response = requests.head(stream['url'])
-        if response.status_code in [200, 206]: return True
-        return False
+    def test_stream(stream: WebResponse, test_seconds: int = 3) -> bool:
+        """Decode the beginning of a stream, including its first HLS segment."""
+        # ffmpeg_headers = "".join(
+        #     f"{key}: {value}\r\n"
+        #     for key, value in (stream.get("headers") or {}).items()
+        #     if value is not None
+        # )
+        
+        command = [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-nostdin",
+            "-rw_timeout",
+            "10000000",
+            "-analyzeduration",
+            "5000000",
+            "-probesize",
+            "5000000",
+            # "-f",
+            # stream_flag,
+            "-allowed_segment_extensions", "ALL",
+            # "-protocol_whitelist", "file,crypto,stream,http,https,tls,tcp,ignore_extension",
+            "-extension_picky", "0"
+        ]
+        
+        # if ffmpeg_headers:
+        #     command.extend([
+        #         # FIX 1: Pass headers to the primary/initial request
+        #         "-headers", ffmpeg_headers,
+        #         # FIX 2: Forces FFmpeg to reuse headers for HLS child/segment playlists
+        #         "-http_persistent", "0" 
+        #     ])
+            
+        command.extend([
+            "-i",
+            stream["url"],
+            "-t",
+            f"{test_seconds}",
+            "-map",
+            "0:v:0?",
+            "-map",
+            "0:a:0?",
+            "-f",
+            "null",
+            "-",
+        ])
+
+        try:
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=False,
+            )
+        except FileNotFoundError:
+            logger.error("Unable to test stream: ffmpeg is not installed")
+            return False
+        except subprocess.TimeoutExpired:
+            logger.error("Unable to test stream: ffmpeg timed out")
+            return False
+
+        if result.returncode != 0:
+            logger.error(f"Stream playback test failed: {result.stderr.strip()}")
+            return False
+
+        logger.info("Stream playback test passed")
+        return True
 
 
     @staticmethod
