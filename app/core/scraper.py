@@ -132,16 +132,22 @@ class Scraper:
         subtitle_counter = 0
         start_time = time.time()
 
-        pending_requests: set[str] = set()
+        pending_requests: dict[str, int] = {}
 
         def on_request_done(request: Request):
             nonlocal pending_requests
-            pending_requests.discard(request.url)
+            if any(ignored in request.url for ignored in ["google-analytics", "doubleclick"]):
+                return
+            count = pending_requests.get(request.url, 0)
+            if count <= 1:
+                pending_requests.pop(request.url, None)
+            else:
+                pending_requests[request.url] = count - 1
 
         def on_request(request: Request):
             nonlocal pending_requests
             if not any(ignored in request.url for ignored in ["google-analytics", "doubleclick"]):
-                pending_requests.add(request.url)
+                pending_requests[request.url] = pending_requests.get(request.url, 0) + 1
             if self.log_requests: self.logger.info(f">>> Request -> {request.url}")
 
         async def on_response(response: Response):
@@ -202,9 +208,10 @@ class Scraper:
             start_time = time.time()
             idle_begin_time = None
             while not stream_url:
-                print(f"Pending requests: {len(pending_requests)} | Idle begin time: {idle_begin_time} | Elapsed: {int((time.time() - start_time) * 1000)}ms")
-                if len(pending_requests)==0 and not idle_begin_time: idle_begin_time = time.time()
-                elif idle_begin_time and len(pending_requests)>0: idle_begin_time = None
+                pending_count = sum(pending_requests.values())
+                if self.log_requests: print(f"Pending requests: {pending_count} | Idle begin time: {idle_begin_time} | Elapsed: {int((time.time() - start_time) * 1000)}ms")
+                if pending_count == 0 and not idle_begin_time: idle_begin_time = time.time()
+                elif idle_begin_time and pending_count > 0: idle_begin_time = None
                 if stop_event and stop_event.is_set(): 
                     self.logger.warning(f"Fetch stream skipped for {domain} due to stop event.")
                     return
