@@ -4,12 +4,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import os, time
 from typing import Optional
-from app.models.responses import WebResponse
+from app.models.responses import ExternalWebResponse, WebResponse
 from app.sources import torrentio as torrentio_module
 from flask import Flask, request
 from flask.wrappers import Response
 from app.core.logger import Logger
-from app.config import MANIFEST_CATALOG, MANIFEST_TORRENTS, MANIFEST_WEB, USE_CACHE_UPTO
+from app.config import MANIFEST_CATALOG, MANIFEST_MIGRATE, MANIFEST_TORRENTS, MANIFEST_WEB, USE_CACHE_UPTO
 from app.core.caching import TmdbCache, WebCache, TorrentCache, processing_cache
 from app.core.multithreading import MultiThreading
 from app.core.proxy import respond_with, Proxy
@@ -44,6 +44,21 @@ def torrent_manifest() -> Response:
 @app.route('/catalog/manifest.json')
 def catalog_manifest() -> Response:
     return respond_with(MANIFEST_CATALOG)
+
+@app.route('/migrate/manifest.json')
+def migrate_catalog() -> Response:
+    return respond_with(MANIFEST_MIGRATE)
+
+@app.route('/migrate/stream/<type>/<id>.json')
+def get_migrate_stream(type: str, id: str) -> Response:
+    return respond_with({'streams': [
+        ExternalWebResponse(
+            title="Streaming server is migrated to Nuvio.tv - Please switch to the new app, stremio support will be disabled soon.",
+            name="Notice!",
+            externalUrl=f"https://nuvio.tv/",
+            subtitles=[]
+        )
+    ]})
 
 @app.route('/catalog/catalog/<media_type>/<catalog_id>.json')
 def get_catalog(media_type: str, catalog_id: str) -> Response:

@@ -28,6 +28,16 @@ MANIFEST_TORRENTS: dict[str, object] = {
     'resources': ["stream"]
 }
 
+MANIFEST_MIGRATE: dict[str, object] = {
+    'id': 'org.jnz.stremonster.migrate',
+    'version': '1.0.2',
+    'name': 'Stremonster - Migrate',
+    'description': 'Migration addon for updating catalog data',
+    'types': ['movie', 'series'],
+    'catalogs': [],
+    'resources': ["stream"]
+}
+
 CATALOG_BUILDER: dict[str, dict[str, dict[str, str]]] = {
     "global": {
         "movie": {
