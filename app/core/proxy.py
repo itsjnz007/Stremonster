@@ -137,6 +137,7 @@ class Proxy:
     @staticmethod
     def test_stream(stream: WebResponse, test_seconds: int = 3) -> bool:
         """Test the stream using ffprobe instead of ffmpeg to avoid HLS variant buffer truncation."""
+        logger.info(f"Testing stream URL: {stream['url']} for {test_seconds} seconds using ffprobe.")
 
         command = [
             "ffprobe",
@@ -156,11 +157,23 @@ class Proxy:
                 timeout=15,
                 check=False,
             )
-        except (FileNotFoundError, subprocess.TimeoutExpired) as e:
-            logger.error(f"Error occurred while testing stream: {e}")
+        except FileNotFoundError:
+            logger.error("Unable to test stream: ffprobe is not installed.")
+            return False
+        except subprocess.TimeoutExpired:
+            logger.error("Unable to test stream: ffprobe timed out.")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error occurred while testing stream: {e}")
             return False
 
-        return result.returncode == 0
+        if result.returncode != 0:
+            error_reason = result.stderr.strip() if result.stderr else "No error output provided by ffprobe."
+            logger.error(f"Stream test failed (code {result.returncode}). Reason: {error_reason}")
+            return False
+
+        logger.info("Stream playback test passed.")
+        return True
 
 
     @staticmethod
