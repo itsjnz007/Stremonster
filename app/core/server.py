@@ -53,7 +53,7 @@ def migrate_catalog() -> Response:
 def get_migrate_stream(type: str, id: str) -> Response:
     return respond_with({'streams': [
         ExternalWebResponse(
-            title="Streaming server is migrated to Nuvio.tv - Please switch to the new app, stremio support will be disabled soon.",
+            title="Streaming server is migrated\nto Nuvio.tv - Please switch to the\nnew app, stremio support\nwill be disabled soon.",
             name="Notice!",
             externalUrl=f"https://nuvio.tv/",
             subtitles=[]
