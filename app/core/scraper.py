@@ -125,6 +125,7 @@ class Scraper:
         assert context
         await context.add_init_script(path='./app/core/plugins/anti-anti-debug.js')
         page = await context.new_page()
+        context.on("page", lambda new_page: asyncio.create_task(new_page.close()))
 
         stream_url: Optional[str] = None
         stream_headers: Optional[dict[str, Any]] = None

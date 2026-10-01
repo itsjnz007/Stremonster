@@ -14,12 +14,12 @@ class VidukiScraper(Scraper):
                          )
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        url = f"{self.base_url}/1/movie/{tmdb_id}"
+        url = f"{self.base_url}/3/movie/{tmdb_id}"
         result = self.get_stream(url, stop_event)
         return result
     
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        url = f"{self.base_url}/1/tv/{tmdb_id}/{season}/{episode}"
+        url = f"{self.base_url}/3/tv/{tmdb_id}/{season}/{episode}"
         result = self.get_stream(url, stop_event)
         return result
 

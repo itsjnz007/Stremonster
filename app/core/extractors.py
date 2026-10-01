@@ -12,7 +12,8 @@ from app.sources.general import \
     vidsrc as vidsrc, \
     vidnest as vidnest_general, viduki as viduki, \
     aether as aether, \
-    cinejoy as cinejoy
+    cinejoy as cinejoy, \
+    vsembed as vsembed
 from app.sources.general import *
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo, \
     yomi as yomi, anikoto as anikoto
@@ -29,6 +30,7 @@ vidsrc_scraper = vidsrc.VidsrcScraper()
 vidnest_general_scraper = vidnest_general.VidnestScraper()
 viduki_scraper = viduki.VidukiScraper()
 cinejoy_scraper = cinejoy.Cinejoy()
+vsembed_scraper = vsembed.Vsembed()
 
 # Aether
 subtitulado = aether.Subtitulado()
@@ -141,9 +143,10 @@ class StreamExtractor:
             (lambda tmdb_id: [result] if (result := lul.get_movie(tmdb_id)) else None, 'lul'),
             (lambda tmdb_id: [result] if (result := subtitulado.get_movie(tmdb_id)) else None, 'subtitulado'),
             (lambda tmdb_id: [result] if (result := cinejoy_scraper.get_movie(tmdb_id)) else None, 'cinejoy'),
-            (lambda tmdb_id: [result] if (result := vidsrc_scraper.get_movie(tmdb_id)) else None, 'vidsrc'),
+            (lambda tmdb_id: [result] if (result := vsembed_scraper.get_movie(tmdb_id)) else None, 'vsembed'),
             (lambda tmdb_id: [result] if (result := viduki_scraper.get_movie(tmdb_id)) else None, 'viduki'),
-            (lambda tmdb_id: [result] if (result := vidnest_general_scraper.get_movie(tmdb_id)) else None, 'vidnest'),
+            (lambda tmdb_id: [result] if (result := vidsrc_scraper.get_movie(tmdb_id)) else None, 'vidsrc'),
+            # (lambda tmdb_id: [result] if (result := vidnest_general_scraper.get_movie(tmdb_id)) else None, 'vidnest'),
         ]
 
         series_scrapers: List[Tuple[Callable[[str, str, str], Optional[List[WebResponse]]], str]] = [
@@ -151,9 +154,10 @@ class StreamExtractor:
             (lambda tmdb_id, s, e: [result] if (result := lul.get_series(tmdb_id, s, e)) else None, 'lul'),
             (lambda tmdb_id, s, e: [result] if (result := subtitulado.get_series(tmdb_id, s, e)) else None, 'subtitulado'),
             (lambda tmdb_id, s, e: [result] if (result := cinejoy_scraper.get_series(tmdb_id, s, e)) else None, 'cinejoy'),
-            (lambda tmdb_id, s, e: [result] if (result := vidsrc_scraper.get_series(tmdb_id, s, e)) else None, 'vidsrc'),
+            (lambda tmdb_id, s, e: [result] if (result := vsembed_scraper.get_series(tmdb_id, s, e)) else None, 'vsembed'),
             (lambda tmdb, s, e: [result] if (result := viduki_scraper.get_series(tmdb, s, e)) else None, 'viduki'),
-            (lambda tmdb, s, e: [result] if (result := vidnest_general_scraper.get_series(tmdb, s, e)) else None, 'vidnest'),
+            (lambda tmdb_id, s, e: [result] if (result := vidsrc_scraper.get_series(tmdb_id, s, e)) else None, 'vidsrc'),
+            # (lambda tmdb, s, e: [result] if (result := vidnest_general_scraper.get_series(tmdb, s, e)) else None, 'vidnest'),
         ]
 
         anime_series_scrapers: List[Tuple[Callable[[Optional[str], Optional[str], Optional[str], Optional[str], str, Optional[str], str, str], Optional[List[WebResponse]]], str]] = [
