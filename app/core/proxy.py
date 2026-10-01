@@ -149,7 +149,11 @@ class Proxy:
             "-show_streams",
             "-print_format", "json",
             "-read_intervals", f"%+{test_seconds}",
-            "-user_agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+            "-headers", (
+                "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\r\n"
+                "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8\r\n"
+                "Accept-Language: en-US,en;q=0.5\r\n"
+            ),
             stream['url']
         ]
 
@@ -619,5 +623,5 @@ class Proxy:
         return Proxy.apply_headers(resp)
 
 # if __name__ == "__main__":
-#     url = """http://something.dpdns.org/stream.m3u8?url=https%3A%2F%2Fnebula.bright67.online%2Fhls%2Fcb8da798-1e02-4bcd-ae3a-8d803bf16add%2Fmaster.m3u8&headers=%7B%22referer%22%3A%20%22https%3A%2F%2Fcinejoy.pk%2F%22%2C%20%22origin%22%3A%20%22https%3A%2F%2Fcinejoy.pk%22%2C%20%22user-agent%22%3A%20%22Mozilla%2F5.0%20%28Windows%20NT%2010.0%3B%20Win64%3B%20x64%3B%20rv%3A137.0%29%20Gecko%2F20100101%20Firefox%2F137.0%22%2C%20%22accept%22%3A%20%22%2A%2F%2A%22%2C%20%22accept-language%22%3A%20%22en-US%2Cen%3Bq%3D0.5%22%2C%20%22sec-fetch-dest%22%3A%20%22empty%22%2C%20%22sec-fetch-mode%22%3A%20%22cors%22%2C%20%22sec-fetch-site%22%3A%20%22cross-site%22%7D"""
+#     url = """https://something.dpdns.org/stream.m3u8?url=https%3A%2F%2Fnebula.bright67.online%2Fhls%2Fcb8da798-1e02-4bcd-ae3a-8d803bf16add%2Fmaster.m3u8&headers=%7B%22referer%22%3A%20%22https%3A%2F%2Fcinejoy.pk%2F%22%2C%20%22origin%22%3A%20%22https%3A%2F%2Fcinejoy.pk%22%2C%20%22user-agent%22%3A%20%22Mozilla%2F5.0%20%28Windows%20NT%2010.0%3B%20Win64%3B%20x64%3B%20rv%3A137.0%29%20Gecko%2F20100101%20Firefox%2F137.0%22%2C%20%22accept%22%3A%20%22%2A%2F%2A%22%2C%20%22accept-language%22%3A%20%22en-US%2Cen%3Bq%3D0.5%22%2C%20%22sec-fetch-dest%22%3A%20%22empty%22%2C%20%22sec-fetch-mode%22%3A%20%22cors%22%2C%20%22sec-fetch-site%22%3A%20%22cross-site%22%7D"""
 #     Proxy.test_stream(WebResponse(url=url, headers={}, subtitles=[]), test_seconds=3)
