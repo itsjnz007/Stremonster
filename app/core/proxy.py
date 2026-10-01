@@ -137,24 +137,83 @@ class Proxy:
 
         return None
 
+    # @staticmethod
+    # def test_stream(stream: WebResponse, test_seconds: int = 3) -> bool:
+    #     """Test the stream using ffprobe instead of ffmpeg to avoid HLS variant buffer truncation."""
+    #     logger.info(f"Testing stream URL: {stream['url']} for {test_seconds} seconds using ffprobe.")
+
+    #     command = [
+    #         "ffprobe",
+    #         "-v", "error",
+    #         "-show_format",
+    #         "-show_streams",
+    #         "-print_format", "json",
+    #         "-read_intervals", f"%+{test_seconds}",
+    #         "-headers", (
+    #             "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\r\n"
+    #             "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8\r\n"
+    #             "Accept-Language: en-US,en;q=0.5\r\n"
+    #         ),
+    #         stream['url']
+    #     ]
+
+    #     try:
+    #         result = subprocess.run(
+    #             command,
+    #             capture_output=True,
+    #             text=True,
+    #             timeout=15,
+    #             check=False,
+    #         )
+    #     except FileNotFoundError:
+    #         logger.error("Unable to test stream: ffprobe is not installed.")
+    #         return False
+    #     except subprocess.TimeoutExpired:
+    #         logger.error("Unable to test stream: ffprobe timed out.")
+    #         return False
+    #     except Exception as e:
+    #         logger.error(f"Unexpected error occurred while testing stream: {e}")
+    #         return False
+
+    #     # if result.stdout:
+    #     #     logger.info(f"ffprobe stdout:\n{result.stdout.strip()}")
+    #     # if result.stderr:
+    #     #     logger.info(f"ffprobe stderr:\n{result.stderr.strip()}")
+
+    #     if result.returncode != 0:
+    #         error_reason = result.stderr.strip() if result.stderr else "No error output provided by ffprobe."
+    #         logger.error(f"Stream test failed (code {result.returncode}). Reason: {error_reason}")
+    #         return False
+
+    #     logger.info("Stream playback test passed.")
+    #     return True
+
     @staticmethod
     def test_stream(stream: WebResponse, test_seconds: int = 3) -> bool:
-        """Test the stream using ffprobe instead of ffmpeg to avoid HLS variant buffer truncation."""
-        logger.info(f"Testing stream URL: {stream['url']} for {test_seconds} seconds using ffprobe.")
-
+        """Decode the beginning of a stream, including its first HLS segment."""
         command = [
-            "ffprobe",
-            "-v", "error",
-            "-show_format",
-            "-show_streams",
-            "-print_format", "json",
-            "-read_intervals", f"%+{test_seconds}",
-            "-headers", (
-                "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\r\n"
-                "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8\r\n"
-                "Accept-Language: en-US,en;q=0.5\r\n"
-            ),
-            stream['url']
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-nostdin",
+            "-rw_timeout",
+            "10000000",
+            "-analyzeduration",
+            "5000000",
+            "-probesize",
+            "5000000",
+            "-i",
+            stream["url"],
+            "-t",
+            str(test_seconds),
+            "-map",
+            "0:v:0?",
+            "-map",
+            "0:a:0?",
+            "-f",
+            "null",
+            "-",
         ]
 
         try:
@@ -166,38 +225,29 @@ class Proxy:
                 check=False,
             )
         except FileNotFoundError:
-            logger.error("Unable to test stream: ffprobe is not installed.")
+            logger.error("Unable to test stream: ffmpeg is not installed")
             return False
         except subprocess.TimeoutExpired:
-            logger.error("Unable to test stream: ffprobe timed out.")
+            logger.error("Unable to test stream: ffmpeg timed out")
             return False
-        except Exception as e:
-            logger.error(f"Unexpected error occurred while testing stream: {e}")
-            return False
-
-        # if result.stdout:
-        #     logger.info(f"ffprobe stdout:\n{result.stdout.strip()}")
-        # if result.stderr:
-        #     logger.info(f"ffprobe stderr:\n{result.stderr.strip()}")
 
         if result.returncode != 0:
-            error_reason = result.stderr.strip() if result.stderr else "No error output provided by ffprobe."
-            logger.error(f"Stream test failed (code {result.returncode}). Reason: {error_reason}")
+            logger.error(f"Stream playback test failed: {result.stderr.strip()}")
             return False
 
-        logger.info("Stream playback test passed.")
+        logger.info("Stream playback test passed")
         return True
 
 
     @staticmethod
     def apply_proxy(stream: WebResponse) -> Optional[WebResponse]:
         if not stream.get('headers'): stream['headers'] = {}
-        stream['headers']["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0"
-        stream['headers']["accept"] = "*/*"
-        stream['headers']["accept-language"] = "en-US,en;q=0.5"
-        stream['headers']["sec-fetch-dest"] = "empty"
-        stream['headers']["sec-fetch-mode"] = "cors"
-        stream['headers']["sec-fetch-site"] = "cross-site"
+        # stream['headers']["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0"
+        # stream['headers']["accept"] = "*/*"
+        # stream['headers']["accept-language"] = "en-US,en;q=0.5"
+        # stream['headers']["sec-fetch-dest"] = "empty"
+        # stream['headers']["sec-fetch-mode"] = "cors"
+        # stream['headers']["sec-fetch-site"] = "cross-site"
 
         try:
             r = session.get(stream['url'], 
@@ -427,7 +477,16 @@ class Proxy:
         try: arg_headers = json.loads(media_headers)
         except Exception as e: return Response(f"Unable to parse headers_str. Error: {e}", status=503)
         logger.debug(f"arg_headers: {arg_headers}")
-        if "Range" in request_headers: arg_headers['Range'] = request_headers['Range']
+
+        is_m3u8 = (
+            ".m3u8" in media_url
+            or (content_type and "mpegurl" in content_type.lower())
+            or (content_type and "application/vnd.apple.mpegurl" in content_type)
+        )
+        request_range = request_headers.get("Range") or request_headers.get("range")
+        for header_name in list(arg_headers):
+            if header_name.lower() == "range": del arg_headers[header_name]
+        if request_range and not is_m3u8: arg_headers["Range"] = request_range
 
         if id and index:
             web_res = web_cache.get(id)
@@ -485,14 +544,7 @@ class Proxy:
         # Drop ImageX / PNG obfuscation headers sent by TikTok CDN
         sanitized_headers = dict(upstream_response.headers)
         keys_to_remove = [k for k in sanitized_headers if 'imagex' in k.lower() or 'png' in k.lower()]
-        for k in keys_to_remove:
-            sanitized_headers.pop(k, None)
-
-        is_m3u8 = (
-            ".m3u8" in media_url
-            or "mpegurl" in content_type.lower()
-            or "application/vnd.apple.mpegurl" in content_type
-        )
+        for k in keys_to_remove: sanitized_headers.pop(k, None)
 
         if is_m3u8 and upstream_response.status_code in (200, 203, 206):
             content = upstream_response.content
