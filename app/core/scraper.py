@@ -138,6 +138,12 @@ class Scraper:
             nonlocal pending_requests
             pending_requests.discard(request.url)
 
+        def on_request(request: Request):
+            nonlocal pending_requests
+            if not any(ignored in request.url for ignored in ["google-analytics", "doubleclick"]):
+                pending_requests.add(request.url)
+            if self.log_requests: self.logger.info(f">>> Request -> {request.url}")
+
         async def on_response(response: Response):
             nonlocal stream_url
             nonlocal stream_headers
@@ -145,10 +151,10 @@ class Scraper:
             nonlocal subtitle_counter
             nonlocal pending_requests
 
-            if not any(ignored in response.url for ignored in ["google-analytics", "doubleclick"]):
-                pending_requests.add(response.url)
+            # if not any(ignored in response.url for ignored in ["google-analytics", "doubleclick"]):
+            #     pending_requests.add(response.url)
 
-            if self.log_requests: self.logger.info(f"Request -> {response.url}")
+            if self.log_requests: self.logger.info(f"<<< Response -> {response.url}")
             is_stream_url = re.search(self.stream_url_pattern, response.url, re.I)
             is_hls_playlist = False
             if response.ok and not stream_url and not is_stream_url:
@@ -185,7 +191,7 @@ class Scraper:
                 self.logger.info(f'💬 Subtitles from {domain}: {subtitle_urls}')
 
         try:
-            # page.on("request", on_request)
+            page.on("request", on_request)
             page.on("response", on_response)
             page.on("requestfinished", on_request_done)
             page.on("requestfailed", on_request_done)
@@ -196,6 +202,7 @@ class Scraper:
             start_time = time.time()
             idle_begin_time = None
             while not stream_url:
+                print(f"Pending requests: {len(pending_requests)} | Idle begin time: {idle_begin_time} | Elapsed: {int((time.time() - start_time) * 1000)}ms")
                 if len(pending_requests)==0 and not idle_begin_time: idle_begin_time = time.time()
                 elif idle_begin_time and len(pending_requests)>0: idle_begin_time = None
                 if stop_event and stop_event.is_set(): 
