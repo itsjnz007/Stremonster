@@ -10,7 +10,7 @@ from threading import Event
 class Cinejoy(Scraper):
     def __init__(self):
         super().__init__(source="cinejoy", base_url="https://cinejoy.pk",
-                         log_requests=True,
+                        #  log_requests=True,
                         #  headless=False,
                          )
 
