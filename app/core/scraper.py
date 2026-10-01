@@ -32,7 +32,7 @@ class Scraper:
                  source: str = "scraper", 
                  timeout: int = 30000, 
                  subtitle_timeout: int = 1000, 
-                 idle_timeout: int = 5000,
+                 idle_timeout: int = 10000,
                  stream_url_pattern: str = STREAM_URL_PATTERN, 
                  subtitle_url_pattern: str = SUBTITLE_PATTERN,
                  log_requests: bool = False,
@@ -201,7 +201,7 @@ class Scraper:
                 if stop_event and stop_event.is_set(): 
                     self.logger.warning(f"Fetch stream skipped for {domain} due to stop event.")
                     return
-                if idle_begin_time and time.time() - idle_begin_time > self.idle_timeout:
+                if idle_begin_time and time.time() - idle_begin_time > self.idle_timeout / 1000:
                     self.logger.warning(f"Fetch stream skipped for {domain} due to network idle.")
                     return
                 if time.time() - start_time > (self.timeout / 1000): 
