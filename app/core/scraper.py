@@ -32,7 +32,7 @@ class Scraper:
                  source: str = "scraper", 
                  timeout: int = 30000, 
                  subtitle_timeout: int = 1000, 
-                 idle_timeout: int = 10000,
+                 idle_timeout: int = 5000,
                  stream_url_pattern: str = STREAM_URL_PATTERN, 
                  subtitle_url_pattern: str = SUBTITLE_PATTERN,
                  log_requests: bool = False,
