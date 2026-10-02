@@ -25,7 +25,7 @@ class Vsembed(Scraper):
         super().__init__(source="vsembed", 
                         base_url="https://vsembed.su",
                         page_hook=page_hook,
-                        # headless=False
+                        headless=False
         )
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
@@ -34,12 +34,12 @@ class Vsembed(Scraper):
         return result
     
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        url = f"{self.base_url}/embed/tv/{tmdb_id}?s={season}&e={episode}"
+        url = f"{self.base_url}/embed/tv/{tmdb_id}/{season}/{episode}"
         result = self.get_stream(url, stop_event)
         return result
 
 if __name__ == "__main__":
     scraper = Vsembed()
     
-    response = scraper.get_series("3308", "2", "21")
+    response = scraper.get_series("3308", "6", "10")
     print(f"Response: {response}")
