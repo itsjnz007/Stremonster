@@ -117,19 +117,26 @@ class StreamExtractor:
                 first_result = append_id_to_streams(first_result)
                 self.logger.debug(f"First result obtained, caching and draining remaining results for ID {id}, first result: {first_result}")
                 if seek_state:
+                    self.logger.info(f"Extending web cache for ID {id} with seek_state {seek_state}")
+                    # if extend_cache: self.web_cache.extend(id, first_result, seek_state=seek_state)
+                    self.web_cache.extend(id, first_result, seek_state=seek_state)
+                else:
                     self.logger.info(f"Setting web cache for ID {id} with seek_state {seek_state}")
                     self.web_cache.set(id, first_result, seek_state=seek_state)
-                else:
-                    self.logger.info(f"Extending web cache for ID {id} with seek_state {seek_state}")
-                    self.web_cache.extend(id, first_result, seek_state=seek_state)
 
-                def drain_remaining(iterator: Iterator[Optional[List[WebResponse]]]) -> None:
+                def drain_remaining(iterator: Iterator[Optional[List[WebResponse]]], seek: int) -> None:
+                    response_counter = 0
                     for _, response in enumerate(iterator, start=1):
                         if response:
+                            response_counter += 1
                             response = append_id_to_streams(response)
                             self.web_cache.extend(id, response, seek_state=seek_state)
 
-                self.threadpool.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator))
+                    if response_counter + 1 < seek:
+                        self.logger.warning(f"Stream fetch for ID {id} completed with fewer results ({response_counter + 1}) than requested ({seek}).")
+                        process_results(tasks=tasks, seek=seek - (response_counter + 1))
+
+                self.threadpool.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator, seek))
                 if not TUNNEL_URL: raise Exception("TUNNEL_URL is not set. Please set it in the config.")
                 if not user_agent: return self.build_web_response(id, type, first_result, 0, unified=True)
                 else: return self.build_web_response(id, type, first_result, 0, unified=True)

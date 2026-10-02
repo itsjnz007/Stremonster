@@ -447,11 +447,11 @@ class Proxy:
 
         stream += f"&id={id}&index={current_index}:0"
 
-        if id and len(id.split(":"))>1:
-            from app.core.extractors import StreamExtractor
-            logger.info("Series found. Calculating cache for next episode.")
-            next_eps_id = cinemeta.get_next_episode(id)
-            if next_eps_id: threadpool.run_in_background(lambda _: StreamExtractor().extract(next_eps_id, type="series", seek=3), delay=30)
+        # if id and len(id.split(":"))>1:
+        #     from app.core.extractors import StreamExtractor
+        #     logger.info("Series found. Calculating cache for next episode.")
+        #     next_eps_id = cinemeta.get_next_episode(id)
+        #     if next_eps_id: threadpool.run_in_background(lambda _: StreamExtractor().extract(next_eps_id, type="series", seek=2), delay=30)
 
         logger.info(f"Redirecting to proxied stream URL: {stream}")
         return Response(status=302, headers={"Location": stream})

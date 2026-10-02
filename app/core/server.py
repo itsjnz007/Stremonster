@@ -80,7 +80,7 @@ def prefetch_next_episode(id: str):
     next_episode_id = cinemeta.get_next_episode(id)
     if next_episode_id and not web_cache.get(next_episode_id, USE_CACHE_UPTO):
         logger.info(f"Pre-fetching next episode streams for series ID {id} in 120 seconds...")
-        thread_pool_torrent.run_in_background(lambda _: stream_extractor.extract(next_episode_id, "series", seek=3), delay=120)
+        thread_pool_torrent.run_in_background(lambda _: stream_extractor.extract(next_episode_id, "series", seek=2), delay=30)
     else:
         logger.warning(f"No next episode found for series ID {id} or item already cached.")
 
@@ -111,7 +111,7 @@ def get_web_stream(type: str, id: str) -> Response:
 
     logger.info("Cache invalid, recalculating...")
     processing_cache.start(id, 'web')
-    streams = stream_extractor.extract(id, type, seek=3, user_agent=user_agent)
+    streams = stream_extractor.extract(id, type, seek=2, user_agent=user_agent)
     if streams:
         processing_cache.finish(id, 'web', True)
         return respond_with({'streams': streams})
