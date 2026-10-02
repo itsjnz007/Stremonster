@@ -93,7 +93,7 @@ class Parsers:
         year = year_match.group(1) if year_match else None
 
         # 2. Extract Quality (e.g., WEB-DL, HD, 1080p, 720p, HDRip, CAM, DVDRip)
-        quality_pattern = r'\b(WEB-DL|WEBRip|HDRip|DVDRip|BRRip|BluRay|HDTV|CAMRip|CAM|1080p|720p|480p|4k)\b'
+        quality_pattern = r'\b(WEB-DL|WEBRip|HDRip|DVDRip|BRRip|BluRay|HDTV|CAMRip|CAM|PreDVD|1080p|720p|480p|4k)\b'
         quality_match = re.search(quality_pattern, text, flags=re.IGNORECASE)
         quality = quality_match.group(1) if quality_match else None
 
