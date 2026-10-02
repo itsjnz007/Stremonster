@@ -25,7 +25,7 @@ class Vsembed(Scraper):
         super().__init__(source="vsembed", 
                         base_url="https://vsembed.su",
                         page_hook=page_hook,
-                        headless=False
+                        # headless=False
         )
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
