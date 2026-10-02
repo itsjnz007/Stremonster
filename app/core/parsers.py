@@ -1,5 +1,7 @@
+import os
 import sys
 from pathlib import Path
+from urllib.parse import parse_qs, unquote, urlparse
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import re
@@ -130,6 +132,30 @@ class Parsers:
             languages=found_languages,
             quality=quality
         )
+
+    @staticmethod
+    def extract_segment_name(stream_url: str) -> str:
+        # 1. Parse the main URL query string
+        parsed_url = urlparse(stream_url)
+        query_params = parse_qs(parsed_url.query)
+        
+        # 2. Extract the nested 'url' parameter if it exists
+        target_url = query_params.get('url', [None])[0]
+        
+        if not target_url:
+            # Fallback: if there's no 'url' parameter, inspect the path itself
+            target_url = stream_url
+
+        # 3. Fully unquote/decode the nested URL (handles double-encoding too)
+        decoded_url = unquote(target_url)
+        if '%' in decoded_url:
+            decoded_url = unquote(decoded_url)
+            
+        # 4. Parse the inner URL and get the filename from the path
+        inner_path = urlparse(decoded_url).path
+        filename = os.path.basename(inner_path)
+        
+        return filename
     
 
 if __name__ == "__main__":

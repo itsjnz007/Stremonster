@@ -17,6 +17,7 @@ from flask import request, Response, stream_with_context
 from app.core.multithreading import MultiThreading
 # from app.core.extractors import StreamExtractor
 from app.external.cinemeta import Cinemeta
+from app.core.parsers import Parsers
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -670,7 +671,7 @@ class Proxy:
             headers=sanitized_headers,
         )
 
-        logger.info(f"{upstream_response.status_code} | {round(time.time() - start_time, 2)}s | Streaming 'id' {id} - 'origin' {arg_headers.get('Origin')} - 'url' {media_url.split('/')[-1].split("&")[0][-15:]}")
+        logger.info(f"{upstream_response.status_code} | {round(time.time() - start_time, 2)}s | Streaming 'id' {id} - 'origin' {arg_headers.get('Origin')} - 'url' {Parsers.extract_segment_name(media_url)}")
 
         return Proxy.apply_headers(resp)
 
