@@ -145,6 +145,8 @@ class WebCache(Caching):
         if not processing_cache.get_status(key, 'web'):
             logger.info(f"Recalculating streams for key: '{key}' in background...")
             threadpool.run_in_background(lambda _: stream_extractor.extract(key, type, seek=1))
+        else: 
+            logger.warning(f"Skipping recalculation for key: '{key}' as it's already being processed...")
         with self._write_lock:
             cache = self._get_cache()
             if key not in cache or not cache[key]["value"]["streams"]:
