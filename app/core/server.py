@@ -77,10 +77,17 @@ def prefetch_next_episode(id: str):
     if not id or len(id.split(":")) <= 1:
         logger.error(f"Invalid ID for prefetching next episode: {id}")
         return
+    
+    while processing_cache.get_status(id, 'web'): 
+        logger.warning(f"Skipping prefetching next episode for {id} as it's already being processed...")
+        return
+
     next_episode_id = cinemeta.get_next_episode(id)
     if next_episode_id and not web_cache.get(next_episode_id, USE_CACHE_UPTO):
-        logger.info(f"Pre-fetching next episode streams for series ID {id} in 120 seconds...")
-        thread_pool_torrent.run_in_background(lambda _: stream_extractor.extract(next_episode_id, "series", seek=2), delay=30)
+        logger.info(f"Prefetching next episode for series ID {id}: {next_episode_id}")
+        processing_cache.start(id, 'web')
+        stream_extractor.extract(next_episode_id, "series", seek=2)
+        processing_cache.finish(id, 'web', False)
     else:
         logger.warning(f"No next episode found for series ID {id} or item already cached.")
 
@@ -172,19 +179,22 @@ def get_torrent_stream(type: str, id: str) -> Response:
 @app.route('/redirect')
 def redirect() -> Response:
     id = request.args.get('id')
-    if id and len(id.split(":")) > 1: prefetch_next_episode(id)
+    if id and len(id.split(":")) > 1: 
+        thread_pool_torrent.run_in_background(lambda _: prefetch_next_episode(id), delay=30)
     return Proxy.redirect()
 
 @app.route('/redirect.m3u8')
 def redirect_m3u8() -> Response:
     id = request.args.get('id')
-    if id and len(id.split(":")) > 1: prefetch_next_episode(id)
+    if id and len(id.split(":")) > 1: 
+        thread_pool_torrent.run_in_background(lambda _: prefetch_next_episode(id), delay=30)
     return Proxy.redirect()
 
 @app.route('/redirect.mp4')
 def redirect_mp4() -> Response:
     id = request.args.get('id')
-    if id and len(id.split(":")) > 1: prefetch_next_episode(id)
+    if id and len(id.split(":")) > 1: 
+        thread_pool_torrent.run_in_background(lambda _: prefetch_next_episode(id), delay=30)
     return Proxy.redirect()
 
 @app.route("/stream.m3u8")
