@@ -671,10 +671,6 @@ class Proxy:
             headers=sanitized_headers,
         )
 
-        logger.info(f"{upstream_response.status_code} | {round(time.time() - start_time, 2)}s | Streaming 'id' {id} - 'origin' {arg_headers.get('Origin')} - 'url' {Parsers.extract_segment_name(media_url)}")
+        logger.info(f"{upstream_response.status_code} | {round(time.time() - start_time, 2)}s | Streaming 'id' {id} - 'url' {Parsers.extract_segment_name(media_url)}")
 
         return Proxy.apply_headers(resp)
-
-# if __name__ == "__main__":
-#     url = """https://something.dpdns.org/stream.m3u8?url=https%3A%2F%2Fnebula.bright67.online%2Fhls%2Fcb8da798-1e02-4bcd-ae3a-8d803bf16add%2Fmaster.m3u8&headers=%7B%22referer%22%3A%20%22https%3A%2F%2Fcinejoy.pk%2F%22%2C%20%22origin%22%3A%20%22https%3A%2F%2Fcinejoy.pk%22%2C%20%22user-agent%22%3A%20%22Mozilla%2F5.0%20%28Windows%20NT%2010.0%3B%20Win64%3B%20x64%3B%20rv%3A137.0%29%20Gecko%2F20100101%20Firefox%2F137.0%22%2C%20%22accept%22%3A%20%22%2A%2F%2A%22%2C%20%22accept-language%22%3A%20%22en-US%2Cen%3Bq%3D0.5%22%2C%20%22sec-fetch-dest%22%3A%20%22empty%22%2C%20%22sec-fetch-mode%22%3A%20%22cors%22%2C%20%22sec-fetch-site%22%3A%20%22cross-site%22%7D"""
-#     Proxy.test_stream(WebResponse(url=url, headers={}, subtitles=[]), test_seconds=3)
