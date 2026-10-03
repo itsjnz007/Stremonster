@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
+from app.config import GENERIC_REQUEST_TIMEOUT
 from app.core.scraper import Scraper
 from app.models.responses import WebResponse
 from typing import Any, Optional, cast
@@ -18,7 +19,7 @@ class FourAnimoScraper(Scraper):
     def _get_stream(self, anilist_id: str, episode: str, language: str) -> Optional[WebResponse]:
         url = f"{self.base_url}/embed/ani/{anilist_id}/{episode}/{language}"
         self.logger.info(f"GET stream: {url}")
-        response_1 = requests.get(url, headers=self.headers)
+        response_1 = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
         if response_1.status_code != 200:
             return None
 
@@ -28,7 +29,7 @@ class FourAnimoScraper(Scraper):
             return None
 
         sources_url = urljoin(self.base_url, match.group(1))
-        response_2 = requests.get(sources_url, headers=self.headers)
+        response_2 = requests.get(sources_url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
         if response_2.status_code != 200:
             return None
 

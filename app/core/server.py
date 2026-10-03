@@ -146,10 +146,8 @@ def get_torrent_stream(type: str, id: str) -> Response:
 
     def calculate():
         if type == "movie":
-            logger.info(f"Total time taken to fetch web stream: {time.time() - start_time:.2f} seconds")
             return torrentio_module.get_movie(id, thread_pool_torrent, True)
         else:
-            logger.info(f"Total time taken to fetch web stream: {time.time() - start_time:.2f} seconds")
             return torrentio_module.get_series(id, thread_pool_torrent, True)
 
     time.sleep(1)

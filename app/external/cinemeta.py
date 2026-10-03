@@ -1,5 +1,7 @@
 import sys
 from pathlib import Path
+
+from app.config import GENERIC_REQUEST_TIMEOUT
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from typing import Optional
@@ -24,7 +26,7 @@ class Cinemeta:
         
         url = f"{self.base_url}/meta/{type}/{imdb_id}.json"
         print(f"Fetching metadata from {url}")
-        response = requests.get(url)
+        response = requests.get(url, timeout=GENERIC_REQUEST_TIMEOUT)
         if response.status_code == 200:
             return response.json()
         else:

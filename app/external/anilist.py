@@ -1,5 +1,7 @@
 import sys
 from pathlib import Path
+
+from app.config import GENERIC_REQUEST_TIMEOUT
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import requests
@@ -29,7 +31,7 @@ class AniBridgeV3Resolver:
             while True:
                 try:
                     # Mirroring target distribution binaries
-                    response = requests.get(RAW_MAPPINGS_URL, timeout=30)
+                    response = requests.get(RAW_MAPPINGS_URL, timeout=GENERIC_REQUEST_TIMEOUT)
                     response.raise_for_status()
                     return response.json()
                 except Exception as e:
@@ -82,7 +84,7 @@ class AniBridgeV3Resolver:
     def get_tvdb_id(self, imdb_id: str) -> Optional[str]:
         tvdb_id: Optional[str] = self.cache.get(imdb_id)
         if not tvdb_id:
-            ani_zip_response = requests.get(ANI_ZIP_URL % imdb_id)
+            ani_zip_response = requests.get(ANI_ZIP_URL % imdb_id, timeout=GENERIC_REQUEST_TIMEOUT)
             ani_zip_response.raise_for_status()
             tvdb_id: Optional[str] = ani_zip_response.json().get("mappings", {}).get("thetvdb_id")
         if tvdb_id:

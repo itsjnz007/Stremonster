@@ -3,6 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
+from app.config import GENERIC_REQUEST_TIMEOUT
 from app.models.responses import WebResponse
 from typing import Optional
 from threading import Event
@@ -20,13 +21,13 @@ class Subtitulado(Scraper):
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/movie/{tmdb_id}?lang=sub"
         self.logger.info(f"GET stream: {url}")
-        response = requests.get(url, headers=self.headers)
+        response = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
         if response.status_code in [200]: return self.build_response(response.json().get('url'))
 
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}?ser=tik"
         self.logger.info(f"GET stream: {url}")
-        response = requests.get(url, headers=self.headers)
+        response = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
         if response.status_code in [200]: return self.build_response(response.json().get('url'))
 
 class Lul(Scraper):
@@ -36,13 +37,13 @@ class Lul(Scraper):
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/movie/{tmdb_id}"
         self.logger.info(f"GET stream: {url}")
-        response = requests.get(url, headers=self.headers)
+        response = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
         if response.status_code in [200]: return self.build_response(response.json().get('stream'))
 
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}"
         self.logger.info(f"GET stream: {url}")
-        response = requests.get(url, headers=self.headers)
+        response = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
         if response.status_code in [200]: return self.build_response(response.json().get('stream'))
 
 class Link(Scraper):
@@ -56,13 +57,13 @@ class Link(Scraper):
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/movie/{tmdb_id}"
         self.logger.info(f"GET stream: {url}")
-        response = requests.get(url, headers=self.headers)
+        response = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
         if response.status_code in [200]: return self.build_response(response.json().get('stream'), headers=self.headers_2)
 
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}"
         self.logger.info(f"GET stream: {url}")
-        response = requests.get(url, headers=self.headers)
+        response = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
         if response.status_code in [200]: return self.build_response(response.json().get('stream'), headers=self.headers_2)
         
     

@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 import requests
 from app.models.responses import Segment
-from app.config import CACHE_DIR
+from app.config import CACHE_DIR, GENERIC_REQUEST_TIMEOUT
 import time
 from app.core.logger import Logger
 
@@ -19,7 +19,7 @@ class Subtitles:
         self.cache_path = Path(CACHE_DIR) / "subtitles"
 
     def get_segments(self, m3u8_url: str) -> list[Segment]:
-        r = requests.get(m3u8_url, timeout=20)
+        r = requests.get(m3u8_url, timeout=GENERIC_REQUEST_TIMEOUT)
         r.raise_for_status()
 
         lines = r.text.splitlines()
@@ -62,7 +62,7 @@ class Subtitles:
 
                     seg_file = tmp / f"{idx}.ts"
 
-                    r = requests.get(seg.url, timeout=30)
+                    r = requests.get(seg.url, timeout=GENERIC_REQUEST_TIMEOUT)
                     r.raise_for_status()
 
                     seg_file.write_bytes(r.content)
@@ -107,7 +107,7 @@ class Subtitles:
 
         self.extract_audio(m3u8_url, wav_file)
 
-        r = requests.get(subtitle_url, timeout=30)
+        r = requests.get(subtitle_url, timeout=GENERIC_REQUEST_TIMEOUT)
         r.raise_for_status()
 
         sub_file.write_text(

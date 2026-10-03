@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from app.core.logger import Logger
 from app.core.caching import TmdbCache
 import requests
-from app.config import CATALOG_BUILDER
+from app.config import CATALOG_BUILDER, GENERIC_REQUEST_TIMEOUT
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -53,7 +53,7 @@ class Tmdb:
 
         try:
             # res = requests.get(url, params=params, headers=headers, timeout=5).json()
-            response = session.get(url, params=params, timeout=5)
+            response = session.get(url, params=params, timeout=GENERIC_REQUEST_TIMEOUT)
             response.raise_for_status()
             res = response.json()
             # Cache the complete find API response
@@ -106,7 +106,7 @@ class Tmdb:
 
         try:
             # res = requests.get(url, params=params, timeout=5).json()
-            response = session.get(url, params=params, timeout=5)
+            response = session.get(url, params=params, timeout=GENERIC_REQUEST_TIMEOUT)
             response.raise_for_status()
             res = response.json()
             imdb_id = res.get("imdb_id")
@@ -192,7 +192,7 @@ class TmdbCatalog(Tmdb):
 
             try:
                 # res = requests.get(url, params=params, timeout=5).json()
-                response = session.get(url, params=params, timeout=5)
+                response = session.get(url, params=params, timeout=GENERIC_REQUEST_TIMEOUT)
                 response.raise_for_status()
                 res = response.json()
                 all_results.extend(res.get("results", []))

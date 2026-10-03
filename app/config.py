@@ -88,6 +88,7 @@ MANIFEST_CATALOG: dict[str, object] = {
 }
 
 USE_CACHE_UPTO: int = 60*3
+GENERIC_REQUEST_TIMEOUT = 15
 
 if __name__ == "__main__":
     from pprint import pprint

@@ -1,5 +1,7 @@
 import sys
 from pathlib import Path
+
+from app.config import GENERIC_REQUEST_TIMEOUT
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import requests
@@ -48,7 +50,7 @@ def get_streams(media_type: str, imdb_id: str, threadpool: MultiThreading, test_
     url = f"{BASE_URL}/stream/{media_type}/{imdb_id}.json"
     logger.info(f"GET Torrent for URL {url}")
     try:
-        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=12)
+        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=GENERIC_REQUEST_TIMEOUT)
         if response.status_code != 200:
             return []
 
