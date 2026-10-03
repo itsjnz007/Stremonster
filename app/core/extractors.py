@@ -93,6 +93,8 @@ class StreamExtractor:
         stream_length: int = len(cache.get('streams', [])) if cache else 0
         seek_state: int = cache.get('seek_state', 0) if cache else 0
 
+        self.logger.debug(f"Extracting streams for ID {id} with type {type}. Current index: {current_index}, Stream length: {stream_length}, Seek state: {seek_state}")
+
         
         def append_id_to_streams(streams: List[WebResponse]) -> List[WebResponse]:
             return [
