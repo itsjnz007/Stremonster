@@ -72,11 +72,11 @@ class Torrent:
                 return ("very slow", 1)
             if relative_speed < 0.5:
                 return ("slow", 2)
-            if relative_speed < 1.0:
+            if relative_speed < 0.75:
                 return ("medium", 3)
-            if relative_speed < 1.5:
+            if relative_speed < 1:
                 return ("fast", 4)
-            if relative_speed < 2.5:
+            if relative_speed < 2:
                 return ("ultra fast", 5)
             return ("extreme", 6)
 
