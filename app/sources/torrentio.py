@@ -1,13 +1,12 @@
 import sys
 from pathlib import Path
 
-from app.config import GENERIC_REQUEST_TIMEOUT
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import requests
 import time
 from typing import List
-
+from app.config import GENERIC_REQUEST_TIMEOUT
 from app.core.torrent import Torrent
 from app.models.responses import TorrentResponse
 from app.core.multithreading import MultiThreading

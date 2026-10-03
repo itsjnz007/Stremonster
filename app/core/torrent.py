@@ -17,6 +17,13 @@ import logging
 
 logger = Logger('torrent', level=logging.INFO)
 
+QUALITY_PLAYBACK_TARGET_KB_S: Dict[str, float] = {
+    "720p": 625.0,
+    "1080p": 1500.0,
+    "4k": 4500.0,
+}
+
+
 class Torrent:
     def __init__(self, threadpool: MultiThreading, connection_speed: int = 200) -> None:
         self.connection_speed: int = connection_speed
@@ -54,13 +61,35 @@ class Torrent:
             return self._session # type: ignore
 
     @staticmethod
-    def get_speed_category(speed_kb_s: float) -> tuple[str, int]:
-        if speed_kb_s < 1.0:   return ("dead", 0)
-        if speed_kb_s < 100.0: return ("very slow", 1)
-        if speed_kb_s < 300.0: return ("slow", 2)
-        if speed_kb_s < 700.0: return ("medium", 3)
-        if speed_kb_s < 1200.0:return ("fast", 4)
-        if speed_kb_s < 2000.0:return ("ultra fast", 5)
+    def get_speed_category(speed_kb_s: float, quality: str = "") -> tuple[str, int]:
+        if speed_kb_s < 1.0:
+            return ("dead", 0)
+
+        target_speed = QUALITY_PLAYBACK_TARGET_KB_S.get(quality.lower())
+        if target_speed is not None:
+            relative_speed = speed_kb_s / target_speed
+            if relative_speed < 0.25:
+                return ("very slow", 1)
+            if relative_speed < 0.5:
+                return ("slow", 2)
+            if relative_speed < 1.0:
+                return ("medium", 3)
+            if relative_speed < 1.5:
+                return ("fast", 4)
+            if relative_speed < 2.5:
+                return ("ultra fast", 5)
+            return ("extreme", 6)
+
+        if speed_kb_s < 100.0:
+            return ("very slow*", 1)
+        if speed_kb_s < 300.0:
+            return ("slow*", 2)
+        if speed_kb_s < 700.0:
+            return ("medium*", 3)
+        if speed_kb_s < 1200.0:
+            return ("fast*", 4)
+        if speed_kb_s < 2000.0:
+            return ("ultra fast*", 5)
         return ("extreme", 6)
 
     def test_torrent(self, info_hash: str, quality: str, fileIdx: int = -1, timeout: int = 7) -> float:
@@ -124,7 +153,7 @@ class Torrent:
 
             if speeds:
                 max_speed = max(speeds)
-                category, rank = self.get_speed_category(max_speed)
+                category, rank = self.get_speed_category(max_speed, quality)
                 logger.info(f"🏁 Peak: {info_hash[:8]} -> {max_speed:.2f} KB/s ({category.upper()})")
                 
                 if rank >= 4:  
@@ -220,7 +249,7 @@ class Torrent:
 
         final_streams: List[TorrentResponse] = []
         for quality, (stream, speed) in quality_map.items():
-            category, _ = self.get_speed_category(speed)
+            category, _ = self.get_speed_category(speed, quality)
             stream["title"] = f"Torrent ({category.title()})"
             stream["bandwidth"] = speed
             final_streams.append(stream)
@@ -238,7 +267,7 @@ class Torrent:
     @staticmethod
     def to_web_response(response: TorrentResponse, id: str) -> WebResponse:
         """Placeholder conversion to a web response."""
-        return WebResponse(
+        return WebResponse( # type: ignore
             title=response.get("title", "Unknown"),
             name=response.get("name", "Unknown"),
             url=f"{TUNNEL_URL}/stream-torrent/{response.get('infoHash', '')}/{response.get('fileIdx', '0')}.mkv?id={id}",
@@ -249,7 +278,7 @@ class Torrent:
 
 
 if __name__ == "__main__":
-    TEST_DATA: list[TorrentResponse] = [
+    TEST_DATA: list[TorrentResponse] = [ # type: ignore
         {"infoHash": "4615a780aa66f3a09218c5d458505c2d17770920", "name": "4k", "title": "Torrent"},
         {"infoHash": "4615a780aa66f3a09218c5d458505c2d17770920", "name": "4k", "title": "Torrent"},
         {"infoHash": "4615a780aa66f3a09218c5d458505c2d17770920", "name": "1080p", "title": "Torrent"},
