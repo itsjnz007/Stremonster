@@ -18,9 +18,9 @@ import logging
 logger = Logger('torrent', level=logging.INFO)
 
 QUALITY_PLAYBACK_TARGET_KB_S: Dict[str, float] = {
-    "720p": 625.0,
-    "1080p": 1500.0,
-    "4k": 4500.0,
+    "720p": 384.0,
+    "1080p": 640.0,
+    "4k": 3200.0,
 }
 
 
