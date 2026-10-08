@@ -151,7 +151,7 @@ class Moviesda(Scraper):
 
         self._ensure_browser()
         future = asyncio.run_coroutine_threadsafe(self.search_page(url), self._loop) # type: ignore
-        responses = future.result(timeout=60)
+        responses = future.result(timeout=120)
 
         # for response in responses: 
         #     response = Proxy.get_proxy_url(response)

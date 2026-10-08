@@ -202,7 +202,7 @@ class TamilMv(Scraper):
         self._ensure_browser()
         self.logger.debug("TamilMV browser initialized")
         future = asyncio.run_coroutine_threadsafe(self.search_page(url), self._loop) # type: ignore
-        responses = future.result(timeout=60)
+        responses = future.result(timeout=120)
         self.logger.debug(f"TamilMV search task completed with {len(responses)} responses")
 
         [res.update({'contentType': 'video/mp4'}) for res in responses]
