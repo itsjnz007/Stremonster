@@ -59,7 +59,7 @@ class TamilBlasters(Scraper):
 
         self._ensure_browser()
         future = asyncio.run_coroutine_threadsafe(self.search_page(url), self._loop) # type: ignore
-        results = future.result(timeout=90)
+        results = future.result(timeout=120)
 
         responses = [
             r for r in threadpool.get_all([
