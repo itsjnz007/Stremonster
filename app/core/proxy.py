@@ -485,20 +485,20 @@ class Proxy:
             or (content_type and "application/vnd.apple.mpegurl" in content_type)
         )
         request_range = request_headers.get("Range") or request_headers.get("range")
-        # for header_name in list(arg_headers):
-        #     if header_name.lower() == "range": del arg_headers[header_name]
-        # if request_range and not is_m3u8: arg_headers["Range"] = request_range
+        for header_name in list(arg_headers):
+            if header_name.lower() == "range": del arg_headers[header_name]
+        if request_range and not is_m3u8: arg_headers["Range"] = request_range
 
-        # Only forward Range requests if it's a progressive file, 
-        # not an individual HLS/DASH segment (.ts, .m4s, .mp4 chunks)
 
         ############# New logic to determine if the media is segmented (HLS/DASH) or not
-        is_segmented_media = any(ext in media_url.lower() for ext in ['.ts', '.m4s', '.mp4', '.chunk'])
-        if request_range and not is_m3u8 and not is_segmented_media:
-            arg_headers["Range"] = request_range
-        else:
-            # Drop range request so upstream serves the complete segment cleanly
-            arg_headers.pop("Range", None)
+        # # Only forward Range requests if it's a progressive file, 
+        # # not an individual HLS/DASH segment (.ts, .m4s, .mp4 chunks)
+        # is_segmented_media = any(ext in media_url.lower() for ext in ['.ts', '.m4s', '.mp4', '.chunk'])
+        # if request_range and not is_m3u8 and not is_segmented_media:
+        #     arg_headers["Range"] = request_range
+        # else:
+        #     # Drop range request so upstream serves the complete segment cleanly
+        #     arg_headers.pop("Range", None)
         ##################################################################################
 
         if id and index:
@@ -604,7 +604,10 @@ class Proxy:
                     # Strip leading non-MPEG-TS junk/image bytes from the initial chunk
                     if first_chunk:
                         first_chunk = False
-                        if (".ts" in media_url or "mp2t" in content_type) and not ("styp" in chunk[:16].hex() or "ftyp" in chunk[:16].hex()):
+                        if (
+                            (".ts" in media_url or "mp2t" in content_type) or
+                            (".m4s" in media_url or ".mp4" in media_url or "mp4" in content_type)
+                        ) and not ("styp" in chunk[:16].hex() or "ftyp" in chunk[:16].hex()):
                             sync_idx = chunk.find(b'\x47')
                             if sync_idx > 0:
                                 logger.warning(f"Stripped {sync_idx} bytes of non-video header data before MPEG-TS sync byte.")
