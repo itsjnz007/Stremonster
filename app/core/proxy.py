@@ -605,8 +605,8 @@ class Proxy:
                     if first_chunk:
                         first_chunk = False
                         if (
-                            (".ts" in media_url or "mp2t" in content_type) or
-                            (".m4s" in media_url or ".mp4" in media_url or "mp4" in content_type)
+                            (".ts" in media_url or "mp2t" in content_type) 
+                            # or (".m4s" in media_url or ".mp4" in media_url or "mp4" in content_type)
                         ) and not ("styp" in chunk[:16].hex() or "ftyp" in chunk[:16].hex()):
                             sync_idx = chunk.find(b'\x47')
                             if sync_idx > 0:
