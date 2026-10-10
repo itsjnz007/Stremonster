@@ -118,7 +118,7 @@ class StreamExtractor:
             if first_result:
                 first_result = append_id_to_streams(first_result)
                 self.logger.debug(f"First result obtained, caching and draining remaining results for ID {id}, first result: {first_result}")
-                if seek_state:
+                if cache:
                     self.logger.info(f"Extending web cache for ID {id} with seek_state {seek_state}")
                     # if extend_cache: self.web_cache.extend(id, first_result, seek_state=seek_state)
                     self.web_cache.extend(id, first_result, seek_state=seek_state)
