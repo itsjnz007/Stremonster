@@ -92,6 +92,7 @@ class StreamExtractor:
         current_index: int = cache.get('current_index', 0) if cache else 0
         stream_length: int = len(cache.get('streams', [])) if cache else 0
         seek_state: int = cache.get('seek_state', 0) if cache else 0
+        extend: bool = True if cache else False
 
         self.logger.debug(f"Extracting streams for ID {id} with type {type}. Current index: {current_index}, Stream length: {stream_length}, Seek state: {seek_state}")
 
@@ -106,7 +107,7 @@ class StreamExtractor:
             ]
         
 
-        def process_results(tasks: List[Callable[[Any], Optional[List[WebResponse]]]], seek: int) -> List[WebResponse] | None:
+        def process_results(tasks: List[Callable[[Any], Optional[List[WebResponse]]]], seek: int, extend: bool = True) -> List[WebResponse] | None:
             nonlocal seek_state
             if seek > len(tasks): seek = len(tasks)
             self.logger.debug(f"Using states 'current_index': {current_index}, 'stream_length': {stream_length}, 'seek_state': {seek_state}")
@@ -118,7 +119,7 @@ class StreamExtractor:
             if first_result:
                 first_result = append_id_to_streams(first_result)
                 self.logger.debug(f"First result obtained, caching and draining remaining results for ID {id}, first result: {first_result}")
-                if cache:
+                if extend:
                     self.logger.info(f"Extending web cache for ID {id} with seek_state {seek_state}")
                     # if extend_cache: self.web_cache.extend(id, first_result, seek_state=seek_state)
                     self.web_cache.extend(id, first_result, seek_state=seek_state)
@@ -136,7 +137,7 @@ class StreamExtractor:
 
                     if response_counter + 1 < seek:
                         self.logger.warning(f"Stream fetch for ID {id} completed with fewer results ({response_counter + 1}) than requested ({seek}).")
-                        process_results(tasks=tasks, seek=seek - (response_counter + 1))
+                        process_results(tasks=tasks, seek=seek - (response_counter + 1), extend=True)
 
                 self.threadpool.run_in_background(lambda _, iterator=results_iter: drain_remaining(iterator, seek))
                 if not TUNNEL_URL: raise Exception("TUNNEL_URL is not set. Please set it in the config.")
@@ -144,7 +145,7 @@ class StreamExtractor:
                 else: return self.build_web_response(id, type, first_result, 0, unified=True)
             
             elif len(tasks)>seek_state:
-                return process_results(tasks=tasks, seek=seek)
+                return process_results(tasks=tasks, seek=seek, extend=extend)
             self.logger.error(f"Stream seek exceeded available tasks. Ignoring stream fetch for id '{id}'.")
 
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
@@ -196,13 +197,13 @@ class StreamExtractor:
                         lambda _: tamilmv_scraper.get_movie(title, release_year),
                         lambda _: tamilblasters_scraper.get_movie(title, release_year, threadpool=self.threadpool),
                     ]
-                    return process_results(tasks, 1)
+                    return process_results(tasks, 1, extend=extend)
             
             tasks_movie: List[Callable[[str], Optional[List[WebResponse]]]] = [
                 lambda _, f=func: f(tmdb_id or "unknown")
                 for func, _ in movie_scrapers
             ]
-            return process_results(tasks_movie, seek)
+            return process_results(tasks_movie, seek, extend=extend)
 
         else:  # Series
             imdb_id, season, episode = id.split(':')
@@ -227,10 +228,10 @@ class StreamExtractor:
                     for func, _ in anime_series_scrapers
                 ]
 
-                return process_results(tasks_anime_series + tasks_series, seek)
+                return process_results(tasks_anime_series + tasks_series, seek, extend=extend)
 
             else:
-                return process_results(tasks_series, seek)
+                return process_results(tasks_series, seek, extend=extend)
 
 
 if __name__ == '__main__':

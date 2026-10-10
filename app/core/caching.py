@@ -131,8 +131,9 @@ class WebCache(Caching):
             if key not in cache:
                 cache[key] = {"value": {"current_index": 0, "seek_state": seek_state, "streams": []}, "ts": timestamp}
 
-            cache[key]["value"]["seek_state"] = seek_state
-            cache[key]["value"]["streams"].extend(copy.deepcopy([web_responses]))
+            cache[key]["value"]["seek_state"] = copy.deepcopy(seek_state)
+            if web_responses: cache[key]["value"]["streams"].extend(copy.deepcopy([web_responses]))
+            else: logger.warning(f"Attempted to extend cache for key '{key}' with empty web_responses list.")
             cache[key]["ts"] = timestamp  # Update timestamp on append
             self._save_to_disk(self._get_cache_path(), cache)
     
