@@ -192,7 +192,7 @@ class TamilMv(Scraper):
         super().__init__(source="moviesda",
                          timeout=500,
                          base_url="https://www.1tamilmv.lease",
-                         headless=False
+                        #  headless=False
                          )
     
     def get_movie(self, title: str, year: Optional[str]) -> list[WebResponse]:

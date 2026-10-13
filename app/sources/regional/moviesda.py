@@ -93,7 +93,19 @@ class Moviesda(Scraper):
                                     url: link.href
                                 };
                             }
+                        """) or await page.evaluate("""
+                            () => {
+                                const link = document.querySelector('a.dlx.dlx-cdn');
+                                if (!link) return null;
+                                
+                                return {
+                                    text: link.getAttribute('title') || link.innerText.trim(),
+                                    url: link.href
+                                };
+                            }
                         """)
+
+                        print("\ndownload_data_1 ->", download_data_1)
 
                         await page.goto(download_data_1['url'])
                         download_data_2 = await page.evaluate("""
@@ -109,8 +121,22 @@ class Moviesda(Scraper):
                                     buttonText: buttonText
                                 };
                             }
+                        """) or await page.evaluate("""
+                            () => {
+                                const link = document.querySelector('a.dlx.dlx-cdn');
+                                if (!link) return null;
+
+                                const buttonText = link.querySelector('td.dl-btn')?.innerText.trim() || '';
+
+                                return {
+                                    title: link.getAttribute('title') || '',
+                                    url: link.href,
+                                    buttonText: buttonText
+                                };
+                            }
                         """)
-                        pprint(download_data_2)
+
+                        pprint(f"\ndownload_data_2 -> {download_data_2}")
 
                         stream = await self._get_stream_async(download_data_2['url'], title=f"Moviesda{' (' + ' + '.join(lang.title() for lang in search_match.languages) + ')' if search_match.languages else ''}", name=search_match.quality)
                         if stream: 
@@ -143,6 +169,7 @@ class Moviesda(Scraper):
                          timeout=500,
                          base_url="https://www.moviesda.vision",
                          stream_url_pattern=r'https?://(?![^?\s]*www\.google-analytics\.com)\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/mp4)\S*',
+                        #  headless=False
                          )
     
     def get_movie(self, title: str, year: Optional[str]) -> list[WebResponse]:
