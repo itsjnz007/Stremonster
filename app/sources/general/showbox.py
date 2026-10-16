@@ -28,13 +28,13 @@ class Showbox(Scraper):
         response = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
         print(response.status_code, response.text)
         if response.status_code in [200]: 
-            parsed_response = [parsers.parse_metadata(item.get('title', ''), item.get('url', '')) for item in response.json().get('streams', [])]
+            parsed_response = [(parsers.parse_metadata(item.get('title', ''), item.get('url', '')), item.get('subtitles', [])) for item in response.json().get('streams', [])]
             print(f"Parsed response: {parsed_response}")
-            filtered_response = [item for item in parsed_response if item.size_kb is not None and item.size_kb < 10 * 1024 * 1024]  # Filter out items larger than 10 GB
+            filtered_response = [item for item in parsed_response if item[0].size_kb is not None and item[0].size_kb < 10 * 1024 * 1024]  # Filter out items larger than 10 GB
             print(f"Filtered response: {filtered_response}")
-            sorted_response = sorted(filtered_response, key=lambda x: (x.size_kb if x.size_kb is not None else float('inf')))
+            sorted_response = sorted(filtered_response, key=lambda x: (x[0].size_kb if x[0].size_kb is not None else float('inf')))
             print(f"Sorted response: {sorted_response}")
-            return self.build_response(sorted_response[0].url, quality=sorted_response[0].quality) if sorted_response else None
+            return self.build_response(sorted_response[0][0].url, subtitles=sorted_response[0][1], quality=sorted_response[0][0].quality) if sorted_response else None
 
     def get_series(self, imdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/stream/series/{imdb_id}:{season}:{episode}.json"
@@ -42,13 +42,13 @@ class Showbox(Scraper):
         response = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
         print(response.status_code, response.text)
         if response.status_code in [200]:
-            parsed_response = [parsers.parse_metadata(item.get('title', ''), item.get('url', '')) for item in response.json().get('streams', [])]
+            parsed_response = [(parsers.parse_metadata(item.get('title', ''), item.get('url', '')), item.get('subtitles', [])) for item in response.json().get('streams', [])]
             print(f"Parsed response: {parsed_response}")
-            filtered_response = [item for item in parsed_response if item.size_kb is not None and item.size_kb < 10 * 1024 * 1024]  # Filter out items larger than 10 GB
+            filtered_response = [item for item in parsed_response if item[0].size_kb is not None and item[0].size_kb < 10 * 1024 * 1024]  # Filter out items larger than 10 GB
             print(f"Filtered response: {filtered_response}")
-            sorted_response = sorted(filtered_response, key=lambda x: (x.size_kb if x.size_kb is not None else float('inf')))
+            sorted_response = sorted(filtered_response, key=lambda x: (x[0].size_kb if x[0].size_kb is not None else float('inf')))
             print(f"Sorted response: {sorted_response}")
-            return self.build_response(sorted_response[0].url, quality=sorted_response[0].quality) if sorted_response else None
+            return self.build_response(sorted_response[0][0].url, subtitles=sorted_response[0][1], quality=sorted_response[0][0].quality) if sorted_response else None
 
 if __name__ == "__main__":
     showbox = Showbox()
