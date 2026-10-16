@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+from decimal import Decimal
 from urllib.parse import parse_qs, unquote, urlparse
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -99,9 +100,28 @@ class Parsers:
         quality_match = re.search(quality_pattern, text, flags=re.IGNORECASE)
         quality = quality_match.group(1) if quality_match else None
 
-        # 3. Clean string for title processing
+        # 3. Extract file size
+        size_pattern = r'\b(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[KMGT]?i?B)\b'
+        size_match = re.search(size_pattern, text, flags=re.IGNORECASE)
+        size_kb = None
+        if size_match:
+            value = Decimal(size_match.group("value"))
+            unit = size_match.group("unit").casefold()
+            if unit == "b":
+                multiplier = Decimal("0.001")
+            else:
+                exponent = {"k": 1, "m": 2, "g": 3, "t": 4}[unit[0]]
+                multiplier = (
+                    Decimal(1024) ** exponent / Decimal(1000)
+                    if "i" in unit
+                    else Decimal(1000) ** (exponent - 1)
+                )
+            size_kb = int(value * multiplier)
+
+        # 4. Clean string for title processing
         clean_text = re.sub(r'\(?\d{4}\)?', '', text)  # remove year
         clean_text = re.sub(quality_pattern, '', clean_text, flags=re.IGNORECASE)  # remove quality
+        clean_text = re.sub(size_pattern, '', clean_text, flags=re.IGNORECASE)  # remove file size
         clean_text = re.sub(r'[\[\]\(\)\+\,\-]', ' ', clean_text)  # remove punctuation
         
         tokens = clean_text.split()
@@ -130,7 +150,8 @@ class Parsers:
             url=url,
             year=year,
             languages=found_languages,
-            quality=quality
+            quality=quality,
+            size_kb=size_kb
         )
 
     @staticmethod
@@ -162,6 +183,19 @@ if __name__ == "__main__":
     parsers = Parsers()
     metadata = parsers.parse_metadata("Idhayam Murali 2026 Tamil Full Movie WEB-DL", "https://example.com/movie")
     print(f"Metadata -> {metadata}")
+
+    # --- Size extraction tests ---
+    size_examples: List[tuple[str, Optional[int]]] = [
+        ("📁 Inception.2010.1080p.BluRay.H264.AAC-RARBG.mp4\n⚙️ 1080P • 💾 3.61 GB", 3_610_000),
+        ("Example Movie 1080p 1.5 GiB", 1_610_612),
+        ("Example Movie 1080p", None),
+    ]
+    for example, expected_size in size_examples:
+        parsed = parsers.parse_metadata(example, "https://example.com/video")
+        assert parsed.size_kb == expected_size, f"{parsed.size_kb!r} != {expected_size!r}"
+        assert parsed.size_kb is None or isinstance(parsed.size_kb, int)
+        print(f"Size test passed: {parsed.size_kb!r}")
+
     # --- Testing ---
     database = [
         Metadata(title="Lokah: Chapter One", url="", year="2026", languages=["Tamil", "Hindi"]),

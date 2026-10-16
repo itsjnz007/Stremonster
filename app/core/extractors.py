@@ -13,7 +13,8 @@ from app.sources.general import \
     vidnest as vidnest_general, viduki as viduki, \
     aether as aether, \
     cinejoy as cinejoy, \
-    vsembed as vsembed
+    vsembed as vsembed, \
+    showbox as showbox
 from app.sources.general import *
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo, \
     yomi as yomi, anikoto as anikoto
@@ -31,6 +32,7 @@ vidnest_general_scraper = vidnest_general.VidnestScraper()
 viduki_scraper = viduki.VidukiScraper()
 cinejoy_scraper = cinejoy.Cinejoy()
 vsembed_scraper = vsembed.Vsembed()
+showbox_scraper = showbox.Showbox()
 
 # Aether
 subtitulado = aether.Subtitulado()
@@ -150,6 +152,7 @@ class StreamExtractor:
 
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
             (lambda tmdb_id: [result] if (result := link.get_movie(tmdb_id)) else None, 'link'),
+            (lambda _: [result] if (result := showbox_scraper.get_movie(id)) else None, 'showbox'),
             (lambda tmdb_id: [result] if (result := lul.get_movie(tmdb_id)) else None, 'lul'),
             (lambda tmdb_id: [result] if (result := subtitulado.get_movie(tmdb_id)) else None, 'subtitulado'),
             (lambda tmdb_id: [result] if (result := cinejoy_scraper.get_movie(tmdb_id)) else None, 'cinejoy'),
@@ -161,6 +164,7 @@ class StreamExtractor:
 
         series_scrapers: List[Tuple[Callable[[str, str, str], Optional[List[WebResponse]]], str]] = [
             (lambda tmdb_id, s, e: [result] if (result := link.get_series(tmdb_id, s, e)) else None, 'link'),
+            (lambda _, s, e: [result] if (result := showbox_scraper.get_series(id.split(":")[0], s, e)) else None, 'showbox'),
             (lambda tmdb_id, s, e: [result] if (result := lul.get_series(tmdb_id, s, e)) else None, 'lul'),
             (lambda tmdb_id, s, e: [result] if (result := subtitulado.get_series(tmdb_id, s, e)) else None, 'subtitulado'),
             (lambda tmdb_id, s, e: [result] if (result := cinejoy_scraper.get_series(tmdb_id, s, e)) else None, 'cinejoy'),

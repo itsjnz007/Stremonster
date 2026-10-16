@@ -626,9 +626,9 @@ class Proxy:
                     while window and window[0][0] < now - MIN_EVALUATION_SECONDS:
                         window.popleft()
 
-                    elapsed_wall_time = now - stream_start_time
+                    elapsed_time = now - stream_start_time
 
-                    if elapsed_wall_time >= MIN_EVALUATION_SECONDS:
+                    if elapsed_time >= MIN_EVALUATION_SECONDS:
                         total_bytes = sum(item[1] for item in window)
                         total_read_time = sum(item[2] for item in window)
                         
@@ -638,7 +638,7 @@ class Proxy:
                             if rolling_speed < MIN_SPEED_KBS:
                                 logger.warning(
                                     f"Terminating stream. Upstream network speed dropped to: {rolling_speed:.2f} KB/s "
-                                    f"(Read Time: {total_read_time:.2f}s | Wall Time: {elapsed_wall_time:.2f}s)"
+                                    f"(Read Time: {total_read_time:.2f}s | Wall Time: {elapsed_time:.2f}s)"
                                 )
                                 if id and index:
                                     logger.warning(f"Slow upstream speed: {rolling_speed:.2f} KB/s")

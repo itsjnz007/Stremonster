@@ -8,6 +8,7 @@ class Metadata:
     year: Optional[str] = None
     languages: List[str] = None # type: ignore
     quality: Optional[str] = None
+    size_kb: Optional[int] = None
 
     def __post_init__(self):
         if self.languages is None: # type: ignore
