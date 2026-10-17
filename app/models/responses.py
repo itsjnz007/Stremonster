@@ -9,6 +9,7 @@ class Subtitle(TypedDict):
     id: str
     lang: str
     url: str
+    label: Optional[str]
     
 class WebResponse(TypedDict):
     """Information about the scraped stream."""

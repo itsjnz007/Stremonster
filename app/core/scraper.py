@@ -189,9 +189,10 @@ class Scraper:
             if re.search(self.subtitle_url_pattern, response.url, re.I):
                 subtitle_urls.append(
                     Subtitle(
-                        id=f"eng-{subtitle_counter}",
-                        lang="English",
-                        url=response.url
+                        id=f"English-{subtitle_counter}",
+                        lang="eng",
+                        url=response.url,
+                        label="English"
                     )
                 )
                 subtitle_counter += 1
