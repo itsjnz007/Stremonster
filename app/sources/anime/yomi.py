@@ -11,7 +11,7 @@ class YomiScraper(Scraper):
     def __init__(self):
         super().__init__(base_url="https://cinextream.cc", source="yomi",
                           stream_url_pattern= r'https?://\S*(?:\.m3u)\S*',
-                          headless=False
+                        #   headless=False
                           )
     
     def get_series(self, anilist_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[list[WebResponse]]:
@@ -32,6 +32,6 @@ class YomiScraper(Scraper):
 
 if __name__ == "__main__":
     scraper = YomiScraper()
-    response = scraper.get_series("165159", "127")
+    response = scraper.get_series("21", "405")
     print(response)
   

@@ -288,7 +288,7 @@ class Proxy:
         stream['subtitles'] = [
             {
                 **sub,
-                'url': Proxy.add_proxy(sub['url'], headers=headers_str, stream_type="proxy.vtt" if '.vvt' in sub['url'] else 'proxy.srt')
+                'url': Proxy.add_proxy(sub['url'], headers=headers_str, stream_type="proxy.vtt" if '.vtt' in sub['url'] else 'proxy.srt')
             }
             for sub in stream['subtitles']
         ]
