@@ -53,4 +53,4 @@ class Showbox(Scraper):
 if __name__ == "__main__":
     showbox = Showbox()
     # print(showbox.get_movie("tt1375666"))
-    print(showbox.get_series("tt0944947", "1", "1"))
+    print(showbox.get_series("tt0388629", "13", "23"))

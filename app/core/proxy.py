@@ -104,6 +104,8 @@ class Proxy:
                 return "application/dash+xml"
             elif "mp4" in content_type:
                 return "video/mp4"
+            elif "webm" in content_type:
+                return "video/webm"
             elif "mp2t" in content_type:
                 return "video/mp2t"
 
@@ -112,6 +114,8 @@ class Proxy:
             url_lower = res.request.url.lower()
             if ".mp4" in url_lower:
                 return "video/mp4"
+            if ".webm" in url_lower:
+                return "video/webm"
             if ".m3u8" in url_lower:
                 return "application/vnd.apple.mpegurl"
             if ".mpd" in url_lower:
@@ -279,7 +283,12 @@ class Proxy:
         r.close()
 
 
-        stream_type = "stream.mp4" if stream['contentType'] == "video/mp4" else "stream.m3u8"
+        if stream['contentType'] == "video/mp4":
+            stream_type = "stream.mp4"
+        elif stream['contentType'] == "video/webm":
+            stream_type = "stream.mkv"
+        else:
+            stream_type = "stream.m3u8"
 
         headers_str = json.dumps(stream['headers'])
 
@@ -345,6 +354,8 @@ class Proxy:
             if is_master: return "stream.m3u8"  # Master playlists should always be treated as m3u8
             ext = os.path.splitext(urlparse(target).path)[1]
             if is_fmp4: return "stream.m4s"
+            elif ext == ".webm":
+                return "stream.mkv"
             elif ext in [".mp4", ".m4s", ".ts", ".m3u8"]:
                 return f"stream{ext}"
             return "stream.ts"
