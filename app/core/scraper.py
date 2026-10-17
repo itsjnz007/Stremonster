@@ -190,7 +190,7 @@ class Scraper:
                 subtitle_urls.append(
                     Subtitle(
                         id=f"English-{subtitle_counter}",
-                        lang="eng",
+                        lang="en",
                         url=response.url,
                         label="English"
                     )
