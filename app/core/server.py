@@ -4,7 +4,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import os, time
 from typing import Optional
-from app.models.responses import ExternalWebResponse, WebResponse
+from app.models.responses import ExternalWebResponse, Subtitle, WebResponse
 from app.sources import torrentio as torrentio_module
 from flask import Flask, request
 from flask.wrappers import Response
@@ -104,7 +104,7 @@ def get_web_stream(type: str, id: str) -> Response:
     while processing_cache.get_status(id, 'web') and start_time+120>time.time(): time.sleep(0.1)
 
     cache = web_cache.get(id, USE_CACHE_UPTO)
-    if cache: 
+    if cache:
         stream_index: Optional[int] = cache.get("current_index")
         stream_group: list[list[WebResponse]] = cache.get("streams", [])
         if not stream_group or stream_index is None or stream_index >= len(stream_group):
@@ -126,6 +126,40 @@ def get_web_stream(type: str, id: str) -> Response:
 
     logger.info(f"Total time taken: {time.time() - start_time:.2f}s")
     return respond_with({'streams': []})
+
+@app.route('/web/subtitles/<type>/<id>.json')
+def get_web_subtitles(type: str, id: str) -> Response:
+    logger.error(f"GET /web/subtitles/{type}/{id}.json")
+    if type not in ('movie', 'series'): return respond_with({'error': 'Invalid type'})
+
+    start_time = time.time()
+    time.sleep(1)
+    logger.info(f"Checking if processing is ongoing for {id}...")
+    while processing_cache.get_status(id, 'web') and start_time+120>time.time(): time.sleep(0.1)
+
+    cache = web_cache.get(id, USE_CACHE_UPTO)
+    if cache:
+        stream_index: Optional[int] = cache.get("current_index")
+        stream_group: list[list[WebResponse]] = cache.get("streams", [])
+        if not stream_group or stream_index is None or stream_index >= len(stream_group):
+            logger.error(f"[SUBTITLE] Cache for {id} is invalid or empty...")
+            return respond_with({'streams': []})
+
+        subtitles: list[Subtitle] = []
+        seen_subtitle_urls: set[str] = set()
+        for item in stream_group[stream_index]:
+            for subtitle in item.get('subtitles', []):
+                subtitle_url = subtitle['url']
+                if subtitle_url not in seen_subtitle_urls:
+                    subtitles.append(subtitle)
+                    seen_subtitle_urls.add(subtitle_url)
+
+        formatted_result = {'subtitles': subtitles}
+        logger.info(f"Responding with: {formatted_result}")
+        return respond_with(formatted_result)
+
+    logger.warning(f"No cached subtitles found for {type} with ID {id}. Returning empty list.")
+    return respond_with({'subtitles': []})
 
 
 
