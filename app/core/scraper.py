@@ -1,6 +1,7 @@
 import sys
 import asyncio
 import threading, logging
+import hashlib
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -130,7 +131,6 @@ class Scraper:
         stream_url: Optional[str] = None
         stream_headers: Optional[dict[str, Any]] = None
         subtitle_urls: list[Subtitle] = []
-        subtitle_counter = 0
         start_time = time.time()
 
         pending_requests: dict[str, int] = {}
@@ -155,7 +155,6 @@ class Scraper:
             nonlocal stream_url
             nonlocal stream_headers
             nonlocal subtitle_urls
-            nonlocal subtitle_counter
             nonlocal pending_requests
 
             # if not any(ignored in response.url for ignored in ["google-analytics", "doubleclick"]):
@@ -189,13 +188,12 @@ class Scraper:
             if re.search(self.subtitle_url_pattern, response.url, re.I):
                 subtitle_urls.append(
                     Subtitle(
-                        id=f"English-{subtitle_counter}",
-                        lang="en",
+                        id=hashlib.sha256(response.url.encode("utf-8")).hexdigest(),
                         url=response.url,
+                        lang="eng",
                         label="English"
                     )
                 )
-                subtitle_counter += 1
                 self.logger.info(f'💬 Subtitles from {domain}: {subtitle_urls}')
 
         try:
