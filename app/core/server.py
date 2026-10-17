@@ -114,7 +114,7 @@ def get_web_stream(type: str, id: str) -> Response:
         if not user_agent: formatted_result = {'streams': stream_extractor.build_web_response(id, type, stream_group[stream_index], stream_index, unified=True)}
         else: formatted_result = {'streams': stream_extractor.build_web_response(id, type, stream_group[stream_index], stream_index, unified=True)}
         logger.info(f"Responding with: {formatted_result}")
-        formatted_result['subtitles'] = formatted_result.get('streams', {}).get('subtitles', []) # type: ignore
+        formatted_result['subtitles'] = [item.get("subtitles", []) for item in formatted_result.get('streams', [])] # type: ignore
         return respond_with(formatted_result)
 
     logger.info("Cache invalid, recalculating...")
@@ -123,7 +123,7 @@ def get_web_stream(type: str, id: str) -> Response:
     if streams:
         processing_cache.finish(id, 'web', True)
         formatted_result = {'streams': streams}
-        formatted_result['subtitles'] = formatted_result.get('streams', {}).get('subtitles', []) # type: ignore
+        formatted_result['subtitles'] = [item.get("subtitles", []) for item in formatted_result.get('streams', [])] # type: ignore
         return respond_with(formatted_result)
     processing_cache.finish(id, 'web', False)
 
