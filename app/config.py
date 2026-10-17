@@ -15,14 +15,7 @@ MANIFEST_WEB: dict[str, object] = {
     'description': 'Fast streaming addon with web-based links (no torrents)',
     'types': ['movie', 'series'],
     'catalogs': [],
-    'resources': [
-        {
-            'name': 'stream',
-            'types': ['movie', 'series'],
-            'idPrefixes': ['tt'],
-            'extraSupported': ['subtitles']
-        }
-    ]
+    'resources': ["stream"]
 }
 
 MANIFEST_TORRENTS: dict[str, object] = {
