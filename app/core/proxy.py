@@ -2,20 +2,19 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from collections import deque
 import os
+import threading
 from app.config import TUNNEL_URL
 from flask import Response, request, jsonify, stream_with_context
 from urllib.parse import quote, urlparse
 from app.core.logger import Logger
 import json, re, urllib3, logging, time, requests, pycurl, subprocess
-from typing import Optional, Any
+from typing import Optional, Any, ClassVar
 from app.core.caching import WebCache
-from app.models.responses import WebResponse
+from app.models.responses import WebResponse, SpeedWindow
 from typing import Optional
 from flask import request, Response, stream_with_context
 from app.core.multithreading import MultiThreading
-# from app.core.extractors import StreamExtractor
 from app.external.cinemeta import Cinemeta
 from app.core.parsers import Parsers
 
@@ -25,7 +24,6 @@ logger = Logger("proxy", logging.INFO)
 session = requests.Session()
 web_cache = WebCache()
 threadpool = MultiThreading(1)
-# stream_extractor = StreamExtractor()
 cinemeta = Cinemeta()
 
 
@@ -37,12 +35,24 @@ def respond_with(data: dict[str, Any]) -> Response:
 
 
 class Proxy:
-    _stream_speeds: dict[str, dict[str, float]] = {}
     """Collection of proxy-related helpers exposed as static methods.
 
     Optimized for Android ExoPlayer compatibility by preserving clean explicit 
     extensions and handling precise mime-types.
     """
+    _speed_windows: ClassVar[dict[str, SpeedWindow]] = {}
+    _speed_windows_lock: ClassVar[threading.Lock] = threading.Lock()
+
+    @classmethod
+    def _speed_window_for(cls, content_id: Optional[str]) -> SpeedWindow:
+        if not content_id:
+            return SpeedWindow()
+
+        with cls._speed_windows_lock:
+            if content_id not in cls._speed_windows:
+                cls._speed_windows[content_id] = SpeedWindow()
+            return cls._speed_windows[content_id]
+
     # @staticmethod
     # def is_valid(stream_url: str) -> bool:
     #     try:
@@ -592,8 +602,8 @@ class Proxy:
             MIN_EVALUATION_SECONDS = 5.0
             MIN_SPEED_KBS = 256.0
             
-            window: deque[tuple[float, int, float]] = deque()
-            stream_start_time = time.monotonic()
+            speed_window = Proxy._speed_window_for(id)
+            window = speed_window.chunks
             chunks = upstream_response.iter_content(chunk_size=32 * 1024)
             
             first_chunk = True
@@ -631,44 +641,63 @@ class Proxy:
                         continue
 
                     actual_read_time = max(read_time, 0.0001)
-                    window.append((now, chunk_len, actual_read_time))
-                    
-                    # Evict old window items (> 5 seconds ago)
-                    while window and window[0][0] < now - MIN_EVALUATION_SECONDS:
-                        window.popleft()
+                    current_speed = (chunk_len / 1024) / actual_read_time
+                    with Proxy._speed_windows_lock:
+                        window.append((now, chunk_len, actual_read_time))
 
-                    elapsed_time = now - stream_start_time
+                        while window and window[0][0] < now - MIN_EVALUATION_SECONDS:
+                            window.popleft()
 
-                    if elapsed_time >= MIN_EVALUATION_SECONDS:
-                        total_bytes = sum(item[1] for item in window)
-                        total_read_time = sum(item[2] for item in window)
-                        
-                        if total_read_time > 0:
-                            rolling_speed = (total_bytes / 1024) / total_read_time
-                            
-                            if rolling_speed < MIN_SPEED_KBS:
-                                logger.warning(
-                                    f"Terminating stream. Upstream network speed dropped to: {rolling_speed:.2f} KB/s "
-                                    f"(Read Time: {total_read_time:.2f}s | Wall Time: {elapsed_time:.2f}s)"
-                                )
-                                if id and index:
-                                    logger.warning(f"Slow upstream speed: {rolling_speed:.2f} KB/s")
-                                    web_res = web_cache.get(id)
-                                    if web_res:
-                                        current_index = int(web_res.get('current_index'))
-                                        source_index = int(index.split(':')[0])
-                                        logger.debug(f"current_index: {current_index} | source_index: {source_index}")
-                                        if current_index == source_index:
-                                            if web_cache.switch_source(id): 
-                                                break
-                                            else:
-                                                logger.warning('Ignoring source switch since no other sources available. Resetting speed evaluation window.')
-                                                window.clear()
-                                                stream_start_time = time.monotonic()
-                                        else: 
-                                            logger.warning('Ignoring source switch since source already switched.')
-                                    else: 
-                                        logger.warning("'id' or 'index' not available, skipping source switch")
+                        elapsed_time = now - speed_window.started_at
+                        if elapsed_time >= MIN_EVALUATION_SECONDS:
+                            total_bytes = sum(item[1] for item in window)
+                            total_read_time = sum(item[2] for item in window)
+                        else:
+                            total_read_time = 0.0
+                            total_bytes = 0
+
+                    if elapsed_time >= MIN_EVALUATION_SECONDS and total_read_time > 0:
+                        rolling_speed = (total_bytes / 1024) / total_read_time
+                    else:
+                        rolling_speed = None
+
+                    if current_speed < MIN_SPEED_KBS and (
+                        rolling_speed is None or rolling_speed >= MIN_SPEED_KBS
+                    ):
+                        rolling_status = (
+                            "not available yet"
+                            if rolling_speed is None
+                            else f"{rolling_speed:.2f} KB/s"
+                        )
+                        logger.warning(
+                            f"Current upstream speed is low: {current_speed:.2f} KB/s "
+                            f"(rolling speed: {rolling_status})"
+                        )
+
+                    if rolling_speed is not None and rolling_speed < MIN_SPEED_KBS:
+                        logger.warning(
+                            f"Terminating stream. Upstream network speed dropped to: {rolling_speed:.2f} KB/s "
+                            f"(Read Time: {total_read_time:.2f}s | Wall Time: {elapsed_time:.2f}s)"
+                        )
+                        if id and index:
+                            logger.warning(f"Slow upstream speed: {rolling_speed:.2f} KB/s")
+                            web_res = web_cache.get(id)
+                            if web_res:
+                                current_index = int(web_res.get('current_index'))
+                                source_index = int(index.split(':')[0])
+                                logger.debug(f"current_index: {current_index} | source_index: {source_index}")
+                                if current_index == source_index:
+                                    if web_cache.switch_source(id):
+                                        break
+                                    else:
+                                        logger.warning('Ignoring source switch since no other sources available. Resetting speed evaluation window.')
+                                        with Proxy._speed_windows_lock:
+                                            window.clear()
+                                            speed_window.started_at = time.monotonic()
+                                else:
+                                    logger.warning('Ignoring source switch since source already switched.')
+                            else:
+                                logger.warning("'id' or 'index' not available, skipping source switch")
 
                     yield chunk
 

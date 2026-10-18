@@ -1,5 +1,12 @@
 from typing import Optional, TypedDict, Any, Dict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from collections import deque
+import time
+
+
+def _new_speed_window_chunks() -> deque[tuple[float, int, float]]:
+    return deque()
+
 
 class BehaviorHints(TypedDict):
     bingeGroup: Optional[str]
@@ -43,3 +50,9 @@ class TorrentResponse(TypedDict):
 class Segment:
     url: str
     duration: float
+
+
+@dataclass
+class SpeedWindow:
+    chunks: deque[tuple[float, int, float]] = field(default_factory=_new_speed_window_chunks)
+    started_at: float = field(default_factory=time.monotonic)
