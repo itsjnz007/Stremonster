@@ -9,12 +9,18 @@ from threading import Event
 
 class AnikotoScraper(Scraper):
     def __init__(self):
-        super().__init__(base_url="https://megaplay.buzz", source="anikoto", stream_url_pattern=r'https?://\S*(?:master\.m3u8)\S*')
+        super().__init__(base_url="https://megaplay.buzz", source="anikoto", stream_url_pattern=r'https?://\S*(?:master\.m3u8)\S*',
+                        extra_http_headers={
+                            "Referer": "https://megaplay.buzz/"
+                        },
+                        # headless=False
+                    )
     
     def get_series(self, mal_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[list[WebResponse]]:
         if not mal_id or not episode: return None
         results: list[WebResponse] = []
-        url_sub = f"{self.base_url}/stream/mal/{mal_id}/{episode}/sub"
+        # url_sub = f"{self.base_url}/stream/mal/{mal_id}/{episode}/sub"
+        url_sub = "https://megaplay.buzz/stream/s-2/126426/sub"
         result_sub = self.get_stream(url_sub, stop_event, title="Anikoto (SUB)")
         if result_sub:
             results.append(result_sub)
@@ -28,5 +34,5 @@ class AnikotoScraper(Scraper):
 
 if __name__ == "__main__":
     scraper = AnikotoScraper()
-    response = scraper.get_series("34034", "7")
+    response = scraper.get_series("21", "7")
     print(response)

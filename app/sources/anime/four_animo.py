@@ -1,10 +1,11 @@
+import hashlib
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 from app.config import GENERIC_REQUEST_TIMEOUT
 from app.core.scraper import Scraper
-from app.models.responses import WebResponse
+from app.models.responses import Subtitle, WebResponse
 from typing import Any, Optional, cast
 from threading import Event
 import requests, re
@@ -14,7 +15,7 @@ class FourAnimoScraper(Scraper):
     def __init__(self):
         super().__init__(source="4animo",
                           base_url="https://cdn.4animo.xyz"
-                          )
+                        )
     
     def _get_stream(self, anilist_id: str, episode: str, language: str) -> Optional[WebResponse]:
         url = f"{self.base_url}/embed/ani/{anilist_id}/{episode}/{language}"
@@ -39,14 +40,16 @@ class FourAnimoScraper(Scraper):
             return None
 
         source_url = urljoin(self.base_url, sources[0].get('file', ''))
-        tracks: list[dict[str, str]] = []
+        tracks: list[Subtitle] = []
         for track in data.get('tracks', []):
             if isinstance(track, dict):
                 track_data = cast(dict[str, Any], track)
-                tracks.append({
-                    'file': urljoin(self.base_url, str(track_data.get('file', ''))),
-                    'label': str(track_data.get('label', 'English')),
-                })
+                tracks.append(Subtitle(
+                    url=urljoin(self.base_url, str(track_data.get('file', ''))),
+                    label=str(track_data.get('label', 'English')),
+                    lang="eng",
+                    id=hashlib.sha256(urljoin(self.base_url, str(track_data.get('file', ''))).encode("utf-8")).hexdigest()
+                ))
         return self.build_response(source_url, tracks, title=f"{self.source.title()} ({language.upper()})")
 
     def _get_sub(self, anilist_id: str, episode: str) -> Optional[WebResponse]:
