@@ -19,8 +19,7 @@ class AnikotoScraper(Scraper):
     def get_series(self, mal_id: str, episode: str, stop_event: Optional[Event] = None) -> Optional[list[WebResponse]]:
         if not mal_id or not episode: return None
         results: list[WebResponse] = []
-        # url_sub = f"{self.base_url}/stream/mal/{mal_id}/{episode}/sub"
-        url_sub = "https://megaplay.buzz/stream/s-2/126426/sub"
+        url_sub = f"{self.base_url}/stream/mal/{mal_id}/{episode}/sub"
         result_sub = self.get_stream(url_sub, stop_event, title="Anikoto (SUB)")
         if result_sub:
             results.append(result_sub)
