@@ -670,17 +670,17 @@ class Proxy:
                             else f"{rolling_speed:.2f} KB/s"
                         )
                         logger.warning(
-                            f"Current upstream speed is low: {current_speed:.2f} KB/s "
+                            f"Current upstream speed for id '{id}' is low: {current_speed:.2f} KB/s "
                             f"(rolling speed: {rolling_status})"
                         )
 
                     if rolling_speed is not None and rolling_speed < MIN_SPEED_KBS:
-                        logger.warning(
-                            f"Terminating stream. Upstream network speed dropped to: {rolling_speed:.2f} KB/s "
+                        logger.error(
+                            f"Terminating stream 'id' {id}. Upstream network speed dropped to: {rolling_speed:.2f} KB/s "
                             f"(Read Time: {total_read_time:.2f}s | Wall Time: {elapsed_time:.2f}s)"
                         )
                         if id and index:
-                            logger.warning(f"Slow upstream speed: {rolling_speed:.2f} KB/s")
+                            logger.error(f"Slow upstream speed for id '{id}': {rolling_speed:.2f} KB/s")
                             web_res = web_cache.get(id)
                             if web_res:
                                 current_index = int(web_res.get('current_index'))
