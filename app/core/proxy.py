@@ -670,7 +670,7 @@ class Proxy:
                             else f"{rolling_speed:.2f} KB/s"
                         )
                         logger.warning(
-                            f"Current upstream speed for id '{id}' is low: {current_speed:.2f} KB/s "
+                            f"Upstream speed for id '{id}' low: {current_speed:.2f} KB/s "
                             f"(rolling speed: {rolling_status})"
                         )
 
