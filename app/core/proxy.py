@@ -488,6 +488,10 @@ class Proxy:
         if not media_url: raise Exception("No media_url found")
         id = request.args.get("id")
         index = request.args.get("index")
+        try:
+            bitrate_kbs_str = request.args.get("bitrate_kbs")
+            bitrate_kbs = int(bitrate_kbs_str) if bitrate_kbs_str else None
+        except (ValueError, TypeError): bitrate_kbs = None
         media_headers = request.args.get("headers", "{}")
         if not media_headers: raise Exception("No media_headers found")
         logger.debug(f"id {id} | index {index}\n{'-'*10}\nmedia_url {media_url}\n{'-'*10}\nmedia_headers {media_headers}")
@@ -600,7 +604,7 @@ class Proxy:
 
         def generate_media():
             MIN_EVALUATION_SECONDS = 5.0
-            MIN_SPEED_KBS = 256.0
+            MIN_SPEED_KBS = 256 if not bitrate_kbs else bitrate_kbs
             
             speed_window = Proxy._speed_window_for(id)
             window = speed_window.chunks

@@ -288,12 +288,13 @@ class Scraper:
 
     def build_response(self, stream_url: Optional[str], subtitles: list[Subtitle] = [], 
                        headers: dict[str, str] | None = None, title: Optional[str] = None, 
-                       quality: Optional[str] = None) -> Optional[WebResponse]:
+                       quality: Optional[str] = None,
+                       bitrate_kbs: Optional[int] = None) -> Optional[WebResponse]:
 
             if not stream_url: return
     
             return Proxy.apply_proxy(WebResponse(
-                url=stream_url,
+                url=stream_url + "&bitrate_kbs=" + str(bitrate_kbs) if bitrate_kbs else stream_url,
                 name=quality or "1080p / 720p",
                 title=title or self.source.title(),
                 headers=headers or self.headers,
