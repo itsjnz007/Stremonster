@@ -10,7 +10,7 @@ import logging
 from app.sources.general import \
     vidking as vidking, \
     vidsrc as vidsrc, \
-    vidnest as vidnest_general, viduki as viduki, \
+    vidnest as vidnest_general, movy as movy, \
     aether as aether, \
     cinejoy as cinejoy, \
     vsembed as vsembed, \
@@ -29,7 +29,7 @@ from app.external.anilist import AniBridgeV3Resolver
 vidking_scraper = vidking.VidkingScraper()
 vidsrc_scraper = vidsrc.VidsrcScraper()
 vidnest_general_scraper = vidnest_general.VidnestScraper()
-viduki_scraper = viduki.VidukiScraper()
+movy_scraper = movy.MovyScraper()
 cinejoy_scraper = cinejoy.Cinejoy()
 vsembed_scraper = vsembed.Vsembed()
 showbox_scraper = showbox.Showbox()
@@ -157,7 +157,7 @@ class StreamExtractor:
             (lambda tmdb_id: [result] if (result := subtitulado.get_movie(tmdb_id)) else None, 'subtitulado'),
             (lambda tmdb_id: [result] if (result := cinejoy_scraper.get_movie(tmdb_id)) else None, 'cinejoy'),
             (lambda tmdb_id: [result] if (result := vsembed_scraper.get_movie(tmdb_id)) else None, 'vsembed'),
-            (lambda tmdb_id: [result] if (result := viduki_scraper.get_movie(tmdb_id)) else None, 'viduki'),
+            (lambda tmdb_id: [result] if (result := movy_scraper.get_movie(tmdb_id)) else None, 'movy'),
             (lambda tmdb_id: [result] if (result := vidsrc_scraper.get_movie(tmdb_id)) else None, 'vidsrc'),
             # (lambda tmdb_id: [result] if (result := vidnest_general_scraper.get_movie(tmdb_id)) else None, 'vidnest'),
         ]
@@ -169,7 +169,7 @@ class StreamExtractor:
             (lambda tmdb_id, s, e: [result] if (result := subtitulado.get_series(tmdb_id, s, e)) else None, 'subtitulado'),
             (lambda tmdb_id, s, e: [result] if (result := cinejoy_scraper.get_series(tmdb_id, s, e)) else None, 'cinejoy'),
             (lambda tmdb_id, s, e: [result] if (result := vsembed_scraper.get_series(tmdb_id, s, e)) else None, 'vsembed'),
-            (lambda tmdb, s, e: [result] if (result := viduki_scraper.get_series(tmdb, s, e)) else None, 'viduki'),
+            (lambda tmdb_id, s, e: [result] if (result := movy_scraper.get_series(tmdb_id, s, e)) else None, 'movy'),
             (lambda tmdb_id, s, e: [result] if (result := vidsrc_scraper.get_series(tmdb_id, s, e)) else None, 'vidsrc'),
             # (lambda tmdb, s, e: [result] if (result := vidnest_general_scraper.get_series(tmdb, s, e)) else None, 'vidnest'),
         ]

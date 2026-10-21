@@ -16,7 +16,7 @@ from app.core.parsers import Parsers
 logger = Logger('aether', logging.INFO)
 parsers = Parsers()
 
-BASE_URL = "https://showbox.codiv.dpdns.org/%7B%22cookie%22%3A%22eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIxNTM0OTcsIm5iZiI6MTc5MjE1MzQ5NywiZXhwIjoxODIzMjU3NTE3LCJkYXRhIjp7InVpZCI6MjUyMjYxMSwidG9rZW4iOiJkMGZlYWViMzU1YmE4NjViODM1ZTRjOGE4ZTA1MmYwZSJ9fQ.ScnVR-lw90SgGvBhRiubrG5I4UFIJ4q3ASo89QvRqD4%22%7D"
+BASE_URL = "https://showbox.codiv.dpdns.org/%7B%22cookie%22%3A%22eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIyMjg0OTcsIm5iZiI6MTc5MjIyODQ5NywiZXhwIjoxODIzMzMyNTE3LCJkYXRhIjp7InVpZCI6MjUyMjYxMSwidG9rZW4iOiI4OTQ0MjY4NDJkY2M2M2U0NDRhZDdhMjg4ZDQ4YjdkZCJ9fQ.UEnZ2pZefUH-rHCt1bdp9-qcj9ZRH2vabgjmtyZhjBo%22%7D"
 
 class Showbox(Scraper):
     def __init__(self, source: str = "showbox") -> None:
@@ -52,5 +52,5 @@ class Showbox(Scraper):
 
 if __name__ == "__main__":
     showbox = Showbox()
-    # print(showbox.get_movie("tt1375666"))
-    print(showbox.get_series("tt0388629", "13", "23"))
+    print(showbox.get_movie("tt1375666"))
+    # print(showbox.get_series("tt0388629", "13", "23"))

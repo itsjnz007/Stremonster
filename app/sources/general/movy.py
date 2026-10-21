@@ -7,24 +7,24 @@ from app.models.responses import WebResponse
 from typing import Optional
 from threading import Event
 
-class VidukiScraper(Scraper):
+class MovyScraper(Scraper):
     def __init__(self):
-        super().__init__(source="viduki", base_url="https://www.viduki.net",
-                        #  headless=False
+        super().__init__(source="movy", base_url="https://www.movy.sx",
+                         headless=False
                          )
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        url = f"{self.base_url}/3/movie/{tmdb_id}"
+        url = f"{self.base_url}/movie/{tmdb_id}?play=true"
         result = self.get_stream(url, stop_event)
         return result
     
     def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        url = f"{self.base_url}/3/tv/{tmdb_id}/{season}/{episode}"
+        url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}?play=true"
         result = self.get_stream(url, stop_event)
         return result
 
 if __name__ == "__main__":
-    scraper = VidukiScraper()
+    scraper = MovyScraper()
     
     series_response = scraper.get_series("48891", "5", "2")
     print(f"Series response: {series_response}")
