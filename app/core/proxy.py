@@ -603,7 +603,7 @@ class Proxy:
             return Proxy.apply_headers(resp)
 
         def generate_media():
-            MIN_EVALUATION_SECONDS = 5.0
+            MIN_EVALUATION_SECONDS = 15.0
             MIN_SPEED_KBS = 256 if not bitrate_kbs else bitrate_kbs
             
             speed_window = Proxy._speed_window_for(id)
