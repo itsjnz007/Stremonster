@@ -614,14 +614,14 @@ class Proxy:
             
             try:
                 while True:
-                    t0 = time.monotonic()
+                    read_start = time.monotonic()
                     try:
                         chunk = next(chunks)
                     except StopIteration:
                         break
                     
-                    read_time = time.monotonic() - t0
-                    now = time.monotonic()
+                    read_end = time.monotonic()
+                    read_time = read_end - read_start
 
                     if not chunk:
                         continue
@@ -644,15 +644,19 @@ class Proxy:
                     if chunk_len == 0:
                         continue
 
+                    # Avoid division by zero by ensuring a minimum read time
                     actual_read_time = max(read_time, 0.0001)
+                    # Calculate current speed in KB/s
                     current_speed = (chunk_len / 1024) / actual_read_time
                     with Proxy._speed_windows_lock:
-                        window.append((now, chunk_len, actual_read_time))
+                        window.append((read_end, chunk_len, actual_read_time))
 
-                        while window and window[0][0] < now - MIN_EVALUATION_SECONDS:
+                        # Remove old entries from the window that are outside the evaluation period
+                        while window and window[0][0] < read_end - MIN_EVALUATION_SECONDS:
                             window.popleft()
 
-                        elapsed_time = now - speed_window.started_at
+                        # Calculate total bytes and total read time for the current window
+                        elapsed_time = read_end - speed_window.started_at
                         if elapsed_time >= MIN_EVALUATION_SECONDS:
                             total_bytes = sum(item[1] for item in window)
                             total_read_time = sum(item[2] for item in window)
@@ -660,6 +664,7 @@ class Proxy:
                             total_read_time = 0.0
                             total_bytes = 0
 
+                    # Calculate rolling speed only if we have enough data and time has elapsed
                     if elapsed_time >= MIN_EVALUATION_SECONDS and total_read_time > 0:
                         rolling_speed = (total_bytes / 1024) / total_read_time
                     else:

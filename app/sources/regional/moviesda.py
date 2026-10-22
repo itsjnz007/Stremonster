@@ -192,5 +192,5 @@ class Moviesda(Scraper):
 if __name__ == "__main__":
     scraper = Moviesda()
     print(
-        scraper.get_movie("Mandaadi", "2026")
+        scraper.get_movie("Enna Vilai", "2026")
     )

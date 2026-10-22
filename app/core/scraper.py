@@ -18,6 +18,7 @@ from playwright.async_api import Page, Playwright
 
 STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/mp4)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
+IGNORED_REQUEST_PATTERNS = ["google-analytics", "doubleclick", "analytics.google.com"]
 
 class Scraper:
     _playwright: Optional[Playwright] = None
@@ -137,7 +138,7 @@ class Scraper:
 
         def on_request_done(request: Request):
             nonlocal pending_requests
-            if any(ignored in request.url for ignored in ["google-analytics", "doubleclick"]):
+            if any(ignored in request.url for ignored in IGNORED_REQUEST_PATTERNS):
                 return
             count = pending_requests.get(request.url, 0)
             if count <= 1:
@@ -147,8 +148,9 @@ class Scraper:
 
         def on_request(request: Request):
             nonlocal pending_requests
-            if not any(ignored in request.url for ignored in ["google-analytics", "doubleclick"]):
-                pending_requests[request.url] = pending_requests.get(request.url, 0) + 1
+            if any(ignored in request.url for ignored in IGNORED_REQUEST_PATTERNS):
+                return
+            pending_requests[request.url] = pending_requests.get(request.url, 0) + 1
             if self.log_requests: self.logger.info(f">>> Request -> {request.url}")
 
         async def on_response(response: Response):
@@ -157,8 +159,8 @@ class Scraper:
             nonlocal subtitle_urls
             nonlocal pending_requests
 
-            # if not any(ignored in response.url for ignored in ["google-analytics", "doubleclick"]):
-            #     pending_requests.add(response.url)
+            if any(ignored in response.url for ignored in IGNORED_REQUEST_PATTERNS):
+                return
 
             if self.log_requests: self.logger.info(f"<<< Response -> {response.url}")
             is_stream_url = re.search(self.stream_url_pattern, response.url, re.I)
