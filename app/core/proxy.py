@@ -255,14 +255,8 @@ class Proxy:
 
 
     @staticmethod
-    def apply_proxy(stream: WebResponse) -> Optional[WebResponse]:
+    def apply_proxy(stream: WebResponse, bitrate_kbs: Optional[int] = None) -> Optional[WebResponse]:
         if not stream.get('headers'): stream['headers'] = {}
-        # stream['headers']["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0"
-        # stream['headers']["accept"] = "*/*"
-        # stream['headers']["accept-language"] = "en-US,en;q=0.5"
-        # stream['headers']["sec-fetch-dest"] = "empty"
-        # stream['headers']["sec-fetch-mode"] = "cors"
-        # stream['headers']["sec-fetch-site"] = "cross-site"
 
         try:
             r = session.get(stream['url'], 
@@ -303,7 +297,7 @@ class Proxy:
         headers_str = json.dumps(stream['headers'])
 
         
-        stream['url'] = Proxy.add_proxy(stream['url'], headers_str, stream_type=stream_type)
+        stream['url'] = Proxy.add_proxy(stream['url'], headers_str, stream_type=stream_type, bitrate_kbs=bitrate_kbs)
         stream['subtitles'] = [
             {
                 **sub,
@@ -316,11 +310,10 @@ class Proxy:
             return None
 
         return stream
-        
     
     
     @staticmethod
-    def add_proxy(url: str, headers: str, id: Optional[str] = None, stream_type: str = "stream.ts") -> str:
+    def add_proxy(url: str, headers: str, id: Optional[str] = None, bitrate_kbs: Optional[int] = None, stream_type: str = "stream.ts") -> str:
 
         if not TUNNEL_URL: raise Exception("TUNNEL_URL not set")
 
@@ -334,6 +327,7 @@ class Proxy:
             + "&headers=" + quote(headers_str, safe="")
         )
         if id: proxy_url += f"&id={quote(id, safe='')}"
+        if bitrate_kbs: proxy_url += f"&bitrate_kbs={quote(str(bitrate_kbs), safe='')}"
         # if index: proxy_url +=  f"&index={quote(index, safe='')}"
         return proxy_url
 
@@ -386,7 +380,7 @@ class Proxy:
                     def replace_uri(match: re.Match[str]):
                         full_url = resolve_url(match.group(2))
                         stream_type = get_stream_type(match.group(2))
-                        proxied_url = Proxy.add_proxy(full_url, headers, stream_type=stream_type, id=id) + (f"&index={index}" if index else "") + (f"&bitrate_kbs={bitrate_kbs}" if bitrate_kbs else "")
+                        proxied_url = Proxy.add_proxy(full_url, headers, stream_type=stream_type, id=id, bitrate_kbs=bitrate_kbs) + (f"&index={quote(index, safe='')}" if index else "")
                         return f'{match.group(1)}{proxied_url}{match.group(3)}'
                     
                     rewritten.append(uri_pattern.sub(replace_uri, line))
@@ -397,7 +391,7 @@ class Proxy:
             # Handle segment URLs (lines not starting with #)
             else:
                 stream_type = get_stream_type(line)
-                rewritten.append(Proxy.add_proxy(resolve_url(line), headers, stream_type=stream_type, id=id) + (f"&index={index}" if index else "") + (f"&bitrate_kbs={bitrate_kbs}" if bitrate_kbs else ""))
+                rewritten.append(Proxy.add_proxy(resolve_url(line), headers, stream_type=stream_type, id=id, bitrate_kbs=bitrate_kbs) + (f"&index={quote(index, safe='')}" if index else ""))
 
         return "\n".join(rewritten)
     
