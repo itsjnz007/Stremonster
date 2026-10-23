@@ -257,19 +257,21 @@ class Proxy:
                     parts = line.split("bitrate:")
                     if len(parts) > 1:
                         val_str = parts[1].strip().split()[0]  # e.g., "14667"
-                        bitrate_kbs = int(float(val_str) / 8.0)     # kilobits/sec to Kilobytes/sec
-                        break
+                        val = float(val_str)
+                        if val > 0:
+                            bitrate_kbs = int(val / 8.0)
+                            break
                 except Exception:
                     pass
 
-            # 2. Match HLS variant streams (reported in bits/sec -> divide by 8000 to get KB/s)
+            # 2. Match HLS program/variant metadata (reported in bits/sec -> divide by 8000 to get KB/s)
             elif "variant_bitrate" in line:
                 try:
                     parts = line.split(":")
                     if len(parts) > 1:
                         val = int(parts[1].strip())
                         if val > 0:
-                            bitrate_kbs = int(val / 8000.0)  # bits/sec to Kilobytes/sec
+                            bitrate_kbs = int(val / 8000.0)
                             break
                 except Exception:
                     pass
