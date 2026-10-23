@@ -290,8 +290,7 @@ class Scraper:
 
     def build_response(self, stream_url: Optional[str], subtitles: list[Subtitle] = [], 
                        headers: dict[str, str] | None = None, title: Optional[str] = None, 
-                       quality: Optional[str] = None,
-                       bitrate_kbs: Optional[int] = None) -> Optional[WebResponse]:
+                       quality: Optional[str] = None) -> Optional[WebResponse]:
 
             if not stream_url: return
     
@@ -306,7 +305,7 @@ class Scraper:
                 cacheMaxAge = None,
                 staleRevalidate = None,
                 staleError = None,
-            ), bitrate_kbs=bitrate_kbs)
+            ))
 
 
     @classmethod

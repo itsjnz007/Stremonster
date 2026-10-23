@@ -204,13 +204,11 @@ class Proxy:
     #     return True
 
     @staticmethod
-    def test_stream(stream: WebResponse, test_seconds: int = 3) -> bool:
-        """Decode the beginning of a stream, including its first HLS segment."""
-        command = [
+    def test_stream(stream: WebResponse, test_seconds: int = 3) -> tuple[bool, float | None]:
+        """Decode the beginning of a stream, test it, and return (success, bitrate_KBps)."""
+        command: list[str] = [
             "ffmpeg",
             "-hide_banner",
-            "-loglevel",
-            "error",
             "-nostdin",
             "-rw_timeout",
             "10000000",
@@ -241,21 +239,47 @@ class Proxy:
             )
         except FileNotFoundError:
             logger.error("Unable to test stream: ffmpeg is not installed")
-            return False
+            return False, None
         except subprocess.TimeoutExpired:
             logger.error("Unable to test stream: ffmpeg timed out")
-            return False
+            return False, None
 
         if result.returncode != 0:
             logger.error(f"Stream playback test failed: {result.stderr.strip()}")
-            return False
+            return False, None
 
-        logger.info("Stream playback test passed")
-        return True
+        bitrate_kbs = None
+
+        for line in result.stderr.splitlines():
+            # 1. Match MP4 / standard container header (reported in kilobits/sec -> divide by 8 to get KB/s)
+            if "bitrate:" in line and "Duration:" in line:
+                try:
+                    parts = line.split("bitrate:")
+                    if len(parts) > 1:
+                        val_str = parts[1].strip().split()[0]  # e.g., "14667"
+                        bitrate_kbs = float(val_str) / 8.0     # kilobits/sec to Kilobytes/sec
+                        break
+                except Exception:
+                    pass
+
+            # 2. Match HLS variant streams (reported in bits/sec -> divide by 8000 to get KB/s)
+            elif "variant_bitrate" in line:
+                try:
+                    parts = line.split(":")
+                    if len(parts) > 1:
+                        val = int(parts[1].strip())
+                        if val > 0:
+                            bitrate_kbs = val / 8000.0  # bits/sec to Kilobytes/sec
+                            break
+                except Exception:
+                    pass
+
+        logger.info(f"Stream playback test passed (Bitrate: {bitrate_kbs} KB/s)")
+        return True, bitrate_kbs
 
 
     @staticmethod
-    def apply_proxy(stream: WebResponse, bitrate_kbs: Optional[int] = None) -> Optional[WebResponse]:
+    def apply_proxy(stream: WebResponse) -> Optional[WebResponse]:
         if not stream.get('headers'): stream['headers'] = {}
 
         try:
@@ -297,7 +321,7 @@ class Proxy:
         headers_str = json.dumps(stream['headers'])
 
         
-        stream['url'] = Proxy.add_proxy(stream['url'], headers_str, stream_type=stream_type, bitrate_kbs=bitrate_kbs)
+        stream['url'] = Proxy.add_proxy(stream['url'], headers_str, stream_type=stream_type)
         stream['subtitles'] = [
             {
                 **sub,
@@ -305,15 +329,23 @@ class Proxy:
             }
             for sub in stream['subtitles']
         ]
-        if not Proxy.test_stream(stream):
+        test_passed, detected_bitrate = Proxy.test_stream(stream)
+        if not test_passed:
             logger.error("Stream failed playback validation. Rejecting source.")
             return None
+        if detected_bitrate: stream["url"] = Proxy.add_bitrate(stream["url"], detected_bitrate)
 
         return stream
-    
+
+    @staticmethod
+    def add_bitrate(url: str, bitrate_kbs: Optional[float]) -> str:
+        if bitrate_kbs:
+            url += "&bitrate_kbs=" + quote(str(bitrate_kbs), safe='')
+        return url
+
     
     @staticmethod
-    def add_proxy(url: str, headers: str, id: Optional[str] = None, bitrate_kbs: Optional[int] = None, stream_type: str = "stream.ts") -> str:
+    def add_proxy(url: str, headers: str, id: Optional[str] = None, bitrate_kbs: Optional[float] = None, stream_type: str = "stream.ts") -> str:
 
         if not TUNNEL_URL: raise Exception("TUNNEL_URL not set")
 
@@ -327,13 +359,13 @@ class Proxy:
             + "&headers=" + quote(headers_str, safe="")
         )
         if id: proxy_url += f"&id={quote(id, safe='')}"
-        if bitrate_kbs: proxy_url += f"&bitrate_kbs={quote(str(bitrate_kbs), safe='')}"
+        if bitrate_kbs: proxy_url = Proxy.add_bitrate(proxy_url, bitrate_kbs)
         # if index: proxy_url +=  f"&index={quote(index, safe='')}"
         return proxy_url
 
 
     @staticmethod
-    def parse_segment(content: bytes, headers: str, master_url: str, id: Optional[str], index: Optional[str], bitrate_kbs: Optional[int]) -> str:
+    def parse_segment(content: bytes, headers: str, master_url: str, id: Optional[str], index: Optional[str], bitrate_kbs: Optional[float]) -> str:
         text = content.decode("utf-8", errors="ignore")
         rewritten: list[str] = []
 

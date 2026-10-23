@@ -10,7 +10,7 @@ from threading import Event
 class MovyScraper(Scraper):
     def __init__(self):
         super().__init__(source="movy", base_url="https://www.movy.sx",
-                         headless=False
+                        #  headless=False
                          )
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
