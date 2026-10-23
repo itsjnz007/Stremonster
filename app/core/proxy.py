@@ -339,7 +339,7 @@ class Proxy:
 
 
     @staticmethod
-    def parse_segment(content: bytes, headers: str, master_url: str, id: Optional[str], index: Optional[str]) -> str:
+    def parse_segment(content: bytes, headers: str, master_url: str, id: Optional[str], index: Optional[str], bitrate_kbs: Optional[int]) -> str:
         text = content.decode("utf-8", errors="ignore")
         rewritten: list[str] = []
 
@@ -386,7 +386,7 @@ class Proxy:
                     def replace_uri(match: re.Match[str]):
                         full_url = resolve_url(match.group(2))
                         stream_type = get_stream_type(match.group(2))
-                        proxied_url = Proxy.add_proxy(full_url, headers, stream_type=stream_type, id=id) + (f"&index={index}" if index else "")
+                        proxied_url = Proxy.add_proxy(full_url, headers, stream_type=stream_type, id=id) + (f"&index={index}" if index else "") + (f"&bitrate_kbs={bitrate_kbs}" if bitrate_kbs else "")
                         return f'{match.group(1)}{proxied_url}{match.group(3)}'
                     
                     rewritten.append(uri_pattern.sub(replace_uri, line))
@@ -397,7 +397,7 @@ class Proxy:
             # Handle segment URLs (lines not starting with #)
             else:
                 stream_type = get_stream_type(line)
-                rewritten.append(Proxy.add_proxy(resolve_url(line), headers, stream_type=stream_type, id=id) + (f"&index={index}" if index else ""))
+                rewritten.append(Proxy.add_proxy(resolve_url(line), headers, stream_type=stream_type, id=id) + (f"&index={index}" if index else "") + (f"&bitrate_kbs={bitrate_kbs}" if bitrate_kbs else ""))
 
         return "\n".join(rewritten)
     
@@ -591,7 +591,8 @@ class Proxy:
                 arg_headers,
                 media_url,
                 id=id,
-                index=index
+                index=index,
+                bitrate_kbs=bitrate_kbs
             )
             resp = Response(
                 updated_content,
@@ -676,7 +677,7 @@ class Proxy:
                         rolling_status = (
                             "not available yet"
                             if rolling_speed is None
-                            else f"{rolling_speed:.2f} KB/s"
+                            else f"{rolling_speed:.2f} / {MIN_SPEED_KBS} KB/s"
                         )
                         logger.warning(
                             f"Upstream speed for id '{id}' low: {current_speed:.2f} KB/s "
@@ -684,11 +685,11 @@ class Proxy:
                         )
 
                     if rolling_speed is not None and rolling_speed < MIN_SPEED_KBS:
-                        logger.error(
-                            f"Terminating stream 'id' {id}. Upstream network speed dropped to: {rolling_speed:.2f} KB/s "
-                            f"(Read Time: {total_read_time:.2f}s | Wall Time: {elapsed_time:.2f}s)"
-                        )
                         if id and index:
+                            logger.error(
+                                f"Terminating stream 'id' {id}. Upstream network speed dropped to: {rolling_speed:.2f} KB/s "
+                                f"(Read Time: {total_read_time:.2f}s | Wall Time: {elapsed_time:.2f}s) | Bitrate Threshold: {MIN_SPEED_KBS} KB/s"
+                            )
                             logger.error(f"Slow upstream speed for id '{id}': {rolling_speed:.2f} KB/s")
                             web_res = web_cache.get(id)
                             if web_res:
@@ -707,6 +708,9 @@ class Proxy:
                                     logger.warning('Ignoring source switch since source already switched.')
                             else:
                                 logger.warning("'id' or 'index' not available, skipping source switch")
+
+                        else:
+                            logger.error(f"Upstream network speed dropped to: {rolling_speed:.2f} KB/s, below threshold of {MIN_SPEED_KBS} KB/s. But 'id' or 'index' not available, skipping source switch.")
 
                     yield chunk
 

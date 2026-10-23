@@ -295,8 +295,8 @@ class Scraper:
 
             if not stream_url: return
     
-            return Proxy.apply_proxy(WebResponse(
-                url=stream_url + "&bitrate_kbs=" + str(bitrate_kbs) if bitrate_kbs else stream_url,
+            proxied = Proxy.apply_proxy(WebResponse(
+                url=stream_url,
                 name=quality or "1080p / 720p",
                 title=title or self.source.title(),
                 headers=headers or self.headers,
@@ -307,6 +307,9 @@ class Scraper:
                 staleRevalidate = None,
                 staleError = None,
             ))
+            if proxied and bitrate_kbs: proxied["url"] = proxied.get("url") + f"{stream_url}&bitrate_kbs={bitrate_kbs}"
+            return proxied
+
 
     @classmethod
     async def _shutdown_async(cls):
