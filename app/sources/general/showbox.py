@@ -34,7 +34,7 @@ class Showbox(Scraper):
             print(f"Filtered response: {filtered_response}")
             sorted_response = sorted(filtered_response, key=lambda x: (x[0].size_kb if x[0].size_kb is not None else float('inf')))
             print(f"Sorted response: {sorted_response}")
-            return self.build_response(sorted_response[0][0].url, subtitles=sorted_response[0][1], quality=sorted_response[0][0].quality, bitrate_kbs=800) if sorted_response else None
+            return self.build_response(sorted_response[0][0].url, subtitles=sorted_response[0][1], quality=sorted_response[0][0].quality, bitrate_kbs=1400) if sorted_response else None
 
     def get_series(self, imdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/stream/series/{imdb_id}:{season}:{episode}.json"
@@ -48,7 +48,7 @@ class Showbox(Scraper):
             print(f"Filtered response: {filtered_response}")
             sorted_response = sorted(filtered_response, key=lambda x: (x[0].size_kb if x[0].size_kb is not None else float('inf')))
             print(f"Sorted response: {sorted_response}")
-            return self.build_response(sorted_response[0][0].url, subtitles=sorted_response[0][1], quality=sorted_response[0][0].quality, bitrate_kbs=800) if sorted_response else None
+            return self.build_response(sorted_response[0][0].url, subtitles=sorted_response[0][1], quality=sorted_response[0][0].quality, bitrate_kbs=1400) if sorted_response else None
 
 if __name__ == "__main__":
     showbox = Showbox()
