@@ -204,7 +204,7 @@ class Proxy:
     #     return True
 
     @staticmethod
-    def test_stream(stream: WebResponse, test_seconds: int = 3) -> tuple[bool, float | None]:
+    def test_stream(stream: WebResponse, test_seconds: int = 3) -> tuple[bool, int | None]:
         """Decode the beginning of a stream, test it, and return (success, bitrate_KBps)."""
         command: list[str] = [
             "ffmpeg",
@@ -257,7 +257,7 @@ class Proxy:
                     parts = line.split("bitrate:")
                     if len(parts) > 1:
                         val_str = parts[1].strip().split()[0]  # e.g., "14667"
-                        bitrate_kbs = float(val_str) / 8.0     # kilobits/sec to Kilobytes/sec
+                        bitrate_kbs = int(float(val_str) / 8.0)     # kilobits/sec to Kilobytes/sec
                         break
                 except Exception:
                     pass
@@ -269,7 +269,7 @@ class Proxy:
                     if len(parts) > 1:
                         val = int(parts[1].strip())
                         if val > 0:
-                            bitrate_kbs = val / 8000.0  # bits/sec to Kilobytes/sec
+                            bitrate_kbs = int(val / 8000.0)  # bits/sec to Kilobytes/sec
                             break
                 except Exception:
                     pass
@@ -338,14 +338,14 @@ class Proxy:
         return stream
 
     @staticmethod
-    def add_bitrate(url: str, bitrate_kbs: Optional[float]) -> str:
+    def add_bitrate(url: str, bitrate_kbs: Optional[int]) -> str:
         if bitrate_kbs:
             url += "&bitrate_kbs=" + quote(str(bitrate_kbs), safe='')
         return url
 
     
     @staticmethod
-    def add_proxy(url: str, headers: str, id: Optional[str] = None, bitrate_kbs: Optional[float] = None, stream_type: str = "stream.ts") -> str:
+    def add_proxy(url: str, headers: str, id: Optional[str] = None, bitrate_kbs: Optional[int] = None, stream_type: str = "stream.ts") -> str:
 
         if not TUNNEL_URL: raise Exception("TUNNEL_URL not set")
 
@@ -365,7 +365,7 @@ class Proxy:
 
 
     @staticmethod
-    def parse_segment(content: bytes, headers: str, master_url: str, id: Optional[str], index: Optional[str], bitrate_kbs: Optional[float]) -> str:
+    def parse_segment(content: bytes, headers: str, master_url: str, id: Optional[str], index: Optional[str], bitrate_kbs: Optional[int]) -> str:
         text = content.decode("utf-8", errors="ignore")
         rewritten: list[str] = []
 
@@ -631,7 +631,7 @@ class Proxy:
 
         def generate_media():
             MIN_EVALUATION_SECONDS = 15.0
-            MIN_SPEED_KBS = 256 if not bitrate_kbs else bitrate_kbs
+            MIN_SPEED_KBS = bitrate_kbs if bitrate_kbs and bitrate_kbs > 256 else 256
             
             speed_window = Proxy._speed_window_for(id)
             window = speed_window.chunks
