@@ -240,6 +240,28 @@ class Proxy:
     #     return True
 
     @staticmethod
+    def _parse_video_bitrate(stderr: str) -> Optional[int]:
+        for line in stderr.splitlines():
+            if line.startswith("Stream mapping:"):
+                break
+            if "Video:" not in line:
+                continue
+
+            match = re.search(r"\b(\d+(?:\.\d+)?)\s*([kM]?)b/s\b", line)
+            if match:
+                value = float(match.group(1))
+                unit = match.group(2)
+                bits_per_second = value * (
+                    1000 if unit == "k" else 1_000_000 if unit == "M" else 1
+                )
+                bitrate_kbs = int(bits_per_second / 8000)
+                if bitrate_kbs > 0:
+                    return bitrate_kbs
+            break
+
+        return None
+
+    @staticmethod
     def test_stream(stream: WebResponse, test_seconds: int = 3) -> tuple[bool, int | None]:
         """Decode the beginning of a stream, test it, and return (success, bitrate_KBps)."""
         command: list[str] = [
@@ -284,33 +306,34 @@ class Proxy:
             logger.error(f"Stream playback test failed: {result.stderr.strip()}")
             return False, None
 
-        bitrate_kbs = None
+        bitrate_kbs = Proxy._parse_video_bitrate(result.stderr)
 
-        for line in result.stderr.splitlines():
-            # 1. Match MP4 / standard container header (reported in kilobits/sec -> divide by 8 to get KB/s)
-            if "bitrate:" in line and "Duration:" in line:
-                try:
-                    parts = line.split("bitrate:")
-                    if len(parts) > 1:
-                        val_str = parts[1].strip().split()[0]  # e.g., "14667"
-                        val = float(val_str)
-                        if val > 0:
-                            bitrate_kbs = int(val / 8.0)
-                            break
-                except Exception:
-                    pass
+        if bitrate_kbs is None:
+            for line in result.stderr.splitlines():
+                # Match MP4 / standard container bitrate (kilobits/sec -> KB/s).
+                if "bitrate:" in line and "Duration:" in line:
+                    try:
+                        parts = line.split("bitrate:")
+                        if len(parts) > 1:
+                            val_str = parts[1].strip().split()[0]
+                            val = float(val_str)
+                            if val > 0:
+                                bitrate_kbs = int(val / 8.0)
+                                break
+                    except Exception:
+                        pass
 
-            # 2. Match HLS program/variant metadata (reported in bits/sec -> divide by 8000 to get KB/s)
-            elif "variant_bitrate" in line:
-                try:
-                    parts = line.split(":")
-                    if len(parts) > 1:
-                        val = int(parts[1].strip())
-                        if val > 0:
-                            bitrate_kbs = int(val / 8000.0)
-                            break
-                except Exception:
-                    pass
+                # Match HLS program/variant metadata (bits/sec -> KB/s).
+                elif "variant_bitrate" in line:
+                    try:
+                        parts = line.split(":")
+                        if len(parts) > 1:
+                            val = int(parts[1].strip())
+                            if val > 0:
+                                bitrate_kbs = int(val / 8000.0)
+                                break
+                    except Exception:
+                        pass
 
         if bitrate_kbs: logger.info(f"Stream playback test passed (Bitrate: {bitrate_kbs} KB/s)")
         else: logger.warning(f"Unable to fetch bitrate. Find the below ffmpeg logs\n{result.stderr.splitlines()}")
