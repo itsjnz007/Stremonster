@@ -757,7 +757,7 @@ class Proxy:
                     if rolling_speed is not None and rolling_speed < MIN_SPEED_KBS:
                         if id and index:
                             logger.error(
-                                f"Terminating stream 'id' {id}. Upstream network speed dropped to: {rolling_speed:.2f} KB/s "
+                                f"Terminating stream 'id' {id}. Upstream rolling network speed dropped to: {rolling_speed:.2f} KB/s "
                                 f"(Read Time: {total_read_time:.2f}s | Wall Time: {elapsed_time:.2f}s) | Bitrate Threshold: {MIN_SPEED_KBS} KB/s"
                             )
                             logger.error(f"Slow upstream speed for id '{id}': {rolling_speed:.2f} KB/s")
