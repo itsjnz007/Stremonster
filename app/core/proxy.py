@@ -597,25 +597,20 @@ class Proxy:
                 web_cache.switch_source(id)
             else: logger.warning("'request_id' not available, skipping source switch")
             return Response(f"Upstream error {e}", status=503) 
-        
-        if upstream_response.status_code not in (200, 203, 206):
-            if upstream_response.status_code == 416:
-                logger.error(
-                    "Upstream rejected byte range: "
-                    f"method={request.method!r}, "
-                    f"requested_range={request_range!r}, "
-                    f"content_range={upstream_response.headers.get('Content-Range')!r}, "
-                    f"content_length={upstream_response.headers.get('Content-Length')!r}, "
-                    f"accept_ranges={upstream_response.headers.get('Accept-Ranges')!r}"
-                )
-                response = Response(
-                    upstream_response.content,
-                    status=416,
-                    headers=dict(upstream_response.headers),
-                )
-                upstream_response.close()
-                return Proxy.apply_headers(response)
 
+        # Log unusual but legal request ##################################################
+        if upstream_response.status_code == 416:
+            logger.warning(
+                "Upstream rejected byte range: "
+                f"method={request.method!r}, "
+                f"requested_range={request_range!r}, "
+                f"content_range={upstream_response.headers.get('Content-Range')!r}, "
+                f"content_length={upstream_response.headers.get('Content-Length')!r}, "
+                f"accept_ranges={upstream_response.headers.get('Accept-Ranges')!r}"
+            )
+        ##################################################################################
+
+        if upstream_response.status_code not in (200, 203, 206, 416):
             logger.error(f"Upstream error [{upstream_response.status_code}] {upstream_response.text}")
             if id:
                 web_cache.switch_source(id)
