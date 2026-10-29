@@ -129,7 +129,7 @@ def get_web_stream(type: str, id: str) -> Response:
 
 @app.route('/web/subtitles/<type>/<id>.json')
 def get_web_subtitles(type: str, id: str) -> Response:
-    logger.error(f"GET /web/subtitles/{type}/{id}.json")
+    logger.info(f"GET /web/subtitles/{type}/{id}.json")
     if type not in ('movie', 'series'): return respond_with({'error': 'Invalid type'})
 
     start_time = time.time()
