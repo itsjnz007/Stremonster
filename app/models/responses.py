@@ -56,3 +56,5 @@ class Segment:
 class SpeedWindow:
     chunks: deque[tuple[float, int, float]] = field(default_factory=_new_speed_window_chunks)
     started_at: float = field(default_factory=time.monotonic)
+    last_chunk_at: Optional[float] = None
+    source_index: Optional[str] = None

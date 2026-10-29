@@ -53,6 +53,42 @@ class Proxy:
                 cls._speed_windows[content_id] = SpeedWindow()
             return cls._speed_windows[content_id]
 
+    @classmethod
+    def _record_speed_sample(
+        cls,
+        speed_window: SpeedWindow,
+        read_end: float,
+        chunk_len: int,
+        read_time: float,
+        evaluation_seconds: float,
+        source_index: Optional[str],
+    ) -> tuple[float, int, float]:
+        with cls._speed_windows_lock:
+            if (
+                speed_window.source_index != source_index
+                or speed_window.last_chunk_at is None
+                or read_end - speed_window.last_chunk_at > evaluation_seconds
+            ):
+                speed_window.chunks.clear()
+                speed_window.started_at = read_end
+                speed_window.source_index = source_index
+
+            speed_window.last_chunk_at = read_end
+            speed_window.chunks.append((read_end, chunk_len, read_time))
+
+            while speed_window.chunks and speed_window.chunks[0][0] < read_end - evaluation_seconds:
+                speed_window.chunks.popleft()
+
+            elapsed_time = read_end - speed_window.started_at
+            if elapsed_time >= evaluation_seconds:
+                total_bytes = sum(item[1] for item in speed_window.chunks)
+                total_read_time = sum(item[2] for item in speed_window.chunks)
+            else:
+                total_bytes = 0
+                total_read_time = 0.0
+
+        return elapsed_time, total_bytes, total_read_time
+
     # @staticmethod
     # def is_valid(stream_url: str) -> bool:
     #     try:
@@ -649,8 +685,8 @@ class Proxy:
             MIN_SPEED_KBS = bitrate_kbs if bitrate_kbs and bitrate_kbs > 256 else 256
             
             speed_window = Proxy._speed_window_for(id)
-            window = speed_window.chunks
             chunks = upstream_response.iter_content(chunk_size=32 * 1024)
+            source_index = index.split(":", 1)[0] if index else None
             
             first_chunk = True
             
@@ -690,21 +726,14 @@ class Proxy:
                     actual_read_time = max(read_time, 0.0001)
                     # Calculate current speed in KB/s
                     current_speed = (chunk_len / 1024) / actual_read_time
-                    with Proxy._speed_windows_lock:
-                        window.append((read_end, chunk_len, actual_read_time))
-
-                        # Remove old entries from the window that are outside the evaluation period
-                        while window and window[0][0] < read_end - MIN_EVALUATION_SECONDS:
-                            window.popleft()
-
-                        # Calculate total bytes and total read time for the current window
-                        elapsed_time = read_end - speed_window.started_at
-                        if elapsed_time >= MIN_EVALUATION_SECONDS:
-                            total_bytes = sum(item[1] for item in window)
-                            total_read_time = sum(item[2] for item in window)
-                        else:
-                            total_read_time = 0.0
-                            total_bytes = 0
+                    elapsed_time, total_bytes, total_read_time = Proxy._record_speed_sample(
+                        speed_window,
+                        read_end,
+                        chunk_len,
+                        actual_read_time,
+                        MIN_EVALUATION_SECONDS,
+                        source_index,
+                    )
 
                     # Calculate rolling speed only if we have enough data and time has elapsed
                     if elapsed_time >= MIN_EVALUATION_SECONDS and total_read_time > 0:
@@ -735,16 +764,20 @@ class Proxy:
                             web_res = web_cache.get(id)
                             if web_res:
                                 current_index = int(web_res.get('current_index'))
-                                source_index = int(index.split(':')[0])
-                                logger.debug(f"current_index: {current_index} | source_index: {source_index}")
-                                if current_index == source_index:
+                                requested_source_index = int(index.split(':')[0])
+                                logger.debug(
+                                    f"current_index: {current_index} | "
+                                    f"source_index: {requested_source_index}"
+                                )
+                                if current_index == requested_source_index:
                                     if web_cache.switch_source(id):
                                         break
                                     else:
                                         logger.warning('Ignoring source switch since no other sources available. Resetting speed evaluation window.')
                                         with Proxy._speed_windows_lock:
-                                            window.clear()
+                                            speed_window.chunks.clear()
                                             speed_window.started_at = time.monotonic()
+                                            speed_window.last_chunk_at = None
                                 else:
                                     logger.warning('Ignoring source switch since source already switched.')
                             else:
@@ -761,9 +794,12 @@ class Proxy:
                     web_res = web_cache.get(id)
                     if web_res:
                         current_index = int(web_res.get('current_index'))
-                        source_index = int(index.split(':')[0])
-                        logger.debug(f"current_index: {current_index} | source_index: {source_index}")
-                        if current_index == source_index: 
+                        requested_source_index = int(index.split(':')[0])
+                        logger.debug(
+                            f"current_index: {current_index} | "
+                            f"source_index: {requested_source_index}"
+                        )
+                        if current_index == requested_source_index:
                             web_cache.switch_source(id)
                         else: 
                             logger.debug('Ignoring source switch since source already switched.')
