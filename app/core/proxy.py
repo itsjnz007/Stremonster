@@ -276,7 +276,8 @@ class Proxy:
                 except Exception:
                     pass
 
-        logger.info(f"Stream playback test passed (Bitrate: {bitrate_kbs} KB/s)")
+        if bitrate_kbs: logger.info(f"Stream playback test passed (Bitrate: {bitrate_kbs} KB/s)")
+        else: logger.warning(f"Unable to fetch bitrate. Find the below ffmpeg logs\n{result.stderr.splitlines()}")
         return True, bitrate_kbs
 
 
