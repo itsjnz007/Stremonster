@@ -608,6 +608,14 @@ class Proxy:
                     f"content_length={upstream_response.headers.get('Content-Length')!r}, "
                     f"accept_ranges={upstream_response.headers.get('Accept-Ranges')!r}"
                 )
+                response = Response(
+                    upstream_response.content,
+                    status=416,
+                    headers=dict(upstream_response.headers),
+                )
+                upstream_response.close()
+                return Proxy.apply_headers(response)
+
             logger.error(f"Upstream error [{upstream_response.status_code}] {upstream_response.text}")
             if id:
                 web_cache.switch_source(id)
