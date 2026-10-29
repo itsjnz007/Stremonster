@@ -38,6 +38,7 @@ showbox_scraper = showbox.Showbox()
 subtitulado = aether.Subtitulado()
 lul = aether.Lul()
 link = aether.Link()
+meridian = aether.Meridian()
 
 # Anime Scrapers
 four_animo_scraper = four_animo.FourAnimoScraper()
@@ -153,6 +154,7 @@ class StreamExtractor:
         movie_scrapers: List[Tuple[Callable[[str], Optional[List[WebResponse]]], str]] = [
             (lambda _: [result] if (result := showbox_scraper.get_movie(id)) else None, 'showbox'),
             (lambda tmdb_id: [result] if (result := link.get_movie(tmdb_id)) else None, 'link'),
+            (lambda tmdb_id: [result] if (result := meridian.get_movie(tmdb_id)) else None, 'meridian'),
             (lambda tmdb_id: [result] if (result := lul.get_movie(tmdb_id)) else None, 'lul'),
             (lambda tmdb_id: [result] if (result := subtitulado.get_movie(tmdb_id)) else None, 'subtitulado'),
             (lambda tmdb_id: [result] if (result := cinejoy_scraper.get_movie(tmdb_id)) else None, 'cinejoy'),
@@ -165,6 +167,7 @@ class StreamExtractor:
         series_scrapers: List[Tuple[Callable[[str, str, str], Optional[List[WebResponse]]], str]] = [
             (lambda _, s, e: [result] if (result := showbox_scraper.get_series(id.split(":")[0], s, e)) else None, 'showbox'),
             (lambda tmdb_id, s, e: [result] if (result := link.get_series(tmdb_id, s, e)) else None, 'link'),
+            (lambda tmdb_id, s, e: [result] if (result := meridian.get_series(tmdb_id, s, e)) else None, 'meridian'),
             (lambda tmdb_id, s, e: [result] if (result := lul.get_series(tmdb_id, s, e)) else None, 'lul'),
             (lambda tmdb_id, s, e: [result] if (result := subtitulado.get_series(tmdb_id, s, e)) else None, 'subtitulado'),
             (lambda tmdb_id, s, e: [result] if (result := cinejoy_scraper.get_series(tmdb_id, s, e)) else None, 'cinejoy'),

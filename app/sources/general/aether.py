@@ -32,7 +32,7 @@ class Subtitulado(Scraper):
 
 class Lul(Scraper):
     def __init__(self, source: str = "lul") -> None:
-        super().__init__(base_url = "https://lul.aether.cx", source=source)
+        super().__init__(base_url = "https://tiki.raccoonunbutteredbagel.zip", source=source)
         
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
         url = f"{self.base_url}/movie/{tmdb_id}"
@@ -65,18 +65,42 @@ class Link(Scraper):
         self.logger.info(f"GET stream: {url}")
         response = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
         if response.status_code in [200]: return self.build_response(response.json().get('stream'), headers=self.headers_2)
+
+
+class Meridian(Scraper):
+    def __init__(self, source: str = "meridian") -> None:
+        super().__init__(base_url = "https://meridian.raccoonunbutteredbagel.zip", source=source)
         
-    
+    def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+        url = f"{self.base_url}/movie/{tmdb_id}"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers={"Origiin": "https://aether.ist", "Referer": "https://aether.ist/"}, timeout=GENERIC_REQUEST_TIMEOUT)
+        if response.status_code in [200]: return self.build_response(response.json().get('url'), headers={"Origin": "https://cdn.kaxate.fun","Referer": "https://cdn.kaxate.fun/"})
+
+    def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+        url = f"{self.base_url}/show/{tmdb_id}/{season}/{episode}"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers={"Origiin": "https://aether.ist", "Referer": "https://aether.ist/"}, timeout=GENERIC_REQUEST_TIMEOUT)
+        print(response.status_code, response.text)
+        if response.status_code in [200]: return self.build_response(response.json().get('url'), headers={"Origin": "https://cdn.kaxate.fun","Referer": "https://cdn.kaxate.fun/"})
+
+
 
 if __name__ == "__main__":
     scraper = Subtitulado()
-    res = scraper.get_movie("634649")
-    print(f"Response: {res}")
+    # res = scraper.get_movie("634649")
+    # print(f"Response: {res}")
 
-    scraper = Lul()
-    res = scraper.get_movie("652")
-    print(f"Response: {res}")
+    # scraper = Lul()
+    # res = scraper.get_movie("652")
+    # print(f"Response: {res}")
 
     scraper = Link()
     res = scraper.get_series("3308", "2", "21")
+    print(f"Response: {res}")
+
+    scraper = Meridian()
+    res = scraper.get_series("2691", "4", "1")
+    print(f"Response: {res}")
+    res = scraper.get_movie("652")
     print(f"Response: {res}")
