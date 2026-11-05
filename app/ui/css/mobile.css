@@ -775,6 +775,10 @@
     overflow: hidden;
   }
 
+  #settings .settings-sidebar-frame .settings-scroll-indicator {
+    display: none;
+  }
+
   #settings .settings-sidebar {
     flex-direction: row;
     align-items: center;
@@ -782,15 +786,33 @@
     height: 44px;
     overflow-x: auto;
     overflow-y: hidden;
+    scroll-padding-inline: 2px;
+    scroll-snap-type: x proximity;
   }
 
   #settings .settings-nav-item {
     flex: 0 0 auto;
     width: auto;
+    max-width: calc(100vw - 56px);
     min-height: 36px;
     padding: 0 10px;
     border-radius: 10px;
+    gap: 8px;
     font-size: 12px;
+    scroll-snap-align: start;
+  }
+
+  #settings .settings-nav-chevron {
+    display: none;
+  }
+
+  #settings .settings-nav-leading,
+  #settings .settings-nav-label-wrap {
+    min-width: 0;
+  }
+
+  #settings .settings-nav-label-wrap {
+    overflow: hidden;
   }
 
   #settings .settings-nav-label {
@@ -818,6 +840,16 @@
     height: 100%;
   }
 
+  #settings .settings-content-frame .settings-scroll-indicator {
+    width: 32px;
+    height: 32px;
+  }
+
+  #settings .settings-content-frame .settings-scroll-indicator svg {
+    width: 24px;
+    height: 24px;
+  }
+
   #settings .settings-content {
     padding: 0 2px 20px;
   }
@@ -836,10 +868,176 @@
     line-height: 1.35;
   }
 
+  #settings .settings-dialog-backdrop {
+    padding: 16px;
+  }
+
+  #settings .settings-dialog:not(.settings-debrid-auth-dialog) {
+    width: calc(100vw - 32px);
+    max-width: 420px;
+    max-height: calc(100dvh - 32px);
+    padding: 16px;
+    border-radius: 16px;
+    gap: 12px;
+    overflow: hidden;
+  }
+
+  #settings .settings-dialog-title {
+    font-size: 18px;
+    line-height: 1.25;
+  }
+
+  #settings .settings-dialog-list {
+    min-height: 0;
+    max-height: calc(100dvh - 160px);
+    gap: 8px;
+    padding: 6px 8px;
+    margin: 0 -8px;
+  }
+
+  #settings .settings-dialog-option {
+    min-height: 44px;
+    padding: 8px 12px;
+    border-radius: 10px;
+  }
+
+  #settings .settings-dialog-option-label {
+    font-size: 14px;
+    line-height: 1.3;
+  }
+
+  #settings .settings-dialog-option.focused {
+    transform: scale(1.02);
+  }
+
+  #settings .settings-group-card {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  #settings .settings-stack {
+    gap: 12px;
+  }
+
+  #settings .settings-group-title {
+    font-size: 17px;
+    line-height: 1.25;
+  }
+
+  #settings .settings-group-subtitle {
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  #settings .settings-theme-grid-card {
+    min-height: 0;
+  }
+
+  #settings .settings-theme-grid-card .settings-group-heading,
+  #settings .settings-theme-grid-card .settings-horizontal-scroll-frame {
+    min-height: 0;
+  }
+
+  #settings .settings-theme-row {
+    min-height: 0;
+    gap: 10px;
+    padding: 6px;
+  }
+
+  #settings .settings-theme-card {
+    flex-basis: 96px;
+    width: 96px;
+    height: 88px;
+    min-height: 88px;
+    padding: 8px;
+    border-radius: 10px;
+    gap: 6px;
+  }
+
+  #settings .settings-theme-swatch-wrap {
+    min-height: 36px;
+  }
+
+  #settings .settings-theme-swatch {
+    width: 36px;
+    height: 36px;
+  }
+
+  #settings .settings-theme-check {
+    width: 18px;
+    height: 18px;
+  }
+
+  #settings .settings-theme-name {
+    font-size: 11px;
+    line-height: 1.15;
+  }
+
+  #settings .settings-action-row,
+  #settings .settings-collapsible-trigger,
+  #settings .settings-subsection-card .settings-action-row {
+    min-height: 44px;
+    padding: 7px 9px;
+    border-radius: 10px;
+    gap: 4px;
+  }
+
+  #settings .settings-subsection-card {
+    border-radius: 12px;
+  }
+
+  #settings .settings-row-title {
+    font-size: 12px;
+    line-height: 1.15;
+  }
+
+  #settings .settings-row-subtitle,
+  #settings .settings-row-value {
+    font-size: 10px;
+    line-height: 1.15;
+  }
+
+  #settings .settings-row-subtitle {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  #settings .settings-row-leading-icon {
+    width: 24px;
+    height: 24px;
+    font-size: 20px;
+  }
+
+  #settings .settings-row-tail {
+    gap: 4px;
+  }
+
+  #settings .settings-row-tail .material-icons {
+    font-size: 18px;
+  }
+
+  #settings .settings-row-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  #settings .settings-toggle-pill {
+    width: 52px;
+    height: 28px;
+    padding: 4px;
+  }
+
+  #settings .settings-toggle-thumb {
+    width: 20px;
+    height: 20px;
+  }
+
   #settings .settings-layout-grid {
     grid-template-columns: none;
     grid-auto-flow: column;
-    grid-auto-columns: 210px;
+    grid-auto-columns: 112px;
     gap: 12px;
     overflow-x: auto;
     overscroll-behavior-x: contain;
@@ -848,56 +1046,51 @@
 
   #settings .settings-layout-card {
     min-height: 0;
-    padding: 12px;
-    border-radius: 20px;
-    gap: 8px;
+    width: 100%;
+    padding: 10px;
+    border-radius: 12px;
+    gap: 6px;
     scroll-snap-align: start;
   }
 
   #settings .settings-layout-preview,
   #settings .settings-layout-preview-placeholder {
-    height: 132px;
-    border-radius: 14px;
+    height: 68px;
+    border-radius: 8px;
   }
 
   #settings .settings-layout-preview-placeholder {
-    padding: 10px;
-    gap: 8px;
+    padding: 8px;
+    gap: 6px;
   }
 
   #settings .settings-layout-name {
-    font-size: 18px;
+    font-size: 12px;
     line-height: 1.25;
   }
 
-  #settings .settings-action-row,
-  #settings .settings-collapsible-trigger,
-  #settings .settings-subsection-card .settings-action-row {
-    min-height: 0;
-    height: auto;
-    padding: 12px;
-    border-radius: 14px;
+  #settings .settings-plugin-builder-row {
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
   }
 
-  #settings .settings-row-title {
-    font-size: 14px;
-    line-height: 1.3;
-  }
-
-  #settings .settings-row-subtitle,
-  #settings .settings-row-value {
+  #settings .settings-plugin-input,
+  #settings .settings-plugin-add {
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 10px;
+    border-radius: 10px;
     font-size: 12px;
-    line-height: 1.35;
   }
 
   #settings .settings-action-row .material-icons,
   #settings .settings-collapsible-trigger .material-icons {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   #settings .settings-account-card {
     padding: 14px;
+    border-radius: 12px;
   }
 
   #settings .settings-account-status-card {

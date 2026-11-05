@@ -71,6 +71,7 @@ body {
   box-sizing: border-box;
   min-width: 0;
   min-height: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 #app {
@@ -112,6 +113,16 @@ body {
 .card.focused {
   transform: scale(1.1);
   box-shadow: 0 0 0 2px rgba(245, 249, 255, 0.9);
+}
+
+html.pointer-focus-pending .focused {
+  background-color: transparent !important;
+  color: inherit !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+  filter: none !important;
 }
 
 @media screen and (hover: hover) and (pointer: fine) {

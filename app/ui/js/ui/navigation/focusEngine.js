@@ -68,6 +68,7 @@ export const FocusEngine = {
     this.boundHandleKey = this.handleKey.bind(this);
     this.boundHandleKeyUp = this.handleKeyUp.bind(this);
     this.boundHandlePointerMove = this.handlePointerMove.bind(this);
+    this.boundHandlePointerOut = this.handlePointerOut.bind(this);
     this.boundHandlePointerClick = this.handlePointerClick.bind(this);
     this.boundHandlePointerContextMenu = this.handlePointerContextMenu.bind(this);
     document.addEventListener("keydown", this.boundHandleKey, true);
@@ -75,6 +76,10 @@ export const FocusEngine = {
     if (this.supportsPointerHover()) {
       document.addEventListener("mousemove", this.boundHandlePointerMove, true);
       document.addEventListener("pointermove", this.boundHandlePointerMove, true);
+      document.addEventListener("pointerout", this.boundHandlePointerOut, true);
+    }
+    if (Platform.isBrowser() && this.supportsPointerHover()) {
+      document.documentElement?.classList?.add("pointer-focus-pending");
     }
     if (Platform.isWebOS() || Platform.isBrowser()) {
       document.addEventListener("click", this.boundHandlePointerClick, true);
@@ -131,6 +136,8 @@ export const FocusEngine = {
       return;
     }
 
+    document.documentElement?.classList?.remove("pointer-focus-pending");
+    this.lastPointerFocusTarget = null;
     if (hasActiveModal()) {
       return;
     }
@@ -331,6 +338,10 @@ export const FocusEngine = {
     const currentScreen = Router.getCurrentScreen();
     currentScreen?.onPointerMove?.(event);
     const target = this.getPointerFocusable(event);
+    if (document.documentElement?.classList?.contains("pointer-focus-pending")) {
+      document.documentElement.classList.remove("pointer-focus-pending");
+      this.clearVisibleDefaultFocus();
+    }
     const activeElement = document.activeElement;
     // Hover must not end an editing session while the Magic Remote travels
     // toward the system keyboard. Explicit clicks and D-pad navigation still
@@ -347,18 +358,7 @@ export const FocusEngine = {
       return;
     }
     if (!target) {
-      const previousTarget = this.lastPointerFocusTarget;
-      if (
-        previousTarget?.matches?.(
-          "#playerControlsOverlay .player-control-btn, #playerControlsOverlay .player-progress-shell"
-        )
-      ) {
-        previousTarget.classList.remove("focused");
-        if (document.activeElement === previousTarget) {
-          previousTarget.blur();
-        }
-      }
-      this.lastPointerFocusTarget = null;
+      this.clearPointerFocusTarget();
       return;
     }
     if (target === this.lastPointerFocusTarget) {
@@ -370,7 +370,48 @@ export const FocusEngine = {
     this.focusPointerTarget(target, event);
   },
 
+  clearVisibleDefaultFocus() {
+    document.querySelectorAll(".focused").forEach((node) => {
+      const rect = node.getBoundingClientRect?.();
+      if (!rect || rect.width <= 0 || rect.height <= 0) {
+        return;
+      }
+      node.classList.remove("focused");
+      if (document.activeElement === node) {
+        node.blur?.();
+      }
+    });
+    this.lastPointerFocusTarget = null;
+  },
+
+  clearPointerFocusTarget() {
+    const previousTarget = this.lastPointerFocusTarget;
+    this.lastPointerFocusTarget = null;
+    if (!previousTarget) {
+      return;
+    }
+    previousTarget.classList.remove("focused");
+    if (document.activeElement === previousTarget) {
+      previousTarget.blur();
+    }
+  },
+
+  handlePointerOut(event) {
+    if (
+      !this.supportsPointerHover() ||
+      event?.pointerType === "touch" ||
+      event?.relatedTarget !== null
+    ) {
+      return;
+    }
+    this.clearPointerFocusTarget();
+  },
+
   handlePointerClick(event) {
+    if (document.documentElement?.classList?.contains("pointer-focus-pending")) {
+      document.documentElement.classList.remove("pointer-focus-pending");
+      this.clearVisibleDefaultFocus();
+    }
     const isWebOS = Platform.isWebOS();
     const browserPointerTarget = Platform.isBrowser()
       ? event?.target?.closest?.(
