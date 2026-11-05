@@ -1,7 +1,7 @@
 {
   "id": "/nuvioweb/",
-  "name": "Nuvio TV",
-  "short_name": "Nuvio TV",
+  "name": "Nuvio",
+  "short_name": "Nuvio",
   "description": "Bring your sources together in one TV library.",
   "start_url": "/nuvioweb/",
   "scope": "/nuvioweb/",
