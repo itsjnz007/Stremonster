@@ -1003,32 +1003,49 @@
     padding-bottom: 72px;
   }
 
+  #detail .series-detail-backdrop {
+    background-position: center center;
+  }
+
+  #detail .series-detail-vignette {
+    background:
+      linear-gradient(180deg, rgb(0 0 0 / 0.42) 0%, rgb(0 0 0 / 0.76) 38%, rgb(0 0 0 / 0.92) 100%),
+      linear-gradient(90deg, rgb(0 0 0 / 0.28), transparent 55%);
+  }
+
   #detail .detail-hero-section {
-    min-height: 92vh;
-    min-height: 92dvh;
+    min-height: 0;
     height: auto;
-    padding: 0 16px 18px;
+    justify-content: flex-start;
+    padding: max(24px, env(safe-area-inset-top)) 16px 16px;
   }
 
   #detail .detail-hero-brand {
-    min-height: 100px;
+    min-height: 0;
+    align-items: center;
   }
 
   #detail .series-detail-logo {
-    width: min(76vw, 280px);
-    height: auto;
-    max-height: 96px;
+    width: min(56vw, 200px);
+    height: 80px;
+    max-width: 100%;
+    max-height: 80px;
+    object-position: center;
     padding: 0;
-    margin-bottom: 12px;
+    margin: 0 0 16px;
   }
 
   #detail .series-detail-title {
-    margin-bottom: 8px;
-    font-size: clamp(26px, 8vw, 36px);
+    max-height: none;
+    margin: 0 0 16px;
+    font-size: clamp(22px, 7vw, 30px);
+    line-height: 1.2;
+    text-align: center;
   }
 
   #detail .detail-hero-body {
-    max-height: 60vh;
+    max-height: none;
+    overflow: visible;
   }
 
   #detail .detail-hero-description {
@@ -1038,28 +1055,170 @@
 
   #detail .series-detail-actions {
     flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 12px;
+    justify-content: center;
+    gap: 6px;
+    margin: 0 0 12px;
+  }
+
+  #detail .series-primary-btn,
+  #detail .series-secondary-btn {
+    height: 44px;
+    min-height: 44px;
+    padding: 8px;
+    border-radius: 24px;
+    font-size: 12px;
+    line-height: 1.2;
+    white-space: normal;
   }
 
   #detail .series-primary-btn {
-    height: 48px;
-    min-height: 46px;
-    padding: 10px 14px;
-    border-radius: 24px;
-    font-size: 14px;
-    line-height: 1.2;
+    gap: 8px;
+  }
+
+  #detail .series-btn-svg,
+  #detail .series-primary-btn .series-btn-svg {
+    width: 18px;
+    height: 18px;
   }
 
   #detail .series-circle-btn {
-    font-size: 22px;
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    font-size: 20px;
   }
 
   #detail .detail-hero-body,
+  #detail .series-detail-support,
+  #detail .series-detail-description,
   #detail .detail-meta-row,
   #detail .detail-hero-meta {
     font-size: 14px;
+    line-height: 1.45;
+  }
+
+  #detail .series-detail-support {
+    margin: 0 0 10px;
+    text-align: center;
+  }
+
+  #detail .detail-resume-indicator {
+    justify-content: center;
+    gap: 6px;
+    min-height: 0;
+    margin: 0 0 12px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  #detail .series-detail-description {
+    max-width: none;
+    margin: 0 0 12px;
+    font-size: 14px;
+    line-height: 1.45;
+    letter-spacing: 0;
+    text-align: center;
+  }
+
+  #detail .detail-meta-stack {
+    gap: 8px;
+    align-items: center;
+  }
+
+  #detail .detail-meta-row {
+    justify-content: center;
+    gap: 8px;
+    font-size: 12px;
     line-height: 1.4;
+    letter-spacing: 0;
+  }
+
+  #detail .detail-meta-row.secondary {
+    font-size: 10px;
+  }
+
+  #detail .detail-meta-row .series-imdb-badge img {
+    width: 22px;
+    height: 22px;
+  }
+
+  #detail .series-season-row {
+    gap: 8px;
+    padding: 12px 16px;
+  }
+
+  #detail .series-season-btn {
+    min-height: 40px;
+    height: 40px;
+    padding: 0 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    line-height: 1;
+  }
+
+  #detail .series-episode-track {
+    gap: 12px;
+    padding: 12px 16px 16px;
+  }
+
+  #detail .series-episode-card {
+    flex: 0 0 min(82vw, 320px);
+    width: min(82vw, 320px);
+    border-radius: 14px;
+  }
+
+  #detail .series-episode-thumb {
+    height: min(48vw, 180px);
+    border-radius: 14px;
+  }
+
+  #detail .series-episode-copy {
+    gap: 6px;
+    padding: 14px;
+  }
+
+  #detail .series-episode-badge {
+    padding: 4px 8px;
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  #detail .series-episode-title {
+    min-height: 0;
+    font-size: 17px;
+    line-height: 1.25;
+  }
+
+  #detail .series-episode-overview {
+    max-height: 54px;
+    font-size: 12px;
+    line-height: 1.35;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+
+  #detail .series-episode-meta {
+    min-height: 0;
+    font-size: 11px;
+  }
+
+  #detail .series-insight-tabs {
+    gap: 0;
+    padding: 14px 16px 0;
+  }
+
+  #detail .series-insight-tab,
+  #detail .series-insight-divider {
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  #detail .series-insight-tab {
+    padding: 4px 2px;
+  }
+
+  #detail .series-insight-divider {
+    margin: 0 6px;
   }
 
   #stream .stream-route-content {
@@ -1084,6 +1243,13 @@
     text-align: left;
   }
 
+  #stream .stream-route-title {
+    min-width: 0;
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.25;
+  }
+
   #stream .stream-route-logo {
     flex: 0 0 min(34vw, 128px);
     width: min(34vw, 128px);
@@ -1091,12 +1257,20 @@
     margin: 0;
   }
 
-  #stream .stream-route-detail-line.is-info {
+  #stream .stream-route-episode-code,
+  #stream .stream-route-subtitle,
+  #stream .stream-route-detail-line {
     min-width: 0;
     margin: 0;
     font-size: 14px;
-    line-height: 1.4;
+    line-height: 1.35;
     letter-spacing: 0;
+    overflow-wrap: anywhere;
+  }
+
+  #stream .stream-route-detail-line.is-info {
+    font-size: 12px;
+    line-height: 1.35;
   }
 
   #stream .stream-route-right {
@@ -1111,6 +1285,16 @@
 
   #stream .stream-route-panel-header {
     padding: 6px 8px 0;
+  }
+
+  #stream .stream-route-resume-label {
+    height: 40px;
+    flex: 0 0 40px;
+    margin: 0 0 8px 4px;
+    padding: 0 12px;
+    font-size: 14px;
+    line-height: 1.2;
+    letter-spacing: 0;
   }
 
   #stream .stream-route-chip-wrap {
@@ -1172,7 +1356,16 @@
   }
 
   #stream .stream-route-card-side {
+    max-width: 42%;
     gap: 4px;
+  }
+
+  #stream .stream-route-addon-name {
+    max-width: 100%;
+    font-size: 12px;
+    line-height: 1.25;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
   }
 
   #stream .stream-route-addon-badge {
@@ -1614,5 +1807,205 @@
 
   .qr-card {
     height: auto;
+  }
+}
+
+@media screen and (hover: hover) and (pointer: fine) {
+  .player-controls-top .player-clock {
+    font-size: 24px;
+  }
+
+  .player-controls-top .player-ends-at {
+    font-size: 18px;
+  }
+}
+
+@media screen and (max-width: 950px) {
+  .player-controls-top .player-clock {
+    font-size: clamp(18px, 5vw, 24px);
+  }
+
+  .player-controls-top .player-ends-at {
+    font-size: clamp(13px, 3.8vw, 18px);
+  }
+}
+
+@media screen and (min-height: 501px) and (orientation: landscape) and (hover: hover) and (pointer: fine) {
+  #playerUiRoot {
+    --player-controls-x: 32px;
+    --player-controls-y: 32px;
+    --player-control-size: 64px;
+    --player-control-icon: 32px;
+    --player-action-controls-open-bottom: 300px;
+    --player-overlay-title-font: 48px;
+    --player-overlay-body-font: 24px;
+    --player-overlay-label-font: 22px;
+    --player-overlay-small-font: 18px;
+    --player-overlay-step-width: 80px;
+    --player-overlay-step-height: 56px;
+    --player-overlay-step-font: 32px;
+  }
+
+  .player-controls-gradient-top {
+    height: 200px;
+  }
+
+  .player-controls-gradient-bottom {
+    height: 267px;
+  }
+
+  .player-controls-top .player-clock {
+    font-size: 32px;
+  }
+
+  .player-controls-top .player-ends-at {
+    font-size: 24px;
+  }
+
+  .player-title {
+    font-size: 44px;
+  }
+
+  .player-subtitle {
+    font-size: 32px;
+  }
+
+  .player-meta-secondary {
+    font-size: 28px;
+  }
+
+  .player-meta-tertiary,
+  .player-time-label {
+    font-size: 20px;
+  }
+
+  .player-progress-track {
+    height: 8px;
+    border-radius: 4px;
+  }
+
+  .player-progress-shell {
+    margin-top: 24px;
+  }
+
+  .player-progress-shell.focused .player-progress-track {
+    height: 13px;
+  }
+
+  .player-controls-row {
+    margin-top: 32px;
+  }
+
+  .player-control-buttons,
+  .player-controls-row .player-control-buttons {
+    gap: 8px;
+  }
+
+  .player-pause-overlay-top {
+    top: 27px;
+    right: 32px;
+  }
+
+  .player-pause-overlay-clock {
+    font-size: 48px;
+    line-height: 48px;
+  }
+
+  .player-pause-overlay-content {
+    left: 32px;
+    right: 32px;
+    bottom: 64px;
+  }
+
+  .player-pause-kicker {
+    font-size: 24px;
+    line-height: 32px;
+  }
+
+  .player-pause-logo {
+    height: 120px;
+    margin-top: 16px;
+  }
+
+  .player-pause-title {
+    margin-top: 16px;
+    font-size: 48px;
+    line-height: 1.15;
+  }
+
+  .player-pause-meta-line {
+    margin-top: 10px;
+    font-size: 24px;
+    line-height: 1.35;
+  }
+
+  .player-pause-episode-title {
+    margin-top: 16px;
+    font-size: 32px;
+    line-height: 1.3;
+  }
+
+  .player-pause-description {
+    margin-top: 18px;
+    font-size: 24px;
+    line-height: 1.45;
+  }
+
+  .player-pause-cast-section {
+    margin-top: 24px;
+  }
+
+  .player-pause-cast-label {
+    font-size: 21px;
+    line-height: 1.4;
+  }
+
+  .player-pause-cast-row {
+    margin-top: 16px;
+    gap: 13px;
+  }
+
+  .player-pause-cast-chip {
+    padding: 13px 19px;
+    border-radius: 19px;
+    font-size: 20px;
+    line-height: 1.4;
+  }
+
+  .player-pause-overlay.is-still-watching .player-pause-overlay-content {
+    right: 32px;
+    bottom: 32px;
+    width: 640px;
+    max-width: calc(100vw - 64px);
+  }
+
+  .player-still-watching-content {
+    gap: 16px;
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .player-still-watching-thumb {
+    width: 160px;
+    min-width: 160px;
+    height: 90px;
+    border-radius: 14px;
+  }
+
+  .player-still-watching-kicker {
+    font-size: 18px;
+  }
+
+  .player-still-watching-title {
+    font-size: 24px;
+  }
+
+  .player-still-watching-status {
+    font-size: 16px;
+  }
+
+  .player-still-watching-btn {
+    min-height: 48px;
+    font-size: 17px;
   }
 }

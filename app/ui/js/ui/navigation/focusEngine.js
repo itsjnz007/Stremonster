@@ -347,6 +347,17 @@ export const FocusEngine = {
       return;
     }
     if (!target) {
+      const previousTarget = this.lastPointerFocusTarget;
+      if (
+        previousTarget?.matches?.(
+          "#playerControlsOverlay .player-control-btn, #playerControlsOverlay .player-progress-shell"
+        )
+      ) {
+        previousTarget.classList.remove("focused");
+        if (document.activeElement === previousTarget) {
+          previousTarget.blur();
+        }
+      }
       this.lastPointerFocusTarget = null;
       return;
     }
@@ -363,7 +374,7 @@ export const FocusEngine = {
     const isWebOS = Platform.isWebOS();
     const browserPointerTarget = Platform.isBrowser()
       ? event?.target?.closest?.(
-          "#playerControlsOverlay .player-control-btn[data-action], #playerControlsOverlay .player-progress-shell, [data-action], [data-action-id]"
+          "#playerControlsOverlay .player-control-btn[data-action], #playerControlsOverlay .player-progress-shell, [data-player-error-action], [data-action], [data-action-id]"
         ) || null
       : null;
     if (!isWebOS && !browserPointerTarget) {
