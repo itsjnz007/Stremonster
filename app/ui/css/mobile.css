@@ -1021,6 +1021,11 @@
     padding: max(24px, env(safe-area-inset-top)) 16px 16px;
   }
 
+  #detail .movie-detail-shell .detail-hero-section {
+    min-height: 0;
+    padding-top: 35dvh;
+  }
+
   #detail .detail-hero-brand {
     min-height: 0;
     align-items: center;
