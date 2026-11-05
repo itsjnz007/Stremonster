@@ -265,6 +265,7 @@ export function createMetaDetailsScreenMethods12() {
         title: this.meta?.name || this.params?.fallbackTitle || "Untitled",
         subtitle: t("detail.playOptions", {}, "Play options"),
         widthVw: 37.5,
+        panelClassName: "detail-play-options-dialog",
         suppressEnterUntilKeyUp: true,
         buttons,
         onDismiss: () => {

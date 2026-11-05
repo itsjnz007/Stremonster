@@ -78,6 +78,7 @@ export class NuvioDialog {
     this._keyHandler = this._onKey.bind(this);
     this._keyUpHandler = this._onKeyUp.bind(this);
     this._focusInHandler = this._onFocusIn.bind(this);
+    this._pointerMoveHandler = this._onPointerMove.bind(this);
   }
 
   _scheduleFrame(callback) {
@@ -156,6 +157,7 @@ export class NuvioDialog {
     if (this.buttons.length > 0) {
       const actions = document.createElement("div");
       actions.className = `nuvio-dialog-actions${this.actionsClassName ? ` ${this.actionsClassName}` : ""}`;
+      actions.addEventListener("pointermove", this._pointerMoveHandler);
 
       this.buttons.forEach((btn, i) => {
         const el = document.createElement("button");
@@ -270,6 +272,15 @@ export class NuvioDialog {
     });
   }
 
+  _onPointerMove(event) {
+    if (event.pointerType === "touch") return;
+    const button = event.target?.closest?.(".nuvio-dialog-button");
+    const index = this._buttonEls.indexOf(button);
+    if (index >= 0 && index !== this._focusedIndex) {
+      this._focusIndex(index);
+    }
+  }
+
   _onKey(e) {
     if (this._destroyed) return;
     const key = this._eventKey(e);
@@ -350,6 +361,9 @@ export class NuvioDialog {
     window.removeEventListener("keydown", this._keyHandler, { capture: true });
     window.removeEventListener("keyup", this._keyUpHandler, { capture: true });
     this._backdrop?.removeEventListener("focusin", this._focusInHandler);
+    this._panel
+      ?.querySelector(".nuvio-dialog-actions")
+      ?.removeEventListener("pointermove", this._pointerMoveHandler);
 
     const backdrop = this._backdrop;
     const panel = this._panel;

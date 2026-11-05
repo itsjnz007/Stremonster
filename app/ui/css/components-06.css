@@ -181,6 +181,14 @@
   transform: scale(1.1);
 }
 
+@media screen and (hover: hover) and (pointer: fine) {
+  .nuvio-dialog-button:hover {
+    background: #ffffff;
+    color: #121212;
+    transform: scale(1.1);
+  }
+}
+
 /* Danger unfocused: dark red bg */
 
 .nuvio-dialog-button.nuvio-dialog-button-danger {

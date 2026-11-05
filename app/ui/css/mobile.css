@@ -1664,6 +1664,15 @@
     gap: 14px;
   }
 
+  .nuvio-dialog-backdrop {
+    padding: 16px;
+  }
+
+  .nuvio-dialog-panel.detail-play-options-dialog {
+    width: calc(100vw - 32px);
+    max-width: min(calc(100vw - 32px), 480px) !important;
+  }
+
   .nuvio-dialog-panel .nuvio-dialog-title {
     font-size: 20px;
   }
