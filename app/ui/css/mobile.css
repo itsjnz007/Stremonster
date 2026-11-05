@@ -9,8 +9,8 @@
 
   input,
   textarea,
-  [contenteditable="true"],
-  [contenteditable=""] {
+  [contenteditable]:not([contenteditable="false"]),
+  [contenteditable]:not([contenteditable="false"]) * {
     -webkit-user-select: text;
     user-select: text;
     -webkit-touch-callout: default;
