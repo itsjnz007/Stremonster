@@ -377,12 +377,7 @@ export function createMetaDetailsScreenMethods16() {
           return;
         }
         if (!this.isTrailerPlaying) {
-          if (target.matches('.series-detail-actions [data-action="playDefault"]')) {
-            this.restartTrailerAutoplayTimer();
-          } else if (this.trailerAutoplayTimer) {
-            clearTimeout(this.trailerAutoplayTimer);
-            this.trailerAutoplayTimer = null;
-          }
+          this.clearTrailerAutoplayTimer();
         }
         if (target.matches(".series-season-btn.focusable")) {
           const season = Number(target.dataset.season || 0);
@@ -456,7 +451,7 @@ export function createMetaDetailsScreenMethods16() {
       this.detailScrollHandler();
       this.restoreChromeState();
       this.syncTrailerDom();
-      this.restartTrailerAutoplayTimer();
+      this.clearTrailerAutoplayTimer();
       this.restorePendingFocus();
       this.syncEpisodeTitleMarquee();
     },

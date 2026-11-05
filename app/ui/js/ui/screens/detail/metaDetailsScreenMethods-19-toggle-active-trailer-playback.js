@@ -198,6 +198,9 @@ export function createMetaDetailsScreenMethods19() {
       }
     },
     async playTrailer({ muted = null, restart = false, initiatedByUser = true, preserveSource = false } = {}) {
+      if (!initiatedByUser) {
+        return;
+      }
       const requestedFocusRestore = initiatedByUser ? this.captureDetailFocus() : null;
       // Android TV resolves TMDB first and only then falls back to the catalog
       // trailer. Re-check here as well so a fast user action cannot use the

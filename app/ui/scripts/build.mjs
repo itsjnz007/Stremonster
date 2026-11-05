@@ -1,4 +1,5 @@
 import { cp, mkdir, readFile, rm, writeFile, readdir } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
@@ -684,6 +685,17 @@ async function runBuild() {
     // js bundle processing (final step to ensure all transformations are applied correctly and we end up with a single, minified bundle file)
     await buildBundle();
 
+    const [bundledCss, bundledJs] = await Promise.all([
+      readFile(path.join(distDir, "css", BUNDLED_CSS_FILE)),
+      readFile(path.join(distDir, "app.bundle.js"))
+    ]);
+    const buildVersion = createHash("sha256").update(bundledCss).update(bundledJs).digest("hex").slice(0, 12);
+    const serviceWorkerTemplate = await readFile(path.join(rootDir, "service-worker.js"), "utf8");
+    await writeFile(
+      path.join(distDir, "service-worker.js"),
+      serviceWorkerTemplate.replaceAll("__NUVIO_BUILD_VERSION__", buildVersion)
+    );
+
     const sourceIndex = await readFile(path.join(rootDir, "index.html"), "utf8");
     // The build ships a single concatenated stylesheet. Rewrite any legacy
     // per-file css/<name>.css references to the bundled output so dist
@@ -694,12 +706,15 @@ async function runBuild() {
       () => {
         if (!injectedBundledCss) {
           injectedBundledCss = true;
-          return `    <link rel="stylesheet" href="css/${BUNDLED_CSS_FILE}" />\n`;
+          return `    <link rel="stylesheet" href="css/${BUNDLED_CSS_FILE}?v=__NUVIO_BUILD_VERSION__" />\n`;
         }
         return "";
       }
     );
-    await writeFile(path.join(distDir, "index.html"), bundledIndex);
+    await writeFile(
+      path.join(distDir, "index.html"),
+      bundledIndex.replaceAll("__NUVIO_BUILD_VERSION__", buildVersion)
+    );
 
     console.log("configuring runtime env from local.properties...");
     const envResult = await writeRuntimeEnvScriptFile(path.join(distDir, "nuvio.env.js"), {

@@ -3,7 +3,6 @@ import * as internals from "./metaDetailsScreenContext.js";
 
 export function createMetaDetailsScreenMethods17() {
   const {
-    PlayerSettingsStore,
     getTvRuntimePerformanceProfile,
     DETAIL_SCROLL_STIFFNESS,
     DETAIL_SCROLL_DAMPING_RATIO,
@@ -125,22 +124,6 @@ export function createMetaDetailsScreenMethods17() {
     },
     isLegacyTvRuntime() {
       return Boolean(getTvRuntimePerformanceProfile().isLegacyTvRuntime);
-    },
-    shouldSuppressTrailerAutoplay() {
-      const content = this.getDetailContentScroller();
-      const focused = this.container?.querySelector(".focusable.focused") || null;
-      return Boolean(
-        this.trailerHasAutoplayed ||
-        !content ||
-        Number(content.scrollTop || 0) > 160 ||
-        !focused?.matches?.('.series-detail-actions [data-action="playDefault"]') ||
-        this.seasonHoldMenu ||
-        this.episodeHoldMenu ||
-        this.heroPlayMenu ||
-        this.libraryListMenu ||
-        this.detailHoldDialog ||
-        this.posterOptionsController?.dialog
-      );
     },
     animateScroll(container, axis, targetValue, duration = 150) {
       if (!container) {
@@ -291,28 +274,11 @@ export function createMetaDetailsScreenMethods17() {
       existing[key] = state;
       springMap.set(container, existing);
     },
-    restartTrailerAutoplayTimer() {
+    clearTrailerAutoplayTimer() {
       if (this.trailerAutoplayTimer) {
         clearTimeout(this.trailerAutoplayTimer);
         this.trailerAutoplayTimer = null;
       }
-      if (
-        !this.trailerSource ||
-        this.isTrailerPlaying ||
-        this.params?.autoOpenContinueWatching ||
-        this.pendingEpisodeSelection ||
-        this.pendingMovieSelection ||
-        this.shouldSuppressTrailerAutoplay() ||
-        !PlayerSettingsStore.get().trailerAutoplay
-      ) {
-        return;
-      }
-      this.trailerAutoplayTimer = setTimeout(
-        () => {
-          this.playTrailer({ muted: false, restart: true, initiatedByUser: false });
-        },
-        Math.min(15, Math.max(0, Number(PlayerSettingsStore.get().trailerDelaySeconds ?? 7))) * 1000
-      );
     },
     detachTrailerMediaListeners() {
       (this.trailerMediaListeners || []).forEach(({ target, eventName, handler }) => {

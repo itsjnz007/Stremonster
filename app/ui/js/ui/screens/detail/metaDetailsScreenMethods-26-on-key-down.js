@@ -108,7 +108,7 @@ export function createMetaDetailsScreenMethods26() {
           return;
         }
       } else if (!this.isTrailerPlaying) {
-        this.restartTrailerAutoplayTimer();
+        this.clearTrailerAutoplayTimer();
       }
 
       if (this.pendingEpisodeSelection || this.pendingMovieSelection) {

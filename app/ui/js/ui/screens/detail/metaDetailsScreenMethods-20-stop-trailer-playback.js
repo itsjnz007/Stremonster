@@ -99,7 +99,7 @@ export function createMetaDetailsScreenMethods20() {
         }
       }
       if (restartAutoplay) {
-        this.restartTrailerAutoplayTimer();
+        this.clearTrailerAutoplayTimer();
       }
     },
     stopTrailerPlaybackForNavigation() {

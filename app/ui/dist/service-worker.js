@@ -1,11 +1,12 @@
-const CACHE_NAME = "nuvio-tv-shell-v1";
+const BUILD_VERSION = "ddcff6a48164";
+const CACHE_NAME = `nuvio-tv-shell-${BUILD_VERSION}`;
 const APP_SHELL = [
   "./",
-  "./app.bundle.js",
+  `./app.bundle.js?v=${BUILD_VERSION}`,
   "./boot-guard.js",
   "./core-js.bundle.js",
   "./nuvio.env.js",
-  "./css/bundle.css",
+  `./css/bundle.css?v=${BUILD_VERSION}`,
   "./assets/runtime/legacy-features.js",
   "./assets/libs/qrcode-generator.js"
 ];
