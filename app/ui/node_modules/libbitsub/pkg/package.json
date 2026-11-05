@@ -1,0 +1,31 @@
+{
+  "name": "libbitsub",
+  "type": "module",
+  "collaborators": [
+    "altqx"
+  ],
+  "description": "High-performance WASM renderer for graphical subtitles (PGS, VobSub, and DVB)",
+  "version": "1.12.1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/altqx/libbitsub"
+  },
+  "files": [
+    "libbitsub_bg.wasm",
+    "libbitsub.js",
+    "libbitsub.d.ts"
+  ],
+  "main": "libbitsub.js",
+  "types": "libbitsub.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ],
+  "keywords": [
+    "pgs",
+    "vobsub",
+    "dvb",
+    "subtitle",
+    "wasm"
+  ]
+}
