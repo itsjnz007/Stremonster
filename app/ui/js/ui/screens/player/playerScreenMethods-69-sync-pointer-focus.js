@@ -18,6 +18,9 @@ export function createPlayerScreenMethods69() {
       ) {
         return;
       }
+      if (!this.stillWatchingPromptVisible && (this.pauseOverlayVisible || this.pauseOverlayTimer)) {
+        this.dismissPauseOverlay({ revealControls: false, focus: false });
+      }
       if (this.controlsVisible) {
         this.resetControlsAutoHide();
       } else {

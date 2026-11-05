@@ -63,6 +63,21 @@ export function createPlayerScreenMethods71() {
       if (this.partyPanelVisible && this.handlePartyPanelKey(event)) {
         return;
       }
+      const isSpaceKey = keyCode === 32 || event?.key === " " || event?.code === "Space";
+      if (isSpaceKey) {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+        event?.stopImmediatePropagation?.();
+        if (this.stillWatchingPromptVisible) {
+          return;
+        }
+        if (this.pauseOverlayVisible) {
+          this.dismissPauseOverlay();
+        }
+        this.togglePause();
+        this.renderControlButtons();
+        return;
+      }
       if (this.nextEpisodeBackExitArmed) {
         this.nextEpisodeBackExitArmed = false;
       }

@@ -1,15 +1,9 @@
 @keyframes modernSidebarPanelOpen {
   from {
     opacity: 0;
-    transform: translate3d(0, -8px, 0) scaleX(0.9) scaleY(0.92);
-  }
-  62% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scaleX(1.04) scaleY(1.015);
   }
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scaleX(1) scaleY(1);
   }
 }
 

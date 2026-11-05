@@ -133,9 +133,10 @@
 
 .modern-sidebar-shell.opening .modern-sidebar-panel {
   opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
   pointer-events: auto;
   transition: none;
-  animation: modernSidebarPanelOpen 375ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: modernSidebarPanelOpen 145ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 .modern-sidebar-shell.collapsing .modern-sidebar-panel {

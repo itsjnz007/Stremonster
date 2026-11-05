@@ -206,14 +206,31 @@ test("pointer movement restores hidden player controls and refreshes auto-hide",
   s.resetControlsAutoHide = () => {
     autoHideResets += 1;
   };
+  let pauseOverlayDismissals = 0;
+  s.pauseOverlayVisible = true;
+  s.pauseOverlayTimer = {};
+  s.stillWatchingPromptVisible = false;
+  s.dismissPauseOverlay = ({ revealControls, focus }) => {
+    pauseOverlayDismissals += 1;
+    assert.equal(revealControls, false);
+    assert.equal(focus, false);
+    s.pauseOverlayVisible = false;
+    s.pauseOverlayTimer = null;
+  };
 
   s.controlsVisible = false;
   s.onPointerMove({ target });
   assert.equal(s.controlsVisible, true);
   assert.deepEqual(s.lastControlsVisibilityOptions, { focus: false });
+  assert.equal(pauseOverlayDismissals, 1);
 
   s.onPointerMove({ target });
   assert.equal(autoHideResets, 1);
+
+  s.pauseOverlayVisible = true;
+  s.stillWatchingPromptVisible = true;
+  s.onPointerMove({ target });
+  assert.equal(pauseOverlayDismissals, 1, "mouse movement should not dismiss the still-watching prompt");
 
   s.controlsVisible = false;
   s.onPointerMove({ target, pointerType: "touch" });
@@ -221,6 +238,46 @@ test("pointer movement restores hidden player controls and refreshes auto-hide",
 
   s.onPointerMove({ target: {} });
   assert.equal(s.controlsVisible, false);
+});
+
+test("Space toggles playback without activating the focused player control", async () => {
+  const s = screen("movie");
+  let toggles = 0;
+  let renders = 0;
+  let prevented = false;
+  let stopped = false;
+  s.isStartupErrorVisible = () => false;
+  s.isPostPlayVisible = () => false;
+  s.resolveMediaAction = () => null;
+  s.togglePause = () => {
+    toggles += 1;
+  };
+  s.performFocusedControl = () => {
+    assert.fail("Space must not activate the focused player control");
+  };
+  s.renderControlButtons = () => {
+    renders += 1;
+  };
+
+  await s.onKeyDown({
+    key: " ",
+    code: "Space",
+    keyCode: 32,
+    preventDefault() {
+      prevented = true;
+    },
+    stopPropagation() {
+      stopped = true;
+    },
+    stopImmediatePropagation() {
+      stopped = true;
+    }
+  });
+
+  assert.equal(toggles, 1);
+  assert.equal(renders, 1);
+  assert.equal(prevented, true);
+  assert.equal(stopped, true);
 });
 
 const { createPlayerScreenMethods20 } =

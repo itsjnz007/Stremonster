@@ -165,6 +165,83 @@
   white-space: nowrap;
 }
 
+@media (max-width: 1919px), (max-height: 1079px) {
+  .player-pause-overlay-top {
+    top: min(4.17vw, 7.41vh, 80px);
+    right: min(5.83vw, 10.37vh, 112px);
+  }
+
+  .player-pause-overlay-clock {
+    font-size: min(3.54vw, 6.3vh, 68px);
+    line-height: min(3.33vw, 5.93vh, 64px);
+  }
+
+  .player-pause-overlay-content {
+    left: min(5.83vw, 10.37vh, 112px);
+    right: min(5.83vw, 10.37vh, 112px);
+    bottom: min(12.5vw, 22.22vh, 240px);
+  }
+
+  .player-pause-kicker {
+    font-size: min(1.67vw, 2.96vh, 32px);
+    line-height: min(2.5vw, 4.44vh, 48px);
+  }
+
+  .player-pause-logo {
+    margin-top: min(1.25vw, 2.22vh, 24px);
+    height: min(10vw, 17.78vh, 192px);
+  }
+
+  .player-pause-title {
+    margin-top: min(1.25vw, 2.22vh, 24px);
+    font-size: min(2.92vw, 5.19vh, 56px);
+    line-height: min(3.75vw, 6.67vh, 72px);
+  }
+
+  .player-pause-meta-line {
+    margin-top: min(0.83vw, 1.48vh, 16px);
+    font-size: min(1.67vw, 2.96vh, 32px);
+    line-height: min(2.5vw, 4.44vh, 48px);
+  }
+
+  .player-pause-episode-title {
+    margin-top: min(1.25vw, 2.22vh, 24px);
+    font-size: min(2.08vw, 3.7vh, 40px);
+    line-height: min(2.92vw, 5.19vh, 56px);
+  }
+
+  .player-pause-description {
+    margin-top: min(1.67vw, 2.96vh, 32px);
+    font-size: min(1.67vw, 2.96vh, 32px);
+    line-height: min(2.5vw, 4.44vh, 48px);
+  }
+
+  .player-pause-cast-section {
+    margin-top: min(2.08vw, 3.7vh, 40px);
+  }
+
+  .player-pause-cast-label {
+    font-size: min(1.46vw, 2.59vh, 28px);
+    line-height: min(2.08vw, 3.7vh, 40px);
+  }
+
+  .player-pause-cast-row {
+    margin-top: min(1.25vw, 2.22vh, 24px);
+    gap: min(1.46vw, 2.59vh, 28px);
+  }
+
+  .player-pause-cast-chip {
+    padding: min(1.04vw, 1.85vh, 20px) min(1.88vw, 3.33vh, 36px);
+    border-radius: min(1.25vw, 2.22vh, 24px);
+    font-size: min(1.46vw, 2.59vh, 28px);
+    line-height: min(2.08vw, 3.7vh, 40px);
+  }
+
+  .no-flex-gap .player-pause-cast-chip + .player-pause-cast-chip {
+    margin-left: min(1.46vw, 2.59vh, 28px);
+  }
+}
+
 .player-pause-overlay.is-still-watching .player-pause-overlay-content {
   left: auto;
   top: auto;

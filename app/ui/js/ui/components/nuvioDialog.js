@@ -77,6 +77,7 @@ export class NuvioDialog {
     this._enterSuppressed = this.suppressEnterUntilKeyUp;
     this._keyHandler = this._onKey.bind(this);
     this._keyUpHandler = this._onKeyUp.bind(this);
+    this._focusInHandler = this._onFocusIn.bind(this);
   }
 
   _scheduleFrame(callback) {
@@ -180,6 +181,7 @@ export class NuvioDialog {
     }
 
     backdrop.appendChild(panel);
+    backdrop.addEventListener("focusin", this._focusInHandler);
     container.appendChild(backdrop);
     document.body?.classList?.add("nuvio-modal-open");
 
@@ -256,6 +258,16 @@ export class NuvioDialog {
       el.classList.toggle("focused", idx === clamped);
     });
     this._buttonEls[clamped]?.focus({ preventScroll: true });
+  }
+
+  _onFocusIn(event) {
+    const button = event.target?.closest?.(".nuvio-dialog-button");
+    const index = this._buttonEls.indexOf(button);
+    if (index < 0) return;
+    this._focusedIndex = index;
+    this._buttonEls.forEach((el, buttonIndex) => {
+      el.classList.toggle("focused", buttonIndex === index);
+    });
   }
 
   _onKey(e) {
@@ -337,6 +349,7 @@ export class NuvioDialog {
     document.removeEventListener("nuvio:ambient-shown", this._ambientHandler);
     window.removeEventListener("keydown", this._keyHandler, { capture: true });
     window.removeEventListener("keyup", this._keyUpHandler, { capture: true });
+    this._backdrop?.removeEventListener("focusin", this._focusInHandler);
 
     const backdrop = this._backdrop;
     const panel = this._panel;

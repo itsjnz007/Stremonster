@@ -279,11 +279,12 @@ export const FocusEngine = {
       currentScreen?.container instanceof HTMLElement
         ? currentScreen.container
         : target.closest(".screen");
-    if (screenContainer && !screenContainer.contains(target)) {
+    const modalRoot = target.closest?.(".nuvio-dialog-backdrop") || null;
+    if (screenContainer && !screenContainer.contains(target) && !modalRoot) {
       return false;
     }
 
-    const focusRoot = screenContainer || document;
+    const focusRoot = modalRoot || screenContainer || document;
     focusRoot.querySelectorAll?.(".focused")?.forEach((node) => {
       if (node !== target) {
         node.classList.remove("focused");
