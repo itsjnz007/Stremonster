@@ -27,6 +27,7 @@ export function createHomeScreenMethods07() {
         title: item.title || "Untitled",
         subtitle: t("cw_dialog_subtitle", {}, "Choose what you want to do with this item."),
         widthVw: 37.5,
+        panelClassName: "home-continue-watching-dialog",
         suppressEnterUntilKeyUp: true,
         buttons: options.map((option, index) => ({
           label: option.label,
@@ -57,6 +58,7 @@ export function createHomeScreenMethods07() {
         title: item.name || "Untitled",
         subtitle: t("home_poster_dialog_subtitle", {}, "Title actions"),
         widthVw: 37.5,
+        panelClassName: "home-poster-hold-dialog",
         suppressEnterUntilKeyUp: true,
         buttons: options.map((option, index) => ({
           label: option.label,
@@ -107,6 +109,7 @@ export function createHomeScreenMethods07() {
         subtitle: t("detail_lists_subtitle", {}, "Choose which lists should include this title"),
         error: this.posterListPicker.error || null,
         widthVw: 52,
+        panelClassName: "poster-list-picker-dialog-panel home-poster-list-picker-dialog",
         buttons: this.getPosterListPickerOptions().map((option) => ({
           label: option.label,
           key: option.action,
@@ -116,7 +119,6 @@ export function createHomeScreenMethods07() {
             void this.activatePosterListPickerOption(option.action);
           }
         })),
-        panelClassName: "poster-list-picker-dialog-panel",
         actionsClassName: "poster-list-picker-actions",
         onDismiss: () => {
           this._homeHoldDialog = null;

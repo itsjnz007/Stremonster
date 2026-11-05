@@ -1098,6 +1098,18 @@
     border-radius: 12px;
   }
 
+  #settings .settings-account-signout-button {
+    min-height: 44px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  #settings .settings-account-signout-icon {
+    font-size: 18px;
+  }
+
   #settings .settings-account-status-card {
     display: grid;
     grid-template-columns: 24px minmax(0, 1fr);
@@ -1867,6 +1879,13 @@
   }
 
   .nuvio-dialog-panel.detail-play-options-dialog {
+    width: calc(100vw - 32px);
+    max-width: min(calc(100vw - 32px), 480px) !important;
+  }
+
+  .nuvio-dialog-panel.home-poster-hold-dialog,
+  .nuvio-dialog-panel.home-continue-watching-dialog,
+  .nuvio-dialog-panel.home-poster-list-picker-dialog {
     width: calc(100vw - 32px);
     max-width: min(calc(100vw - 32px), 480px) !important;
   }
