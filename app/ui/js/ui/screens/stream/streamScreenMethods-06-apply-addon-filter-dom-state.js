@@ -151,6 +151,7 @@ export function createStreamScreenMethods06() {
     },
     isCardActionFocused(rowIndex, action) {
       return (
+        this.streamUserMovedFocus &&
         this.focusState?.zone === "card" &&
         Number(this.focusState?.row || 0) === Number(rowIndex) &&
         String(this.focusState?.action || "play") === String(action || "play")
