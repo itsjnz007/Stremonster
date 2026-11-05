@@ -192,6 +192,10 @@ export function createStreamScreenMethods10() {
         return;
       }
 
+      if (Number(event?.keyCode || 0) === 13) {
+        this.streamUserMovedFocus = true;
+      }
+
       const direction = getDpadDirection(event);
       if (direction && event?.repeat) {
         const now = Date.now();
@@ -307,7 +311,7 @@ export function createStreamScreenMethods10() {
       }
 
       let current = this.container.querySelector(".focusable.focused");
-      if (!current && this.streamVirtualized && this.focusState?.zone === "card") {
+      if (!current) {
         this.applyFocus();
         current = this.container.querySelector(".focusable.focused");
       }

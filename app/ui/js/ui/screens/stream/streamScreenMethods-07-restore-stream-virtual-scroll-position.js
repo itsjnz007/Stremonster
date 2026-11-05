@@ -135,13 +135,15 @@ export function createStreamScreenMethods07() {
         const target = this.resolveCardActionForRow(rows[rowIndex], preferredAction);
         const resolvedAction = target?.dataset?.cardAction || "play";
         this.focusState = { zone: "card", row: rowIndex, action: resolvedAction };
-        if (target) {
+        if (target && this.streamUserMovedFocus) {
           this.focusElement(target);
         }
         return;
       }
       this.focusState = { zone: "filter", index: clamp(index, 0, Math.max(0, chips.length - 1)) };
-      this.focusList(chips, this.focusState.index);
+      if (this.streamUserMovedFocus) {
+        this.focusList(chips, this.focusState.index);
+      }
     },
     restoreScrollPosition() {
       const list = this.container?.querySelector(".stream-route-list");
