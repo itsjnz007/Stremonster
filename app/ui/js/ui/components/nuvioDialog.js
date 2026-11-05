@@ -1,3 +1,5 @@
+import { Platform } from "../../platform/index.js";
+
 /**
  * NuvioDialog — reusable dialog component matching ATV NuvioDialog.kt
  *
@@ -69,7 +71,7 @@ export class NuvioDialog {
     this.onVerticalNavigate = onVerticalNavigate;
     this.suppressEnterUntilKeyUp = Boolean(suppressEnterUntilKeyUp);
 
-    this._focusedIndex = 0;
+    this._focusedIndex = Platform.isBrowser() ? -1 : 0;
     this._destroyed = false;
     this._backdrop = null;
     this._panel = null;
@@ -199,8 +201,10 @@ export class NuvioDialog {
     window.addEventListener("keydown", this._keyHandler, { capture: true });
     window.addEventListener("keyup", this._keyUpHandler, { capture: true });
 
-    // Focus first button after 2 frames (matches ATV LaunchedEffect repeat(2) { withFrameNanos })
-    this._scheduleFrame(() => this._scheduleFrame(() => this._focusIndex(0)));
+    if (!Platform.isBrowser()) {
+      // Focus first button after 2 frames (matches ATV LaunchedEffect repeat(2) { withFrameNanos })
+      this._scheduleFrame(() => this._scheduleFrame(() => this._focusIndex(0)));
+    }
 
     // Trigger enter animation
     this._scheduleFrame(() => {
@@ -304,7 +308,7 @@ export class NuvioDialog {
       }
       e.preventDefault();
       e.stopPropagation();
-      this._focusIndex(this._focusedIndex + 1);
+      this._focusIndex(this._focusedIndex < 0 ? 0 : this._focusedIndex + 1);
       return;
     }
 
@@ -320,7 +324,7 @@ export class NuvioDialog {
       }
       e.preventDefault();
       e.stopPropagation();
-      this._focusIndex(this._focusedIndex - 1);
+      this._focusIndex(this._focusedIndex < 0 ? this._buttonEls.length - 1 : this._focusedIndex - 1);
       return;
     }
 
@@ -330,7 +334,7 @@ export class NuvioDialog {
       if (this._enterSuppressed) {
         return;
       }
-      const btn = this.buttons[this._focusedIndex];
+      const btn = this.buttons[this._focusedIndex < 0 ? 0 : this._focusedIndex];
       if (btn?.onAction) btn.onAction();
       return;
     }

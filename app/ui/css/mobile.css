@@ -1310,7 +1310,7 @@
   #detail .series-secondary-btn {
     height: 44px;
     min-height: 44px;
-    padding: 8px;
+    padding: 8px 16px;
     border-radius: 24px;
     font-size: 12px;
     line-height: 1.2;
@@ -2166,6 +2166,16 @@
   #detail .series-detail-content,
   #detail .detail-hero-section {
     height: 100%;
+  }
+
+  #detail .series-detail-actions .series-primary-btn,
+  #detail .series-detail-actions .series-secondary-btn {
+    padding-right: 64px;
+    padding-left: 64px;
+  }
+
+  #detail .series-detail-actions .series-secondary-btn {
+    font-size: 28px;
   }
 
   .qr-card {
