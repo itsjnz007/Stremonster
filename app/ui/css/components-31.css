@@ -31,9 +31,14 @@
 }
 
 @media screen and (min-width: 951px) and (hover: hover) and (pointer: fine) {
+  .player-controls-overlay .player-controls-top {
+    align-items: center;
+  }
+
   .global-back-button,
-  .player-fullscreen-toggle,
-  .player-close-toggle {
+  .player-controls-top .player-fullscreen-toggle,
+  .player-controls-top .player-close-toggle,
+  .player-external-frame-shell .player-close-toggle {
     top: 20px;
     right: 20px;
     min-width: 56px;
@@ -42,8 +47,9 @@
   }
 
   .global-back-button .material-icons,
-  .player-fullscreen-toggle .material-icons,
-  .player-close-toggle .material-icons {
+  .player-controls-top .player-fullscreen-toggle .material-icons,
+  .player-controls-top .player-close-toggle .material-icons,
+  .player-external-frame-shell .player-close-toggle .material-icons {
     font-size: 28px;
   }
 }
