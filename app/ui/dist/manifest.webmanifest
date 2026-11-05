@@ -1,0 +1,27 @@
+{
+  "id": "/nuvioweb/",
+  "name": "Nuvio TV",
+  "short_name": "Nuvio TV",
+  "description": "Bring your sources together in one TV library.",
+  "start_url": "/nuvioweb/",
+  "scope": "/nuvioweb/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0e0f12",
+  "theme_color": "#0e0f12",
+  "categories": ["entertainment", "video"],
+  "icons": [
+    {
+      "src": "assets/brand/pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/brand/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

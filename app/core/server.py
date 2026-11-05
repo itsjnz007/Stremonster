@@ -264,11 +264,19 @@ def proxy_srt():
 def proxy() -> Response | tuple[dict[str, str], int]:
     return Proxy.proxy()
 
-@app.route("/webclient/")
+@app.route("/nuvioweb/")
 def ui_index() -> Response:
     return send_from_directory(UI_DIST, "index.html")
 
-@app.route("/webclient/<path:filename>")
+@app.route("/nuvioweb/manifest.webmanifest")
+def ui_manifest() -> Response:
+    return send_from_directory(
+        UI_DIST,
+        "manifest.webmanifest",
+        mimetype="application/manifest+json",
+    )
+
+@app.route("/nuvioweb/<path:filename>")
 def ui_asset(filename: str) -> Response:
     return send_from_directory(UI_DIST, filename)
 
