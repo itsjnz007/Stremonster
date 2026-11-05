@@ -172,9 +172,14 @@ export function createPlayerScreenMethods15() {
               <div class="player-controls-gradient player-controls-gradient-top"></div>
               <div class="player-controls-gradient player-controls-gradient-bottom"></div>
 
-              <div class="player-controls-top${osdClockEnabled ? "" : " hidden"}">
-                <div id="playerClock" class="player-clock">--:--</div>
-                <div id="playerEndsAt" class="player-ends-at${isLivePlayback ? " hidden" : ""}">${escapeHtml(t("player_ends_at", ["--:--"], "Ends at %1$s"))}</div>
+              <div class="player-controls-top">
+                <div class="player-clock-group${osdClockEnabled ? "" : " hidden"}">
+                  <div id="playerClock" class="player-clock">--:--</div>
+                  <div id="playerEndsAt" class="player-ends-at${isLivePlayback ? " hidden" : ""}">${escapeHtml(t("player_ends_at", ["--:--"], "Ends at %1$s"))}</div>
+                </div>
+                <button id="playerFullscreenToggle" class="player-fullscreen-toggle focusable" type="button" data-action="playerFullscreenToggle" data-player-pointer-action="fullscreenToggle">
+                  <span class="material-icons" aria-hidden="true">fullscreen</span>
+                </button>
               </div>
 
               <div class="player-controls-bottom">
@@ -205,6 +210,7 @@ export function createPlayerScreenMethods15() {
 
       this.container.appendChild(root);
       this.cachePlayerUiRefs(root);
+      this.syncPlayerFullscreenButton();
       this.syncPlayerOverlayLayoutState();
       this.bindLoadingLogoFallback();
       if (!this.isExternalFrameMode()) {
@@ -263,6 +269,7 @@ export function createPlayerScreenMethods15() {
             speedDialog: uiRoot.querySelector("#playerSpeedDialog"),
             sourcesPanel: uiRoot.querySelector("#playerSourcesPanel"),
             controlsOverlay: uiRoot.querySelector("#playerControlsOverlay"),
+            fullscreenToggle: uiRoot.querySelector("#playerFullscreenToggle"),
             controlsBottom: uiRoot.querySelector(".player-controls-bottom"),
             playbackBadges: uiRoot.querySelector("#playerPlaybackBadges"),
             progressShell: uiRoot.querySelector("#playerProgressShell"),

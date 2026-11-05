@@ -173,6 +173,7 @@ export function createPlayerScreenMethods01() {
       this.audioMediaSource = null;
 
       this.renderPlayerUi();
+      this.initializePlayerFullscreen();
       this.bindPlayerExitCleanup();
       if (!this.isExternalFrameMode()) {
         this.bindParty(navigationContext);

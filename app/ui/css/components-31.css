@@ -1,11 +1,44 @@
 .player-controls-top {
-  align-self: flex-end;
-  text-align: right;
+  align-self: stretch;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   position: relative;
   z-index: 1;
   color: rgba(245, 249, 255, 0.9);
   text-shadow: none;
   transition: opacity 160ms ease;
+}
+
+.player-clock-group {
+  margin-left: auto;
+  text-align: right;
+}
+
+.player-fullscreen-toggle {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgb(0 0 0 / 0.42);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.player-fullscreen-toggle .material-icons {
+  font-size: 24px;
+}
+
+.player-fullscreen-toggle.focused,
+.player-fullscreen-toggle:hover {
+  background: rgb(255 255 255 / 0.2);
 }
 
 .player-clock {

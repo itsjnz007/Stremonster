@@ -41,6 +41,12 @@ export function createPlayerScreenMethods70() {
         return true;
       }
 
+      if (target.closest?.("[data-player-pointer-action='fullscreenToggle']")) {
+        await this.togglePlayerFullscreen();
+        this.resetControlsAutoHide();
+        return true;
+      }
+
       if (target.closest?.("[data-player-pointer-action='stillWatchingContinue']")) {
         await this.onStillWatchingContinue();
         return true;
