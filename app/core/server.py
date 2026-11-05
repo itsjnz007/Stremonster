@@ -264,11 +264,11 @@ def proxy_srt():
 def proxy() -> Response | tuple[dict[str, str], int]:
     return Proxy.proxy()
 
-@app.route("/")
+@app.route("/webclient/")
 def ui_index() -> Response:
     return send_from_directory(UI_DIST, "index.html")
 
-@app.route("/<path:filename>")
+@app.route("/webclient/<path:filename>")
 def ui_asset(filename: str) -> Response:
     return send_from_directory(UI_DIST, filename)
 
