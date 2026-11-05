@@ -760,7 +760,10 @@
   #settings .settings-shell.has-modern-sidebar .settings-workspace {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 44px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 44px;
+    grid-template-areas:
+      "content"
+      "tabs";
     width: calc(100vw - 24px);
     height: calc(100dvh - var(--mobile-nav-height) - 16px);
     margin: 8px 12px calc(var(--mobile-nav-height) + 8px);
@@ -769,6 +772,7 @@
   }
 
   #settings .settings-sidebar-frame {
+    grid-area: tabs;
     display: block;
     width: 100%;
     height: 44px;
@@ -836,6 +840,7 @@
   }
 
   #settings .settings-content-frame {
+    grid-area: content;
     width: 100%;
     height: 100%;
   }
