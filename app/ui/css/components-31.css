@@ -1,3 +1,35 @@
+.global-back-button {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  z-index: 1000;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgb(0 0 0 / 0.56);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.global-back-button[hidden] {
+  display: none;
+}
+
+.global-back-button .material-icons {
+  font-size: 24px;
+}
+
+.global-back-button.focused,
+.global-back-button:hover {
+  background: rgb(255 255 255 / 0.2);
+}
+
 .player-controls-top {
   align-self: stretch;
   display: flex;
@@ -32,6 +64,31 @@
   cursor: pointer;
 }
 
+.player-close-toggle {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgb(0 0 0 / 0.42);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.player-close-toggle .material-icons {
+  font-size: 24px;
+}
+
+.player-close-toggle.focused,
+.player-close-toggle:hover {
+  background: rgb(255 255 255 / 0.2);
+}
+
 .player-fullscreen-toggle .material-icons {
   font-size: 24px;
 }
@@ -39,6 +96,13 @@
 .player-fullscreen-toggle.focused,
 .player-fullscreen-toggle:hover {
   background: rgb(255 255 255 / 0.2);
+}
+
+.player-external-frame-shell .player-close-toggle {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  z-index: 6;
 }
 
 .player-clock {

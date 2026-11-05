@@ -1,6 +1,26 @@
 /* eslint-disable no-unused-vars */
 import * as internals from "./router.js";
 
+function syncGlobalBackButton(routeName, routeParams = {}) {
+  const rootRoutes = new Set([
+    "home",
+    "player",
+    "profileSelection",
+    "account",
+    "authQrSignIn",
+    "authSignIn",
+    "serverConnection",
+    "syncCode",
+    "experienceModeSelection",
+    "essentialAddonSetup"
+  ]);
+  const isProfileManagement = routeName === "profileSelection" && String(routeParams?.mode || "").toLowerCase() === "management";
+  const button = globalThis.document?.getElementById?.("globalBackButton");
+  if (button) {
+    button.hidden = rootRoutes.has(String(routeName || "")) && !isProfileManagement;
+  }
+}
+
 export function createRouterMethods03() {
   const { Platform, getStackEntryRoute, getStackEntryParams } = internals;
 
@@ -37,6 +57,7 @@ export function createRouterMethods03() {
           const previousRoute = this.current;
           this.routes[this.current].cleanup?.();
           this.current = "home";
+          syncGlobalBackButton("home");
           this.currentParams = {};
           await this.routes.home.mount(
             {},
@@ -65,6 +86,7 @@ export function createRouterMethods03() {
       this.captureCurrentRouteState();
       this.routes[this.current].cleanup?.();
       this.current = previousRoute;
+      syncGlobalBackButton(previousRoute, previousParams);
       this.currentParams = previousParams;
       const navigationContext = this.resolveNavigationContext(previousRoute, previousParams, {
         isBackNavigation: true,

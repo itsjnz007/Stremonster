@@ -90,6 +90,9 @@ export function createPlayerScreenMethods15() {
                 allowfullscreen
                 scrolling="no"
               ></iframe>
+              <button class="player-close-toggle" type="button" data-action="playerClose" data-player-pointer-action="closePlayer" aria-label="${escapeAttribute(t("player_close", {}, "Close player"))}" title="${escapeAttribute(t("player_close", {}, "Close player"))}">
+                <span class="material-icons" aria-hidden="true">close</span>
+              </button>
             </div>
           `;
       } else {
@@ -177,6 +180,9 @@ export function createPlayerScreenMethods15() {
                   <div id="playerClock" class="player-clock">--:--</div>
                   <div id="playerEndsAt" class="player-ends-at${isLivePlayback ? " hidden" : ""}">${escapeHtml(t("player_ends_at", ["--:--"], "Ends at %1$s"))}</div>
                 </div>
+                <button id="playerCloseToggle" class="player-close-toggle focusable" type="button" data-action="playerClose" data-player-pointer-action="closePlayer" aria-label="${escapeAttribute(t("player_close", {}, "Close player"))}" title="${escapeAttribute(t("player_close", {}, "Close player"))}">
+                  <span class="material-icons" aria-hidden="true">close</span>
+                </button>
                 <button id="playerFullscreenToggle" class="player-fullscreen-toggle focusable" type="button" data-action="playerFullscreenToggle" data-player-pointer-action="fullscreenToggle">
                   <span class="material-icons" aria-hidden="true">fullscreen</span>
                 </button>
@@ -210,7 +216,7 @@ export function createPlayerScreenMethods15() {
 
       this.container.appendChild(root);
       this.cachePlayerUiRefs(root);
-      this.syncPlayerFullscreenButton();
+      this.syncPlayerFullscreenButton?.();
       this.syncPlayerOverlayLayoutState();
       this.bindLoadingLogoFallback();
       if (!this.isExternalFrameMode()) {
@@ -270,6 +276,7 @@ export function createPlayerScreenMethods15() {
             sourcesPanel: uiRoot.querySelector("#playerSourcesPanel"),
             controlsOverlay: uiRoot.querySelector("#playerControlsOverlay"),
             fullscreenToggle: uiRoot.querySelector("#playerFullscreenToggle"),
+            closeToggle: uiRoot.querySelector("#playerCloseToggle"),
             controlsBottom: uiRoot.querySelector(".player-controls-bottom"),
             playbackBadges: uiRoot.querySelector("#playerPlaybackBadges"),
             progressShell: uiRoot.querySelector("#playerProgressShell"),

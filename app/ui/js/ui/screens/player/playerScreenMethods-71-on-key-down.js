@@ -15,6 +15,12 @@ export function createPlayerScreenMethods71() {
         await this.togglePlayerFullscreen();
         return;
       }
+      if (event?.target?.closest?.("[data-player-pointer-action='closePlayer']") && isSelectKeyCode(keyCode)) {
+        event?.preventDefault?.();
+        event?.stopImmediatePropagation?.();
+        this.navigateBackToStreamScreen();
+        return;
+      }
       if (this.isStartupErrorVisible()) {
         event?.preventDefault?.();
         event?.stopPropagation?.();

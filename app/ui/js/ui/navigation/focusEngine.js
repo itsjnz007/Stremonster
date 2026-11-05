@@ -183,6 +183,17 @@ export const FocusEngine = {
       return;
     }
 
+    if (
+      normalizedEvent.target?.closest?.("[data-global-back]") &&
+      [13, 32].includes(Number(normalizedEvent.keyCode || normalizedEvent.which || 0))
+    ) {
+      normalizedEvent.preventDefault();
+      normalizedEvent.stopPropagation();
+      normalizedEvent.stopImmediatePropagation();
+      void Router.back().catch((error) => console.warn("Global back navigation failed", error));
+      return;
+    }
+
     const currentScreen = Router.getCurrentScreen();
 
     if (currentScreen?.onKeyDown) {
@@ -415,7 +426,7 @@ export const FocusEngine = {
     const isWebOS = Platform.isWebOS();
     const browserPointerTarget = Platform.isBrowser()
       ? event?.target?.closest?.(
-          "#playerControlsOverlay .player-control-btn[data-action], #playerControlsOverlay .player-progress-shell, [data-player-error-action], [data-action], [data-action-id]"
+          "#playerControlsOverlay .player-control-btn[data-action], #playerControlsOverlay .player-progress-shell, [data-global-back], [data-player-error-action], [data-action], [data-action-id]"
         ) || null
       : null;
     if (!isWebOS && !browserPointerTarget) {
@@ -438,6 +449,13 @@ export const FocusEngine = {
       return;
     }
     if (hasActiveModal() && !target.closest?.(".nuvio-dialog-backdrop")) {
+      return;
+    }
+    if (target.closest?.("[data-global-back]")) {
+      void Router.back().catch((error) => console.warn("Global back navigation failed", error));
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      event?.stopImmediatePropagation?.();
       return;
     }
     this.focusPointerTarget(target, event);

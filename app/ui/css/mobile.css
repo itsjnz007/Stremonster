@@ -43,6 +43,13 @@
     overflow: hidden;
   }
 
+  .global-back-button {
+    top: max(10px, env(safe-area-inset-top, 0px));
+    right: max(10px, env(safe-area-inset-right, 0px));
+    width: 44px;
+    height: 44px;
+  }
+
   body {
     transform: none;
     transform-origin: initial;
@@ -316,6 +323,10 @@
     margin: 0;
     padding: 12px 0 calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 12px);
     scroll-padding-bottom: calc(var(--mobile-nav-height) + 12px);
+  }
+
+  #home .home-main {
+    padding-top: 0;
   }
 
   #home .home-screen-shell {
@@ -1714,6 +1725,12 @@
   }
 
   .player-fullscreen-toggle {
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+  }
+
+  .player-close-toggle {
     width: 48px;
     min-width: 48px;
     height: 48px;

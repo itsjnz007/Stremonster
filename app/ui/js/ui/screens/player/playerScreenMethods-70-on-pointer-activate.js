@@ -6,7 +6,14 @@ export function createPlayerScreenMethods70() {
 
   return {
     async onPointerActivate(target, event) {
-      if (!target || this.isExternalFrameMode()) {
+      if (!target) {
+        return false;
+      }
+      if (target.closest?.("[data-player-pointer-action='closePlayer']")) {
+        this.navigateBackToStreamScreen();
+        return true;
+      }
+      if (this.isExternalFrameMode()) {
         return false;
       }
       this.syncPointerFocus(target);
