@@ -2095,6 +2095,13 @@
     transform-origin: top left;
   }
 
+  .global-back-button {
+    top: 22.222px;
+    right: 22.222px;
+    transform: scale(2.2222);
+    transform-origin: top right;
+  }
+
   #app,
   .screen {
     width: 222.222vw;
