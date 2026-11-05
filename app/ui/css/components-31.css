@@ -548,6 +548,56 @@
   transition: width 120ms linear;
 }
 
+.player-gesture-feedback {
+  position: absolute;
+  inset: 0;
+  z-index: 36;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 120ms ease;
+}
+
+.player-gesture-feedback.hidden {
+  opacity: 0;
+}
+
+.player-gesture-feedback-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  width: clamp(56px, 8vw, 104px);
+  height: clamp(56px, 8vw, 104px);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.62);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.75);
+  transform: translate(-50%, -50%);
+}
+
+.player-gesture-feedback[data-position="left"] .player-gesture-feedback-content {
+  left: 25%;
+}
+
+.player-gesture-feedback[data-position="right"] .player-gesture-feedback-content {
+  left: 75%;
+}
+
+.player-gesture-feedback-icon {
+  font-size: clamp(32px, 4vw, 52px);
+  line-height: 1;
+}
+
+.player-gesture-feedback-label {
+  margin-top: 2px;
+  font-size: clamp(11px, 1.2vw, 15px);
+  font-weight: 700;
+  line-height: 1;
+}
+
 .player-pause-overlay {
   position: absolute;
   top: 0;

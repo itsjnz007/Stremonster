@@ -182,9 +182,11 @@ export function initializePlayerMountState(params, initialStreamUrl) {
   this.seekPreviewSeconds = null;
   this.seekPreviewDirection = 0;
   this.seekRepeatCount = 0;
+  this.playerSurfaceLastClick = null;
   this.seekCommitTimer = null;
   this.seekOverlayTimer = null;
   this.seekOverlaySuppressControlsUntil = 0;
+  this.playerGestureFeedbackTimer = null;
   this.pauseOverlayVisible = false;
   this.pauseOverlayTimer = null;
   this.pauseOverlayDelayMs = PAUSE_OVERLAY_DELAY_MS;

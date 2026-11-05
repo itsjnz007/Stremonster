@@ -157,6 +157,13 @@ export function createPlayerScreenMethods15() {
               </div>
             </div>
 
+            <div id="playerGestureFeedback" class="player-gesture-feedback hidden" aria-hidden="true">
+              <div class="player-gesture-feedback-content">
+                <span id="playerGestureFeedbackIcon" class="material-icons player-gesture-feedback-icon"></span>
+                <span id="playerGestureFeedbackLabel" class="player-gesture-feedback-label"></span>
+              </div>
+            </div>
+
             <div id="playerPauseOverlay" class="player-pause-overlay hidden"></div>
 
             <div id="playerNextEpisodeCard" class="player-next-episode-card hidden"></div>
@@ -264,6 +271,9 @@ export function createPlayerScreenMethods15() {
             seekDirection: uiRoot.querySelector("#playerSeekDirection"),
             seekPreview: uiRoot.querySelector("#playerSeekPreview"),
             seekFill: uiRoot.querySelector("#playerSeekFill"),
+            gestureFeedback: uiRoot.querySelector("#playerGestureFeedback"),
+            gestureFeedbackIcon: uiRoot.querySelector("#playerGestureFeedbackIcon"),
+            gestureFeedbackLabel: uiRoot.querySelector("#playerGestureFeedbackLabel"),
             pauseOverlay: uiRoot.querySelector("#playerPauseOverlay"),
             nextEpisodeCard: uiRoot.querySelector("#playerNextEpisodeCard"),
             postPlay: uiRoot.querySelector("#playerPostPlayRecommendation"),

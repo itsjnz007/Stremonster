@@ -194,23 +194,106 @@ export function createPlayerScreenMethods69() {
       this.resetControlsAutoHide();
       return true;
     },
-    onPointerSurfaceActivate(target) {
+    showPlayerGestureFeedback(action) {
+      const feedback = this.uiRefs?.gestureFeedback;
+      const icon = this.uiRefs?.gestureFeedbackIcon;
+      const label = this.uiRefs?.gestureFeedbackLabel;
+      if (!feedback || !icon || !label) {
+        return;
+      }
+
+      const feedbackContent = {
+        play: { icon: "play_arrow", label: "", position: "center" },
+        pause: { icon: "pause", label: "", position: "center" },
+        seekBack: { icon: "replay_10", label: "10s", position: "left" },
+        seekForward: { icon: "forward_10", label: "10s", position: "right" }
+      }[action];
+      if (!feedbackContent) {
+        return;
+      }
+
+      if (this.playerGestureFeedbackTimer) {
+        clearTimeout(this.playerGestureFeedbackTimer);
+      }
+      icon.textContent = feedbackContent.icon;
+      label.textContent = feedbackContent.label;
+      feedback.setAttribute("data-position", feedbackContent.position);
+      feedback.classList.toggle("hidden", false);
+      this.playerGestureFeedbackTimer = setTimeout(() => {
+        feedback.classList.toggle("hidden", true);
+        this.playerGestureFeedbackTimer = null;
+      }, 700);
+    },
+    handlePlayerSurfaceActivate(target, event) {
       if (
         !target ||
         this.isExternalFrameMode() ||
         this.isDialogOpen() ||
         this.isStartupErrorVisible() ||
         this.isPostPlayVisible() ||
-        this.controlsVisible
+        this.subtitleDialogVisible ||
+        this.audioDialogVisible ||
+        this.speedDialogVisible ||
+        this.sourcesPanelVisible ||
+        this.episodePanelVisible ||
+        this.subtitleDelayOverlayVisible ||
+        this.subtitleTimingDialogVisible ||
+        this.stillWatchingPromptVisible
       ) {
         return false;
       }
       const video = this.container?.querySelector?.("#videoPlayer");
-      if (!video || (target !== video && target?.closest?.("#videoPlayer") !== video)) {
+      const uiRoot = this.container?.querySelector?.("#playerUiRoot");
+      const controlsOverlay = this.container?.querySelector?.("#playerControlsOverlay");
+      const isPlayerSurface =
+        (video && (target === video || target?.closest?.("#videoPlayer") === video)) ||
+        (uiRoot && (target === uiRoot || target?.closest?.("#playerUiRoot") === uiRoot)) ||
+        (controlsOverlay &&
+          (target === controlsOverlay || target?.closest?.("#playerControlsOverlay") === controlsOverlay));
+      if (!isPlayerSurface) {
         return false;
       }
-      this.setControlsVisible(true, { focus: true });
+
+      const rect = this.container?.getBoundingClientRect?.();
+      const x = Number(event?.clientX);
+      if (!rect || rect.width <= 0 || !Number.isFinite(x) || x < rect.left || x > rect.right) {
+        return false;
+      }
+
+      const relativeX = (x - rect.left) / rect.width;
+      if (relativeX >= 1 / 3 && relativeX <= 2 / 3) {
+        this.playerSurfaceLastClick = null;
+        const wasPaused = Boolean(this.getPlaybackControlPaused?.() ?? this.paused);
+        this.togglePause();
+        this.showPlayerGestureFeedback(wasPaused ? "play" : "pause");
+        this.renderControlButtons();
+        return true;
+      }
+
+      const direction = relativeX < 1 / 3 ? -1 : 1;
+      const side = direction < 0 ? "left" : "right";
+      const now = Date.now();
+      const previousClick = this.playerSurfaceLastClick;
+      this.playerSurfaceLastClick = { side, time: now };
+      if (!previousClick || previousClick.side !== side || now - previousClick.time > 350) {
+        if (!this.controlsVisible) {
+          this.setControlsVisible(true, { focus: true });
+        }
+        return true;
+      }
+
+      this.playerSurfaceLastClick = null;
+      if (!this.isSeekBarAvailable()) {
+        return true;
+      }
+      this.autoHideControlsAfterSeek = false;
+      this.beginSeekPreview(direction, false, true);
+      this.commitSeekPreview();
+      this.showPlayerGestureFeedback(direction < 0 ? "seekBack" : "seekForward");
       return true;
+    },
+    onPointerSurfaceActivate(target, event) {
+      return this.handlePlayerSurfaceActivate(target, event);
     },
     onPointerFocus(target) {
       if (this.isPostPlayVisible()) {

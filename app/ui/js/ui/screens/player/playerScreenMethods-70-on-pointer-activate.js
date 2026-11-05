@@ -166,7 +166,7 @@ export function createPlayerScreenMethods70() {
         return true;
       }
 
-      return false;
+      return this.handlePlayerSurfaceActivate(target, event);
     },
     switchPlaybackEngine() {
       const targetEngine =

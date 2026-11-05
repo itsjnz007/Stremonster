@@ -117,7 +117,10 @@ function screen(itemType = "channel") {
       seekOverlay: node(),
       seekDirection: node(),
       seekPreview: node(),
-      seekFill: node()
+      seekFill: node(),
+      gestureFeedback: node(),
+      gestureFeedbackIcon: node(),
+      gestureFeedbackLabel: node()
     },
     getPlaybackCurrentSeconds: () => 90,
     getPlaybackDisplayCurrentSeconds: () => 90,
@@ -238,6 +241,71 @@ test("pointer movement restores hidden player controls and refreshes auto-hide",
 
   s.onPointerMove({ target: {} });
   assert.equal(s.controlsVisible, false);
+});
+
+test("player surface clicks toggle playback in the middle and double-click sides to seek", () => {
+  const s = screen("movie");
+  const video = { closest: (selector) => (selector === "#videoPlayer" ? video : null) };
+  const uiRoot = { closest: (selector) => (selector === "#playerUiRoot" ? uiRoot : null) };
+  s.container = {
+    querySelector(selector) {
+      if (selector === "#videoPlayer") return video;
+      if (selector === "#playerUiRoot") return uiRoot;
+      return null;
+    },
+    getBoundingClientRect: () => ({ left: 0, right: 900, width: 900 })
+  };
+  s.isDialogOpen = () => false;
+  s.isStartupErrorVisible = () => false;
+  s.isPostPlayVisible = () => false;
+  let toggles = 0;
+  let renders = 0;
+  const seeks = [];
+  s.togglePause = () => {
+    toggles += 1;
+  };
+  s.setControlsVisible = (visible, options) => {
+    s.controlsVisible = visible;
+    s.lastControlsVisibilityOptions = options;
+  };
+  s.renderControlButtons = () => {
+    renders += 1;
+  };
+  s.beginSeekPreview = (...args) => seeks.push(["preview", ...args]);
+  s.commitSeekPreview = () => seeks.push(["commit"]);
+
+  assert.equal(s.handlePlayerSurfaceActivate(video, { clientX: 450 }), true);
+  assert.equal(toggles, 1, "center clicks toggle playback");
+  assert.equal(renders, 1);
+  assert.equal(s.uiRefs.gestureFeedbackIcon.textContent, "pause");
+  assert.equal(s.uiRefs.gestureFeedback.classList.contains("hidden"), false);
+
+  s.paused = true;
+  assert.equal(s.handlePlayerSurfaceActivate(video, { clientX: 450 }), true);
+  assert.equal(s.uiRefs.gestureFeedbackIcon.textContent, "play_arrow");
+
+  s.controlsVisible = false;
+  assert.equal(s.handlePlayerSurfaceActivate(video, { clientX: 100 }), true);
+  assert.deepEqual(s.lastControlsVisibilityOptions, { focus: true }, "a single side click still reveals hidden controls");
+  assert.equal(seeks.length, 0, "a single side click does not seek");
+  assert.equal(s.handlePlayerSurfaceActivate(uiRoot, { clientX: 100 }), true);
+  assert.deepEqual(seeks, [
+    ["preview", -1, false, true],
+    ["commit"]
+  ]);
+  assert.equal(s.uiRefs.gestureFeedbackIcon.textContent, "replay_10");
+  assert.equal(s.uiRefs.gestureFeedbackLabel.textContent, "10s");
+
+  s.playerSurfaceLastClick = null;
+  seeks.length = 0;
+  assert.equal(s.handlePlayerSurfaceActivate(video, { clientX: 800 }), true);
+  assert.equal(s.handlePlayerSurfaceActivate(video, { clientX: 800 }), true);
+  assert.deepEqual(seeks, [
+    ["preview", 1, false, true],
+    ["commit"]
+  ]);
+  assert.equal(s.uiRefs.gestureFeedbackIcon.textContent, "forward_10");
+  clearTimeout(s.playerGestureFeedbackTimer);
 });
 
 test("Space toggles playback without activating the focused player control", async () => {
