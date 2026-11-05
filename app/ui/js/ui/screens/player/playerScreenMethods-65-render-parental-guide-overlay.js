@@ -62,15 +62,13 @@ export function createPlayerScreenMethods65() {
       const lineExitDelay =
         Math.max(0, total * (PARENTAL_GUIDE_ITEM_EXIT_STAGGER_MS + PARENTAL_GUIDE_ITEM_EXIT_MS)) + PARENTAL_GUIDE_LINE_OUT_DELAY_MS;
       const containerExitDelay = lineExitDelay + PARENTAL_GUIDE_LINE_OUT_MS + PARENTAL_GUIDE_CONTAINER_OUT_DELAY_MS;
-      const rowHeight = PARENTAL_GUIDE_ROW_HEIGHT;
-      const rowGap = PARENTAL_GUIDE_ROW_GAP;
-      const lineHeight = rowHeight * total + rowGap * Math.max(0, total - 1);
-      const currentLineHeight = clamp(Number(this.parentalGuideLineProgress || 0), 0, lineHeight);
+      const style = typeof getComputedStyle === "function" ? getComputedStyle(overlay) : null;
+      const rowHeight = Number.parseFloat(style?.getPropertyValue("--parental-row-height")) || PARENTAL_GUIDE_ROW_HEIGHT;
+      const rowGap = Number.parseFloat(style?.getPropertyValue("--parental-row-gap")) || PARENTAL_GUIDE_ROW_GAP;
       overlay.style.animationDelay = this.parentalGuideExiting ? `${containerExitDelay}ms` : "0ms";
       overlay.style.setProperty("--parental-row-height", `${rowHeight}px`);
       overlay.style.setProperty("--parental-row-gap", `${rowGap}px`);
       overlay.style.setProperty("--parental-item-count", String(total));
-      overlay.style.setProperty("--parental-line-height", `${lineHeight}px`);
       overlay.style.setProperty("--parental-line-exit-delay", `${lineExitDelay}ms`);
       overlay.style.setProperty("--parental-container-exit-delay", `${containerExitDelay}ms`);
       overlay.innerHTML = `
@@ -98,8 +96,21 @@ export function createPlayerScreenMethods65() {
         `;
 
       const line = overlay.querySelector(".player-parental-line");
-      if (line) {
-        line.style.height = `${currentLineHeight.toFixed(2)}px`;
+      const labels = overlay.querySelectorAll(".player-parental-label");
+      if (line && labels.length) {
+        const overlayTop = overlay.getBoundingClientRect().top;
+        const firstLabelRect = labels[0].getBoundingClientRect();
+        const lastLabelRect = labels[labels.length - 1].getBoundingClientRect();
+        const firstItem = labels[0].closest(".player-parental-item");
+        const firstItemHeight = Number.parseFloat(firstItem ? getComputedStyle(firstItem).height : "0");
+        const scale = firstItemHeight > 0 ? firstItem.getBoundingClientRect().height / firstItemHeight : 1;
+        const cssScale = scale > 0 ? scale : 1;
+        const lineTop = Math.max(0, (firstLabelRect.top - overlayTop) / cssScale);
+        const lineHeight = Math.max(0, (lastLabelRect.bottom - firstLabelRect.top) / cssScale);
+        this.parentalGuideLineTargetHeight = lineHeight;
+        overlay.style.setProperty("--parental-line-height", `${lineHeight}px`);
+        line.style.top = `${lineTop.toFixed(2)}px`;
+        line.style.height = `${clamp(Number(this.parentalGuideLineProgress || 0), 0, lineHeight).toFixed(2)}px`;
       }
     },
     stopParentalGuideLineAnimation({ reset = true } = {}) {
@@ -178,8 +189,7 @@ export function createPlayerScreenMethods65() {
       this.parentalGuideShown = true;
       this.renderParentalGuideOverlay();
       this.stopParentalGuideLineAnimation({ reset: true });
-      const lineHeight =
-        PARENTAL_GUIDE_ROW_HEIGHT * this.parentalWarnings.length + PARENTAL_GUIDE_ROW_GAP * Math.max(0, this.parentalWarnings.length - 1);
+      const lineHeight = Number(this.parentalGuideLineTargetHeight || 0);
       this.scheduleParentalGuideLineAnimation(lineHeight, PARENTAL_GUIDE_CONTAINER_IN_MS, PARENTAL_GUIDE_LINE_IN_MS);
 
       if (this.parentalGuideTimer) {

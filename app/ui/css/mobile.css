@@ -1724,6 +1724,16 @@
     --player-overlay-step-font: 20px;
   }
 
+  .player-parental-guide {
+    --parental-row-height: 32px;
+    --parental-row-gap: 2px;
+    --parental-font-size: clamp(15px, 4vw, 18px);
+    --parental-left: max(16px, env(safe-area-inset-left, 0px));
+    --parental-top: max(64px, calc(env(safe-area-inset-top, 0px) + 52px));
+    --parental-line-width: 4px;
+    --parental-list-padding: 10px;
+  }
+
   .player-fullscreen-toggle {
     width: 48px;
     min-width: 48px;
@@ -2112,6 +2122,16 @@
     --player-overlay-step-font: 44.444px;
   }
 
+  .player-parental-guide {
+    --parental-row-height: 71.111px;
+    --parental-row-gap: 4.444px;
+    --parental-font-size: 40px;
+    --parental-left: 35.556px;
+    --parental-top: 142.222px;
+    --parental-line-width: 8.889px;
+    --parental-list-padding: 22.222px;
+  }
+
   .player-controls-top {
     padding: 8.889px;
     gap: 26.667px;
@@ -2212,6 +2232,16 @@
     --player-overlay-step-width: 48px;
     --player-overlay-step-height: 40px;
     --player-overlay-step-font: 20px;
+  }
+
+  html.player-fullscreen-active .player-parental-guide {
+    --parental-row-height: 32px;
+    --parental-row-gap: 2px;
+    --parental-font-size: 16px;
+    --parental-left: 16px;
+    --parental-top: 64px;
+    --parental-line-width: 4px;
+    --parental-list-padding: 10px;
   }
 
   html.player-fullscreen-active .player-controls-top {
@@ -2491,6 +2521,18 @@
   .player-pause-overlay-top {
     top: 27px;
     right: 32px;
+  }
+}
+
+@media screen and (min-width: 951px) and (hover: hover) and (pointer: fine) {
+  .player-parental-guide {
+    --parental-row-height: 48px;
+    --parental-row-gap: 5px;
+    --parental-font-size: 29px;
+    --parental-left: 80px;
+    --parental-top: 64px;
+    --parental-line-width: 8px;
+    --parental-list-padding: 24px;
   }
 
   .player-pause-overlay-clock {
