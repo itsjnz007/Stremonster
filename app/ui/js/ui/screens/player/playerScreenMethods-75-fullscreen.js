@@ -8,8 +8,8 @@ export function createPlayerScreenMethods75() {
       return typeof window !== "undefined" && window.matchMedia?.("(max-width: 700px) and (pointer: coarse)")?.matches === true;
     },
     isPlayerFullscreen() {
-      const root = this.uiRefs?.root;
-      return Boolean(root && (document.fullscreenElement === root || document.webkitFullscreenElement === root));
+      const container = this.container;
+      return Boolean(container && (document.fullscreenElement === container || document.webkitFullscreenElement === container));
     },
     syncPlayerFullscreenButton() {
       const button = this.uiRefs?.fullscreenToggle;
@@ -28,19 +28,19 @@ export function createPlayerScreenMethods75() {
       }
     },
     async enterPlayerFullscreen({ lockLandscape = false } = {}) {
-      const root = this.uiRefs?.root;
-      if (!root || this.isPlayerFullscreen()) {
+      const container = this.container;
+      if (!container || this.isPlayerFullscreen()) {
         if (lockLandscape) {
           await this.lockPlayerLandscape();
         }
         return this.isPlayerFullscreen();
       }
-      const requestFullscreen = root.requestFullscreen || root.webkitRequestFullscreen;
+      const requestFullscreen = container.requestFullscreen || container.webkitRequestFullscreen;
       if (typeof requestFullscreen !== "function") {
         return false;
       }
       try {
-        await requestFullscreen.call(root);
+        await requestFullscreen.call(container);
       } catch (error) {
         console.warn("Unable to enter player full screen", error);
         return false;
