@@ -1725,11 +1725,11 @@
   }
 
   .player-parental-guide {
-    --parental-row-height: 32px;
+    --parental-row-height: 28px;
     --parental-row-gap: 2px;
-    --parental-font-size: clamp(15px, 4vw, 18px);
+    --parental-font-size: clamp(14px, 3.8vw, 16px);
     --parental-left: max(16px, env(safe-area-inset-left, 0px));
-    --parental-top: max(64px, calc(env(safe-area-inset-top, 0px) + 52px));
+    --parental-top: max(48px, calc(env(safe-area-inset-top, 0px) + 40px));
     --parental-line-width: 4px;
     --parental-list-padding: 10px;
   }
@@ -2123,11 +2123,11 @@
   }
 
   .player-parental-guide {
-    --parental-row-height: 71.111px;
-    --parental-row-gap: 4.444px;
-    --parental-font-size: 40px;
+    --parental-row-height: 57.778px;
+    --parental-row-gap: 3.333px;
+    --parental-font-size: 32px;
     --parental-left: 35.556px;
-    --parental-top: 142.222px;
+    --parental-top: 88.889px;
     --parental-line-width: 8.889px;
     --parental-list-padding: 22.222px;
   }
@@ -2239,7 +2239,7 @@
     --parental-row-gap: 2px;
     --parental-font-size: 16px;
     --parental-left: 16px;
-    --parental-top: 64px;
+    --parental-top: 44.444px;
     --parental-line-width: 4px;
     --parental-list-padding: 10px;
   }
