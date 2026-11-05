@@ -53,7 +53,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>Nuvio</title>
 
-    <link rel="stylesheet" href="css/bundle.css?v=19e9877bfa04" />
+    <link rel="stylesheet" href="css/bundle.css?v=173010ba54a7" />
   </head>
   <body>
     <script src="boot-guard.js"></script>
@@ -70,14 +70,14 @@
 
     <script
       defer
-      src="app.bundle.js?v=19e9877bfa04"
+      src="app.bundle.js?v=173010ba54a7"
       onerror="window.NuvioBootGuard && window.NuvioBootGuard.scriptFailed(this.src)"
     ></script>
     <script>
       if ("serviceWorker" in navigator && window.isSecureContext) {
         window.addEventListener("load", function () {
           navigator.serviceWorker
-            .register("service-worker.js?v=19e9877bfa04", { updateViaCache: "none" })
+            .register("service-worker.js?v=173010ba54a7", { updateViaCache: "none" })
             .catch(function (error) {
               console.warn("Service worker registration failed:", error);
             });

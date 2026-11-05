@@ -106,6 +106,29 @@ export function createPlayerScreenMethods56() {
       }
       rail.scrollTop = Math.max(0, Number(state.scrollTop || 0));
     },
+    bindSubtitleOptionsRailScroll() {
+      const rail = this.uiRefs?.subtitleDialog?.querySelector?.(".player-subtitle-options-rail");
+      if (!(rail instanceof HTMLElement) || rail.dataset.virtualScrollBound === "true") {
+        return;
+      }
+      rail.dataset.virtualScrollBound = "true";
+      rail.addEventListener(
+        "scroll",
+        () => {
+          const state = this.subtitleOptionVirtualState;
+          if (!this.subtitleDialogVisible || !state?.window) {
+            return;
+          }
+          const scrollTop = Math.max(0, Number(rail.scrollTop || 0));
+          if (Math.abs(scrollTop - Number(state.scrollTop || 0)) < 1) {
+            return;
+          }
+          state.scrollTop = scrollTop;
+          this.renderSubtitleOptionsRailInPlace({ scheduleMeasurement: false, syncFocus: false });
+        },
+        { passive: true }
+      );
+    },
     scheduleSubtitleOptionVirtualMeasurement() {
       if (this.subtitleOptionVirtualMeasureTimer) {
         clearTimeout(this.subtitleOptionVirtualMeasureTimer);

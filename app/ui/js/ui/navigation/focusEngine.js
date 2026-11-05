@@ -426,7 +426,7 @@ export const FocusEngine = {
     const isWebOS = Platform.isWebOS();
     const browserPointerTarget = Platform.isBrowser()
       ? event?.target?.closest?.(
-          "#playerControlsOverlay .player-control-btn[data-action], #playerControlsOverlay .player-progress-shell, [data-global-back], [data-player-error-action], [data-action], [data-action-id]"
+          "#playerControlsOverlay .player-control-btn[data-action], #playerControlsOverlay .player-progress-shell, [data-global-back], [data-player-error-action], [data-subtitle-rail], [data-subtitle-style-action], [data-subtitle-delay-action], [data-action], [data-action-id]"
         ) || null
       : null;
     if (!isWebOS && !browserPointerTarget) {

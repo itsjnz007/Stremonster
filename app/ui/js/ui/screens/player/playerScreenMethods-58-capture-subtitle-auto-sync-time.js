@@ -320,6 +320,7 @@ export function createPlayerScreenMethods58() {
         dialog.innerHTML = nextMarkup;
         this.renderedSubtitleDialogMarkup = nextMarkup;
       }
+      this.bindSubtitleOptionsRailScroll();
       this.applySubtitleOptionVirtualScrollPosition();
       this.syncSubtitleDialogFocusDom({ scroll: false });
       this.scrollSubtitleDialogIntoView();
