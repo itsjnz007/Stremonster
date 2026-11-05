@@ -1983,8 +1983,8 @@
   }
 
   .profile-title {
-    font-size: 28px;
-    line-height: 1.15;
+    font-size: 35px;
+    line-height: 2;
     text-align: center;
   }
 
@@ -2029,7 +2029,7 @@
 
   .profile-grid-compact .profile-name {
     margin-top: 8px;
-    font-size: 12px;
+    font-size: 14px;
   }
 
   .profile-grid-compact .profile-badge,
