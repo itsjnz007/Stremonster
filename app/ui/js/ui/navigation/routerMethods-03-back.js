@@ -4,6 +4,7 @@ import * as internals from "./router.js";
 function syncGlobalBackButton(routeName, routeParams = {}) {
   const rootRoutes = new Set([
     "home",
+    "search",
     "player",
     "profileSelection",
     "account",

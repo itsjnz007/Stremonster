@@ -466,3 +466,9 @@
   letter-spacing: 0.2px;
   gap: 16px;
 }
+
+.series-secondary-btn {
+  font-size: var(--detail-label-size);
+  font-weight: 500;
+  line-height: 40px;
+}

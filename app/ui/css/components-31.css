@@ -30,11 +30,29 @@
   background: rgb(255 255 255 / 0.2);
 }
 
+@media screen and (min-width: 951px) and (hover: hover) and (pointer: fine) {
+  .global-back-button,
+  .player-fullscreen-toggle,
+  .player-close-toggle {
+    top: 20px;
+    right: 20px;
+    min-width: 56px;
+    width: 56px;
+    height: 56px;
+  }
+
+  .global-back-button .material-icons,
+  .player-fullscreen-toggle .material-icons,
+  .player-close-toggle .material-icons {
+    font-size: 28px;
+  }
+}
+
 .player-controls-top {
   align-self: stretch;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   position: relative;
   z-index: 1;
@@ -44,7 +62,7 @@
 }
 
 .player-clock-group {
-  margin-left: auto;
+  margin-left: 0;
   text-align: right;
 }
 

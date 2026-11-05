@@ -13,10 +13,11 @@ export function createPlayerScreenMethods75() {
     },
     syncPlayerFullscreenButton() {
       const button = this.uiRefs?.fullscreenToggle;
+      const isFullscreen = this.isPlayerFullscreen();
+      globalThis.document?.documentElement?.classList?.toggle("player-fullscreen-active", isFullscreen);
       if (!button) {
         return;
       }
-      const isFullscreen = this.isPlayerFullscreen();
       const label = isFullscreen
         ? t("player_exit_fullscreen", {}, "Exit full screen")
         : t("player_enter_fullscreen", {}, "Full screen");
@@ -111,6 +112,7 @@ export function createPlayerScreenMethods75() {
       }
     },
     cleanupPlayerFullscreen() {
+      globalThis.document?.documentElement?.classList?.remove("player-fullscreen-active");
       if (this.playerFullscreenChangeHandler) {
         document.removeEventListener("fullscreenchange", this.playerFullscreenChangeHandler);
         document.removeEventListener("webkitfullscreenchange", this.playerFullscreenChangeHandler);

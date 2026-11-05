@@ -176,16 +176,16 @@ export function createPlayerScreenMethods15() {
               <div class="player-controls-gradient player-controls-gradient-bottom"></div>
 
               <div class="player-controls-top">
-                <div class="player-clock-group${osdClockEnabled ? "" : " hidden"}">
-                  <div id="playerClock" class="player-clock">--:--</div>
-                  <div id="playerEndsAt" class="player-ends-at${isLivePlayback ? " hidden" : ""}">${escapeHtml(t("player_ends_at", ["--:--"], "Ends at %1$s"))}</div>
-                </div>
                 <button id="playerCloseToggle" class="player-close-toggle focusable" type="button" data-action="playerClose" data-player-pointer-action="closePlayer" aria-label="${escapeAttribute(t("player_close", {}, "Close player"))}" title="${escapeAttribute(t("player_close", {}, "Close player"))}">
                   <span class="material-icons" aria-hidden="true">close</span>
                 </button>
                 <button id="playerFullscreenToggle" class="player-fullscreen-toggle focusable" type="button" data-action="playerFullscreenToggle" data-player-pointer-action="fullscreenToggle">
                   <span class="material-icons" aria-hidden="true">fullscreen</span>
                 </button>
+                <div class="player-clock-group${osdClockEnabled ? "" : " hidden"}">
+                  <div id="playerClock" class="player-clock">--:--</div>
+                  <div id="playerEndsAt" class="player-ends-at${isLivePlayback ? " hidden" : ""}">${escapeHtml(t("player_ends_at", ["--:--"], "Ends at %1$s"))}</div>
+                </div>
               </div>
 
               <div class="player-controls-bottom">

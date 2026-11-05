@@ -2095,6 +2095,210 @@
     transform-origin: top left;
   }
 
+  #playerUiRoot {
+    --player-controls-x: 26.667px;
+    --player-controls-y: 26.667px;
+    --player-control-size: 97.778px;
+    --player-control-icon: 48.889px;
+    --player-overlay-left: 26.667px;
+    --player-overlay-bottom: 106.667px;
+    --player-action-controls-open-bottom: 266.667px;
+    --player-overlay-title-font: 44.444px;
+    --player-overlay-body-font: 31.111px;
+    --player-overlay-label-font: 28.889px;
+    --player-overlay-small-font: 26.667px;
+    --player-overlay-step-width: 106.667px;
+    --player-overlay-step-height: 88.889px;
+    --player-overlay-step-font: 44.444px;
+  }
+
+  .player-controls-top {
+    padding: 8.889px;
+    gap: 26.667px;
+  }
+
+  .player-clock-group {
+    padding-top: 8.889px;
+  }
+
+  .player-controls-top .player-clock {
+    font-size: 66.667px;
+  }
+
+  .player-controls-top .player-ends-at {
+    margin-top: 4.444px;
+    font-size: 44.444px;
+  }
+
+  .player-close-toggle,
+  .player-fullscreen-toggle {
+    width: 106.667px;
+    min-width: 106.667px;
+    height: 106.667px;
+  }
+
+  .player-close-toggle .material-icons,
+  .player-fullscreen-toggle .material-icons {
+    font-size: 53.333px;
+  }
+
+  .player-external-frame-shell .player-close-toggle {
+    top: 35.556px;
+    right: 35.556px;
+  }
+
+  .player-controls-row {
+    margin-top: 35.556px;
+    gap: 80px;
+  }
+
+  .player-control-buttons {
+    gap: 8.889px;
+  }
+
+  .player-control-btn.has-text {
+    padding: 0 40px;
+  }
+
+  .player-control-label {
+    font-size: 40px;
+  }
+
+  .player-title {
+    font-size: 53.333px;
+  }
+
+  .player-subtitle {
+    font-size: 35.556px;
+  }
+
+  .player-meta-secondary,
+  .player-meta-tertiary {
+    font-size: 31.111px;
+  }
+
+  .player-time-label {
+    font-size: 40px;
+  }
+
+  .player-progress-shell {
+    margin-top: 26.667px;
+  }
+
+  .player-progress-track {
+    height: 8.889px;
+  }
+
+  .player-controls-gradient-top {
+    height: 333.333px;
+  }
+
+  .player-controls-gradient-bottom {
+    height: 444.444px;
+  }
+
+  html.player-fullscreen-active #playerUiRoot {
+    --player-controls-x: 12px;
+    --player-controls-y: 12px;
+    --player-control-size: 44px;
+    --player-control-icon: 22px;
+    --player-overlay-left: 12px;
+    --player-overlay-bottom: 48px;
+    --player-action-controls-open-bottom: 120px;
+    --player-overlay-title-font: 20px;
+    --player-overlay-body-font: 14px;
+    --player-overlay-label-font: 13px;
+    --player-overlay-small-font: 12px;
+    --player-overlay-step-width: 48px;
+    --player-overlay-step-height: 40px;
+    --player-overlay-step-font: 20px;
+  }
+
+  html.player-fullscreen-active .player-controls-top {
+    padding: 4px;
+    gap: 12px;
+  }
+
+  html.player-fullscreen-active .player-clock-group {
+    padding-top: 4px;
+  }
+
+  html.player-fullscreen-active .player-controls-top .player-clock {
+    font-size: 30px;
+  }
+
+  html.player-fullscreen-active .player-controls-top .player-ends-at {
+    margin-top: 2px;
+    font-size: 20px;
+  }
+
+  html.player-fullscreen-active .player-close-toggle,
+  html.player-fullscreen-active .player-fullscreen-toggle {
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+  }
+
+  html.player-fullscreen-active .player-close-toggle .material-icons,
+  html.player-fullscreen-active .player-fullscreen-toggle .material-icons {
+    font-size: 24px;
+  }
+
+  html.player-fullscreen-active .player-external-frame-shell .player-close-toggle {
+    top: 16px;
+    right: 16px;
+  }
+
+  html.player-fullscreen-active .player-controls-row {
+    margin-top: 16px;
+    gap: 36px;
+  }
+
+  html.player-fullscreen-active .player-control-buttons {
+    gap: 4px;
+  }
+
+  html.player-fullscreen-active .player-control-btn.has-text {
+    padding: 0 18px;
+  }
+
+  html.player-fullscreen-active .player-control-label {
+    font-size: 18px;
+  }
+
+  html.player-fullscreen-active .player-title {
+    font-size: 24px;
+  }
+
+  html.player-fullscreen-active .player-subtitle {
+    font-size: 16px;
+  }
+
+  html.player-fullscreen-active .player-meta-secondary,
+  html.player-fullscreen-active .player-meta-tertiary {
+    font-size: 14px;
+  }
+
+  html.player-fullscreen-active .player-time-label {
+    font-size: 18px;
+  }
+
+  html.player-fullscreen-active .player-progress-shell {
+    margin-top: 12px;
+  }
+
+  html.player-fullscreen-active .player-progress-track {
+    height: 4px;
+  }
+
+  html.player-fullscreen-active .player-controls-gradient-top {
+    height: 150px;
+  }
+
+  html.player-fullscreen-active .player-controls-gradient-bottom {
+    height: 200px;
+  }
+
   .global-back-button {
     top: 22.222px;
     right: 22.222px;
@@ -2185,7 +2389,7 @@
 
 @media screen and (hover: hover) and (pointer: fine) {
   .player-controls-top .player-clock {
-    font-size: 24px;
+    font-size: 28px;
   }
 
   .player-controls-top .player-ends-at {
@@ -2195,7 +2399,7 @@
 
 @media screen and (max-width: 950px) {
   .player-controls-top .player-clock {
-    font-size: clamp(18px, 5vw, 24px);
+    font-size: clamp(20px, 5.5vw, 27px);
   }
 
   .player-controls-top .player-ends-at {
@@ -2228,7 +2432,7 @@
   }
 
   .player-controls-top .player-clock {
-    font-size: 32px;
+    font-size: 36px;
   }
 
   .player-controls-top .player-ends-at {
