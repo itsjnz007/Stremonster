@@ -1,4 +1,4 @@
-const BUILD_VERSION = "23153646c55e";
+const BUILD_VERSION = "19e9877bfa04";
 const CACHE_NAME = `nuvio-tv-shell-${BUILD_VERSION}`;
 const APP_SHELL = [
   "./",

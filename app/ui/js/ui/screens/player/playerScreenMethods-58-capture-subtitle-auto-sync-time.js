@@ -253,6 +253,11 @@ export function createPlayerScreenMethods58() {
         `;
     },
     renderSubtitleDialog() {
+      const globalBackButton = globalThis.document?.getElementById?.("globalBackButton");
+      if (globalBackButton) {
+        globalBackButton.hidden = !this.subtitleDialogVisible;
+      }
+
       const dialog = this.uiRefs?.subtitleDialog;
       if (!dialog) {
         return;
