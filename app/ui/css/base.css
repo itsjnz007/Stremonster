@@ -1,0 +1,296 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap");
+@import url("https://fonts.googleapis.com/icon?family=Material+Icons");
+
+:root {
+  --bg-color: #0d0d0d;
+  --bg-color-rgb: 13 13 13;
+  --bg-color-rgb-legacy: 13, 13, 13;
+  --bg-elevated: #1a1a1a;
+  --bg-elevated-rgb: 26 26 26;
+  --card-bg: #222222;
+  --card-bg-rgb: 34 34 34;
+  --secondary-color: #f5f5f5;
+  --secondary-color-rgb: 245 245 245;
+  --secondary-variant: #e0e0e0;
+  --on-secondary: #111111;
+  --error-color: #cf6679;
+  --error-bg: rgba(207, 102, 121, 0.18);
+  --text-color: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-tertiary: #808080;
+  --focus-color: #ffffff;
+  --focus-color-rgb: 255 255 255;
+  --focus-bg: #303030;
+  --border-color: #333333;
+  --app-font-family: "Inter", "Segoe UI", Arial, sans-serif;
+  --tv-safe-gutter: 32px;
+  --tv-safe-gutter: clamp(28px, 3vw, 56px);
+  --tv-safe-gutter-wide: 40px;
+  --tv-safe-gutter-wide: clamp(32px, 3.6vw, 72px);
+  --tv-card-radius: 16px;
+  --tv-card-radius: clamp(14px, 1.1vw, 22px);
+  --tv-card-gap: 14px;
+  --tv-card-gap: clamp(12px, 1vw, 18px);
+  --tv-button-height: 60px;
+  --tv-button-height: clamp(54px, 3.7vw, 68px);
+  --tv-button-padding-x: 28px;
+  --tv-button-padding-x: clamp(22px, 2vw, 34px);
+  --tv-control-size: 64px;
+  --tv-control-size: clamp(58px, 4vw, 74px);
+  --tv-control-icon-size: 32px;
+  --tv-control-icon-size: clamp(28px, 2vw, 36px);
+  --tv-caption-text: 16px;
+  --tv-caption-text: clamp(14px, 0.95vw, 18px);
+  --tv-secondary-text: 18px;
+  --tv-secondary-text: clamp(16px, 1.08vw, 21px);
+  --tv-body-text: 20px;
+  --tv-body-text: clamp(18px, 1.18vw, 24px);
+  --tv-subtitle-text: 28px;
+  --tv-subtitle-text: clamp(24px, 1.7vw, 32px);
+  --tv-title-text: 48px;
+  --tv-title-text: clamp(42px, 2.9vw, 60px);
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: var(--bg-color);
+  font-size: 20px;
+  font-size: var(--tv-body-text);
+  color: var(--text-color);
+  font-family: var(--app-font-family);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.screen {
+  display: none;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Samsung TV apps render on a fixed 1920x1080 CSS canvas. Older Tizen
+   engines can under-report 100vh and leave an uncovered strip at the bottom. */
+.tizen-tv #app,
+.tizen-tv .screen {
+  height: 1080px;
+}
+
+.row {
+  margin: 40px;
+}
+
+.card {
+  display: inline-block;
+  width: 250px;
+  height: 140px;
+  margin-right: 20px;
+  background: #222;
+  border-radius: 8px;
+  overflow: hidden;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.card.focused {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2px rgba(245, 249, 255, 0.9);
+}
+
+@media screen and (hover: hover) and (pointer: fine) {
+  body {
+    transform: scale(0.75);
+    transform-origin: top left;
+    width: 133.333vw;
+    height: 133.333vh;
+  }
+
+  #app,
+  .screen {
+    width: 133.333vw;
+    height: 133.333vh;
+  }
+
+  #app > .screen > * {
+    width: 100%;
+    height: 100%;
+  }
+
+  #home .home-main,
+  #home .home-sidebar {
+    height: 133.333vh;
+  }
+
+  #home .home-screen-shell.home-layout-modern {
+    --home-content-start: 40px;
+    --modern-rows-viewport-height: 49%;
+    --modern-hero-copy-bottom-gap: 0px;
+  }
+
+  #home .home-screen-shell.home-layout-modern .home-modern-stage {
+    position: relative;
+    box-sizing: border-box;
+    min-height: 133.333vh;
+    padding-top: 72vh;
+  }
+
+  #home .home-screen-shell.home-layout-modern .home-hero {
+    bottom: auto;
+    height: 133.333vh;
+  }
+
+  #home .home-screen-shell.home-layout-modern .home-modern-rows-viewport {
+    position: relative;
+    inset: auto;
+    height: auto;
+    overflow: visible;
+  }
+
+  #detail .series-detail-shell {
+    width: 125%;
+    height: 125%;
+    transform: scale(0.8);
+    transform-origin: top left;
+  }
+
+  #detail .series-detail-content,
+  #detail .detail-hero-section {
+    height: 166.667vh;
+  }
+
+  #search .search-sidebar,
+  #search .home-sidebar,
+  #search .search-content {
+    height: 133.333vh;
+  }
+
+  #search .search-header {
+    grid-template-columns: repeat(2, 80px) minmax(0, 1fr);
+    gap: 16px;
+    padding: 0 32px;
+  }
+
+  #search .search-header.no-discover,
+  #search .search-header.no-voice {
+    grid-template-columns: 80px minmax(0, 1fr);
+  }
+
+  #search .search-header.no-discover.no-voice {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #search .search-discover-btn,
+  #search .search-voice-btn,
+  #search .search-input-field {
+    height: 80px;
+    border-radius: 16px;
+  }
+
+  #search .search-discover-btn,
+  #search .search-voice-btn {
+    width: 80px;
+  }
+
+  #search .search-action-icon {
+    font-size: 40px;
+  }
+
+  #search .search-input-field {
+    padding: 0 24px;
+    font-size: 26px;
+  }
+
+  #search .search-empty-icon {
+    font-size: 96px;
+  }
+
+  #search .search-empty-state h2 {
+    margin: 16px 0 8px;
+    font-size: 40px;
+  }
+
+  #search .search-empty-state p {
+    font-size: 18px;
+  }
+
+  #library .home-main,
+  #library .home-sidebar {
+    height: 133.333vh;
+  }
+
+  #library .library-main {
+    padding: 32px 64px 48px;
+  }
+
+  #library .library-grid {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 24px 18px;
+  }
+
+  #library .library-grid-title {
+    font-size: 24px;
+  }
+
+  #settings .home-sidebar {
+    height: 133.333vh;
+  }
+
+  #settings .settings-workspace {
+    width: calc(100% - var(--legacy-sidebar-rail-width) - 64px);
+    height: calc(100% - 96px);
+  }
+
+  #settings .settings-shell.has-collapsible-sidebar .settings-workspace,
+  #settings .settings-shell.has-modern-sidebar .settings-workspace {
+    width: calc(100% - 128px);
+    height: calc(100% - 92px);
+  }
+
+  #tmdbEntityBrowse .tmdb-entity-state,
+  #tmdbEntityBrowse .tmdb-entity-empty {
+    min-height: 133.333vh;
+  }
+
+  #stream .stream-route-shell {
+    width: 125%;
+    height: 125%;
+    transform: scale(0.8);
+    transform-origin: top left;
+  }
+}
+
+/* Tizen fast path: the old `*:focus` selector forced a full-tree style
+   recalc on every focus change (every D-pad press). Scoped instead. */
+.focusable:focus,
+button:focus,
+input:focus,
+textarea:focus,
+select:focus,
+a:focus {
+  outline: none !important;
+}
+
+/* Hide icon ligature names until the Material Icons font is ready (app.js). */
+html:not(.material-icons-ready) .material-icons,
+html:not(.material-icons-ready) .root-sidebar-icon-material,
+html:not(.material-icons-ready) .settings-nav-icon-material,
+html:not(.material-icons-ready) .settings-row-leading-icon {
+  visibility: hidden;
+}

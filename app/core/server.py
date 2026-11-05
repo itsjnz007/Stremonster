@@ -6,7 +6,7 @@ import os, time
 from typing import Optional
 from app.models.responses import ExternalWebResponse, Subtitle, WebResponse
 from app.sources import torrentio as torrentio_module
-from flask import Flask, request
+from flask import Flask, request, send_from_directory
 from flask.wrappers import Response
 from app.core.logger import Logger
 from app.config import MANIFEST_CATALOG, MANIFEST_MIGRATE, MANIFEST_TORRENTS, MANIFEST_WEB, USE_CACHE_UPTO
@@ -19,6 +19,7 @@ from app.external.cinemeta import Cinemeta
 
 logger = Logger("server")
 app = Flask(__name__)
+UI_DIST = Path(__file__).resolve().parents[1] / "ui" / "dist"
 
 thread_pool_torrent = MultiThreading(max_workers=2)
 
@@ -262,6 +263,14 @@ def proxy_srt():
 @app.route("/proxy")
 def proxy() -> Response | tuple[dict[str, str], int]:
     return Proxy.proxy()
+
+@app.route("/")
+def ui_index() -> Response:
+    return send_from_directory(UI_DIST, "index.html")
+
+@app.route("/<path:filename>")
+def ui_asset(filename: str) -> Response:
+    return send_from_directory(UI_DIST, filename)
 
 
 if __name__ == "__main__":
