@@ -201,8 +201,8 @@ class StreamExtractor:
                 title = self.tmdb_client.get_title(id)
                 if title:
                     tasks: List[Callable[[Any], Optional[List[WebResponse]]]] = [
-                        lambda _: moviesda_scraper.get_movie(title, release_year),
                         lambda _: tamilmv_scraper.get_movie(title, release_year),
+                        lambda _: moviesda_scraper.get_movie(title, release_year),
                         lambda _: tamilblasters_scraper.get_movie(title, release_year, threadpool=self.threadpool),
                     ]
                     return process_results(tasks, 1, extend=extend)
