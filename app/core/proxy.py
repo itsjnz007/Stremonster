@@ -2,8 +2,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import os
-import threading
+import threading, shutil, os
 from app.config import TUNNEL_URL
 from flask import Response, request, jsonify, stream_with_context
 from urllib.parse import quote, urlparse
@@ -260,84 +259,100 @@ class Proxy:
             break
 
         return None
+    
 
     @staticmethod
-    def test_stream(stream: WebResponse, test_seconds: int = 3) -> tuple[bool, int | None]:
-        """Decode the beginning of a stream, test it, and return (success, bitrate_KBps)."""
-        command: list[str] = [
-            "ffmpeg",
-            "-hide_banner",
-            "-nostdin",
-            "-rw_timeout",
-            "10000000",
-            "-analyzeduration",
-            "5000000",
-            "-probesize",
-            "5000000",
-            "-i",
-            stream["url"],
-            "-t",
-            str(test_seconds),
-            "-map",
-            "0:v:0?",
-            "-map",
-            "0:a:0?",
-            "-f",
-            "null",
-            "-",
+    def test_stream(
+        stream: WebResponse,
+        test_seconds: int = 3,
+        network_timeout: int = 15,
+    ) -> tuple[bool, Optional[int]]:
+        """
+        Test a stream by decoding its beginning using headless mpv.
+
+        Returns:
+            (success, bitrate_KBps)
+
+            success:
+                True if mpv successfully plays the requested duration.
+                False if playback fails or times out.
+
+            bitrate_KBps:
+                Video bitrate in kilobytes per second (KB/s), or None if unavailable.
+        """
+        url = stream.get("url")
+
+        if not url:
+            logger.error("Stream test failed: Missing URL")
+            return False, None
+
+        mpv = shutil.which("mpv")
+
+        if not mpv:
+            logger.error("Unable to test stream: mpv is not installed")
+            return False, None
+
+        headers = stream.get("headers") or {}
+
+        command = [
+            mpv,
+            "--vo=null",
+            "--ao=null",
+            f"--length={test_seconds}",
+            f"--network-timeout={network_timeout}",
+            "--no-config",
+            "--msg-level=all=info",
         ]
+
+        if headers:
+            header_fields = ",".join(
+                f"{key}: {value}"
+                for key, value in headers.items()
+            )
+            command.append(f"--http-header-fields={header_fields}")
+
+        command.append(url)
 
         try:
             result = subprocess.run(
                 command,
                 capture_output=True,
                 text=True,
-                timeout=30,
-                check=False,
+                timeout=network_timeout + test_seconds + 2,
             )
+
+            output = f"{result.stdout}\n{result.stderr}"
+            logger.info(output)
+
+            if result.returncode == 0:
+                bitrate_KBps = None
+                # Matches mpv's track summary line, e.g.:
+                # ● Video  --vid=1  (h264 [High] 1920x1080 25 fps 1494 kbps) [default]
+                match = re.search(
+                    r"Video\s+--vid=\d+.*?\b(\d+)\s*kbps\b",
+                    output,
+                    re.IGNORECASE,
+                )
+                if match:
+                    kbps = int(match.group(1))
+                    bitrate_KBps = round(kbps / 8)
+
+                logger.info(f"Stream playback test passed ({bitrate_KBps} KB/s): {url}")
+                return True, bitrate_KBps
+
+            logger.error(
+                f"Stream playback test failed (exit code {result.returncode}): {url}"
+            )
+            return False, None
+
         except FileNotFoundError:
-            logger.error("Unable to test stream: ffmpeg is not installed")
-            return False, None
-        except subprocess.TimeoutExpired:
-            logger.error("Unable to test stream: ffmpeg timed out")
+            logger.error("Unable to test stream: mpv executable not found")
             return False, None
 
-        if result.returncode != 0:
-            logger.error(f"Stream playback test failed: {result.stderr.strip()}")
+        except Exception as e:
+            logger.error(f"Stream playback test failed: {e}")
             return False, None
 
-        bitrate_kbs = Proxy._parse_video_bitrate(result.stderr)
-
-        if bitrate_kbs is None:
-            for line in result.stderr.splitlines():
-                # Match MP4 / standard container bitrate (kilobits/sec -> KB/s).
-                if "bitrate:" in line and "Duration:" in line:
-                    try:
-                        parts = line.split("bitrate:")
-                        if len(parts) > 1:
-                            val_str = parts[1].strip().split()[0]
-                            val = float(val_str)
-                            if val > 0:
-                                bitrate_kbs = int(val / 8.0)
-                                break
-                    except Exception:
-                        pass
-
-                # Match HLS program/variant metadata (bits/sec -> KB/s).
-                elif "variant_bitrate" in line:
-                    try:
-                        parts = line.split(":")
-                        if len(parts) > 1:
-                            val = int(parts[1].strip())
-                            if val > 0:
-                                bitrate_kbs = int(val / 8000.0)
-                                break
-                    except Exception:
-                        pass
-
-        if bitrate_kbs: logger.info(f"Stream playback test passed (Bitrate: {bitrate_kbs} KB/s)")
-        else: logger.warning(f"Unable to fetch bitrate. Find the below ffmpeg logs\n{result.stderr.splitlines()}")
-        return True, bitrate_kbs
 
 
     @staticmethod
@@ -842,3 +857,6 @@ class Proxy:
         logger.info(f"{upstream_response.status_code} | {round(time.time() - start_time, 2)}s | Streaming 'id' {id} - 'url' {Parsers.extract_segment_name(media_url)}")
 
         return Proxy.apply_headers(resp)
+
+# if __name__ == "__main__":
+#     print(Proxy.test_stream({"url": "https://norway-canary.bigbang.cymru/origin_tv/tv/tmdb-66573/S03E04/index.m3u8.png?exp=1795127400&sig=d79e5a65bc30df434cc9d183f17c93d7d79d484ee59e30c5dde6bcad6e419738", "headers": {}}, test_seconds=3))
