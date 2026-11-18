@@ -14,7 +14,8 @@ from app.sources.general import \
     aether as aether, \
     cinejoy as cinejoy, \
     vsembed as vsembed, \
-    showbox as showbox
+    showbox as showbox, \
+    sevenmovies as sevenmovies
 from app.sources.general import *
 from app.sources.anime import miruro as miruro, vidnest as vidnest, four_animo as four_animo, \
     yomi as yomi, anikoto as anikoto
@@ -33,6 +34,7 @@ movy_scraper = movy.MovyScraper()
 cinejoy_scraper = cinejoy.Cinejoy()
 vsembed_scraper = vsembed.Vsembed()
 showbox_scraper = showbox.Showbox()
+sevenmovies_scraper = sevenmovies.SevenMovies()
 
 # Aether
 subtitulado = aether.Subtitulado()
@@ -157,6 +159,7 @@ class StreamExtractor:
             (lambda tmdb_id: [result] if (result := meridian.get_movie(tmdb_id)) else None, 'meridian'),
             (lambda tmdb_id: [result] if (result := lul.get_movie(tmdb_id)) else None, 'lul'),
             (lambda tmdb_id: [result] if (result := subtitulado.get_movie(tmdb_id)) else None, 'subtitulado'),
+            (lambda tmdb_id: [result] if (result := sevenmovies_scraper.get_movie(tmdb_id)) else None, 'sevenmovies'),
             (lambda tmdb_id: [result] if (result := cinejoy_scraper.get_movie(tmdb_id)) else None, 'cinejoy'),
             (lambda tmdb_id: [result] if (result := vsembed_scraper.get_movie(tmdb_id)) else None, 'vsembed'),
             (lambda tmdb_id: [result] if (result := movy_scraper.get_movie(tmdb_id)) else None, 'movy'),
@@ -170,6 +173,7 @@ class StreamExtractor:
             (lambda tmdb_id, s, e: [result] if (result := meridian.get_series(tmdb_id, s, e)) else None, 'meridian'),
             (lambda tmdb_id, s, e: [result] if (result := lul.get_series(tmdb_id, s, e)) else None, 'lul'),
             (lambda tmdb_id, s, e: [result] if (result := subtitulado.get_series(tmdb_id, s, e)) else None, 'subtitulado'),
+            (lambda tmdb_id, s, e: [result] if (result := sevenmovies_scraper.get_series(tmdb_id, s, e)) else None, 'sevenmovies'),
             (lambda tmdb_id, s, e: [result] if (result := cinejoy_scraper.get_series(tmdb_id, s, e)) else None, 'cinejoy'),
             (lambda tmdb_id, s, e: [result] if (result := vsembed_scraper.get_series(tmdb_id, s, e)) else None, 'vsembed'),
             (lambda tmdb_id, s, e: [result] if (result := movy_scraper.get_series(tmdb_id, s, e)) else None, 'movy'),
