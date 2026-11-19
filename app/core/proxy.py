@@ -264,7 +264,7 @@ class Proxy:
     @staticmethod
     def test_stream(
         stream: WebResponse,
-        test_seconds: float = 0.001,
+        test_seconds: float = 1,
         network_timeout: int = 30,
     ) -> tuple[bool, Optional[int]]:
         """
@@ -298,8 +298,11 @@ class Proxy:
             mpv,
             "--vo=null",
             "--ao=null",
-            f"--length={test_seconds}",
+            f"--length={max(test_seconds, 1.0)}",
             f"--network-timeout={network_timeout}",
+            "--demuxer-readahead-secs=2",
+            "--cache=yes",
+            "--cache-secs=2",
             "--no-config",
             "--msg-level=all=info",
         ]
