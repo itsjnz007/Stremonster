@@ -424,8 +424,8 @@ class Proxy:
 
         if not network_prefix: raise Exception("Network prefix not set")
         if not LOCAL_URL: raise Exception("LOCAL_URL not set")
-        
-        if LOCAL_URL in url: network_prefix = LOCAL_URL
+
+        if url.startswith(LOCAL_URL): network_prefix = LOCAL_URL
 
         if isinstance(headers, dict): headers_str = json.dumps(headers, separators=(",", ":"))
         else: headers_str = str(headers)
