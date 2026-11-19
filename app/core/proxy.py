@@ -264,7 +264,7 @@ class Proxy:
     @staticmethod
     def test_stream(
         stream: WebResponse,
-        test_seconds: int = 3,
+        test_seconds: float = 0.1,
         network_timeout: int = 15,
     ) -> tuple[bool, Optional[int]]:
         """
@@ -859,4 +859,4 @@ class Proxy:
         return Proxy.apply_headers(resp)
 
 # if __name__ == "__main__":
-#     print(Proxy.test_stream({"url": "https://norway-canary.bigbang.cymru/origin_tv/tv/tmdb-66573/S03E04/index.m3u8.png?exp=1795127400&sig=d79e5a65bc30df434cc9d183f17c93d7d79d484ee59e30c5dde6bcad6e419738", "headers": {}}, test_seconds=3))
+#     print(Proxy.test_stream({"url": "https://norway-canary.bigbang.cymru/origin_tv/tv/tmdb-66573/S03E04/index.m3u8.png?exp=1795127400&sig=d79e5a65bc30df434cc9d183f17c93d7d79d484ee59e30c5dde6bcad6e419738", "headers": {}}, test_seconds=0.1))
