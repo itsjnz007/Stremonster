@@ -521,7 +521,7 @@ class Proxy:
                         and LOCAL_URL
                         and LOCAL_URL in rewritten_line
                     ):
-                        logger.warning("Detected local URL in subtitle/audio tag. Rewriting to tunnel URL for external access.")
+                        logger.warning("Detected local URL in subtitle/audio tag. Discarding tag.")
                         continue
 
                     rewritten.append(rewritten_line)
