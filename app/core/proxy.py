@@ -290,7 +290,7 @@ class Proxy:
             "--cache=no",
             "--demuxer-readahead-secs=0.5",
             "--no-config",
-            "--msg-level=all=warn,cplayer=info",
+            "--msg-level=all=info",
         ]
 
         if headers:
@@ -309,6 +309,10 @@ class Proxy:
             )
             stdout, stderr = proc.communicate(timeout=hard_timeout)
             output = f"{stdout}\n{stderr}"
+            if stdout:
+                logger.info(stdout)
+            if stderr:
+                logger.error(stderr)
 
             if proc.returncode == 0:
                 bitrate_KBps = None
@@ -852,4 +856,4 @@ class Proxy:
         return Proxy.apply_headers(resp)
 
 # if __name__ == "__main__":
-#     print(Proxy.test_stream({"url": "https://something.dpdns.org/stream.mp4?url=https%3A%2F%2Fusa7-as06.shegu.net%2Fvip%2Fp1%2Forg_movie%2F1%2F7%2F3%2F74993%2Fmovie.74993.2026.original.2367701.20260430134204.mp4%3FKEY1%3DkWm7IRe4TbZJm6OuQbMNbA%26KEY2%3D1795112285%26KEY3%3D2522611%26KEY4%3Dworld%26KEY5%3DProject.Hail.Mary.2026.1080p.WEB.x264.AC3.5.1-PoNg.mp4%26KEY7%3Dfebbox_video_quality_list_v3%26KEY8%3D2522611%26KEY0%3D2&headers=%7B%22Origin%22%3A%20%22https%3A%2F%2Fshowbox.codiv.dpdns.org%2F%257B%2522cookie%2522%253A%2522eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIyMjg0OTcsIm5iZiI6MTc5MjIyODQ5NywiZXhwIjoxODIzMzMyNTE3LCJkYXRhIjp7InVpZCI6MjUyMjYxMSwidG9rZW4iOiI4OTQ0MjY4NDJkY2M2M2U0NDRhZDdhMjg4ZDQ4YjdkZCJ9fQ.UEnZ2pZefUH-rHCt1bdp9-qcj9ZRH2vabgjmtyZhjBo%2522%257D%22%2C%20%22Referer%22%3A%20%22https%3A%2F%2Fshowbox.codiv.dpdns.org%2F%257B%2522cookie%2522%253A%2522eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIyMjg0OTcsIm5iZiI6MTc5MjIyODQ5NywiZXhwIjoxODIzMzMyNTE3LCJkYXRhIjp7InVpZCI6MjUyMjYxMSwidG9rZW4iOiI4OTQ0MjY4NDJkY2M2M2U0NDRhZDdhMjg4ZDQ4YjdkZCJ9fQ.UEnZ2pZefUH-rHCt1bdp9-qcj9ZRH2vabgjmtyZhjBo%2522%257D%2F%22%7D", "headers": {}}, test_seconds=0.001))
+#     print(Proxy.test_stream({"url": "https://something.dpdns.org/stream.mp4?url=https%3A%2F%2Fusa7-as06.shegu.net%2Fvip%2Fp1%2Forg_movie%2F1%2F7%2F3%2F74993%2Fmovie.74993.2026.original.2367701.20260430134204.mp4%3FKEY1%3DkWm7IRe4TbZJm6OuQbMNbA%26KEY2%3D1795112285%26KEY3%3D2522611%26KEY4%3Dworld%26KEY5%3DProject.Hail.Mary.2026.1080p.WEB.x264.AC3.5.1-PoNg.mp4%26KEY7%3Dfebbox_video_quality_list_v3%26KEY8%3D2522611%26KEY0%3D2&headers=%7B%22Origin%22%3A%20%22https%3A%2F%2Fshowbox.codiv.dpdns.org%2F%257B%2522cookie%2522%253A%2522eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIyMjg0OTcsIm5iZiI6MTc5MjIyODQ5NywiZXhwIjoxODIzMzMyNTE3LCJkYXRhIjp7InVpZCI6MjUyMjYxMSwidG9rZW4iOiI4OTQ0MjY4NDJkY2M2M2U0NDRhZDdhMjg4ZDQ4YjdkZCJ9fQ.UEnZ2pZefUH-rHCt1bdp9-qcj9ZRH2vabgjmtyZhjBo%2522%257D%22%2C%20%22Referer%22%3A%20%22https%3A%2F%2Fshowbox.codiv.dpdns.org%2F%257B%2522cookie%2522%253A%2522eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIyMjg0OTcsIm5iZiI6MTc5MjIyODQ5NywiZXhwIjoxODIzMzMyNTE3LCJkYXRhIjp7InVpZCI6MjUyMjYxMSwidG9rZW4iOiI4OTQ0MjY4NDJkY2M2M2U0NDRhZDdhMjg4ZDQ4YjdkZCJ9fQ.UEnZ2pZefUH-rHCt1bdp9-qcj9ZRH2vabgjmtyZhjBo%2522%257D%2F%22%7D", "headers": {}}, test_seconds=1))
