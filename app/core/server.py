@@ -119,7 +119,7 @@ def get_web_stream(type: str, id: str) -> Response:
 
     logger.info("Cache invalid, recalculating...")
     processing_cache.start(id, 'web')
-    streams = stream_extractor.extract(id, type, seek=3, user_agent=user_agent)
+    streams = stream_extractor.extract(id, type, seek=1, user_agent=user_agent)
     if streams:
         processing_cache.finish(id, 'web', True)
         return respond_with({'streams': streams})

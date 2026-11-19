@@ -265,7 +265,7 @@ class Proxy:
     def test_stream(
         stream: WebResponse,
         test_seconds: float = 0.001,
-        network_timeout: int = 15,
+        network_timeout: int = 30,
     ) -> tuple[bool, Optional[int]]:
         """
         Test a stream by decoding its beginning using headless mpv.
