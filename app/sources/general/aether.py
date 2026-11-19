@@ -88,12 +88,12 @@ class Meridian(Scraper):
 
 if __name__ == "__main__":
     scraper = Subtitulado()
-    # res = scraper.get_movie("634649")
-    # print(f"Response: {res}")
+    res = scraper.get_movie("634649")
+    print(f"Response: {res}")
 
-    # scraper = Lul()
-    # res = scraper.get_movie("652")
-    # print(f"Response: {res}")
+    scraper = Lul()
+    res = scraper.get_movie("652")
+    print(f"Response: {res}")
 
     scraper = Link()
     res = scraper.get_series("3308", "2", "21")
