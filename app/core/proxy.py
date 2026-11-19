@@ -285,9 +285,10 @@ class Proxy:
             mpv,
             "--vo=null",
             "--ao=null",
+                        # Does not work for some reason, stripping audio and subtitle in parse_segment
             "--aid=no", # Disable audio decoding to speed up the test
             "--sid=no", # Disable subtitle decoding to speed up the test
-            "vid=1", # Force video decoding to ensure we can measure the bitrate
+            "--vid=1", # Force video decoding to ensure we can measure the bitrate
             f"--length={effective_length}",
             f"--network-timeout={network_timeout}",
             "--cache=no",
@@ -443,7 +444,15 @@ class Proxy:
 
 
     @staticmethod
-    def parse_segment(content: bytes, headers: str, master_url: str, id: Optional[str], index: Optional[str], bitrate_kbs: Optional[int], network_prefix: Optional[str] = TUNNEL_URL) -> str:
+    def parse_segment(
+        content: bytes,
+        headers: str,
+        master_url: str,
+        id: Optional[str],
+        index: Optional[str],
+        bitrate_kbs: Optional[int],
+        network_prefix: Optional[str] = TUNNEL_URL,
+    ) -> str:
         text = content.decode("utf-8", errors="ignore")
         rewritten: list[str] = []
 
@@ -465,9 +474,11 @@ class Proxy:
 
         # Helper function to dynamically pull the extension (.mp4, .m4s, .ts, .m3u8) from any target line
         def get_stream_type(target: str) -> str:
-            if is_master: return "stream.m3u8"  # Master playlists should always be treated as m3u8
+            if is_master:
+                return "stream.m3u8"  # Master playlists should always be treated as m3u8
             ext = os.path.splitext(urlparse(target).path)[1]
-            if is_fmp4: return "stream.m4s"
+            if is_fmp4:
+                return "stream.m4s"
             elif ext == ".webm":
                 return "stream.mkv"
             elif ext in [".mp4", ".m4s", ".ts", ".m3u8"]:
@@ -485,23 +496,53 @@ class Proxy:
 
             # Handle tags that might contain URIs
             if line.startswith("#"):
-                if 'URI=' in line:
+                if "URI=" in line:
                     # Replace the URI inside the tag with the proxied version
                     def replace_uri(match: re.Match[str]):
                         full_url = resolve_url(match.group(2))
                         stream_type = get_stream_type(match.group(2))
-                        proxied_url = Proxy.add_proxy(full_url, headers, stream_type=stream_type, id=id, bitrate_kbs=bitrate_kbs, network_prefix=network_prefix) + (f"&index={quote(index, safe='')}" if index else "")
-                        return f'{match.group(1)}{proxied_url}{match.group(3)}'
-                    
-                    rewritten.append(uri_pattern.sub(replace_uri, line))
+                        proxied_url = Proxy.add_proxy(
+                            full_url,
+                            headers,
+                            stream_type=stream_type,
+                            id=id,
+                            bitrate_kbs=bitrate_kbs,
+                            network_prefix=network_prefix,
+                        ) + (f"&index={quote(index, safe='')}" if index else "")
+                        return f"{match.group(1)}{proxied_url}{match.group(3)}"
+
+                    rewritten_line = uri_pattern.sub(replace_uri, line)
+
+                    if (
+                        (
+                            rewritten_line.startswith("#EXT-X-MEDIA:TYPE=SUBTITLES")
+                            or rewritten_line.startswith("#EXT-X-MEDIA:TYPE=AUDIO")
+                        )
+                        and LOCAL_URL
+                        and LOCAL_URL in rewritten_line
+                    ):
+                        logger.warning("Detected local URL in subtitle/audio tag. Rewriting to tunnel URL for external access.")
+                        continue
+
+                    rewritten.append(rewritten_line)
                 else:
                     # Standard tag, no URI to proxy
                     rewritten.append(line)
-            
+
             # Handle segment URLs (lines not starting with #)
             else:
                 stream_type = get_stream_type(line)
-                rewritten.append(Proxy.add_proxy(resolve_url(line), headers, stream_type=stream_type, id=id, bitrate_kbs=bitrate_kbs, network_prefix=network_prefix) + (f"&index={quote(index, safe='')}" if index else ""))
+                rewritten.append(
+                    Proxy.add_proxy(
+                        resolve_url(line),
+                        headers,
+                        stream_type=stream_type,
+                        id=id,
+                        bitrate_kbs=bitrate_kbs,
+                        network_prefix=network_prefix,
+                    )
+                    + (f"&index={quote(index, safe='')}" if index else "")
+                )
 
         return "\n".join(rewritten)
     
