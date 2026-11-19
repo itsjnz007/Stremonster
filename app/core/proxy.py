@@ -285,11 +285,14 @@ class Proxy:
             mpv,
             "--vo=null",
             "--ao=null",
+            "--aid=no", # Disable audio decoding to speed up the test
+            "--sid=no", # Disable subtitle decoding to speed up the test
+            "vid=1", # Force video decoding to ensure we can measure the bitrate
             f"--length={effective_length}",
             f"--network-timeout={network_timeout}",
             "--cache=no",
             "--demuxer-readahead-secs=0.5",
-            "--no-config",
+            "--no-config", # Ignore user config files to ensure consistent behavior
             "--msg-level=all=info",
         ]
 
