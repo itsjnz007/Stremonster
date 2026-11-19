@@ -3,7 +3,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import threading, shutil, os
-from app.config import TUNNEL_URL, SERVICE_URL
+from app.config import TUNNEL_URL, LOCAL_URL
 from flask import Response, request, jsonify, stream_with_context
 from urllib.parse import quote, urlparse
 from app.core.logger import Logger
@@ -395,7 +395,7 @@ class Proxy:
         headers_str = json.dumps(stream['headers'])
 
         
-        stream['url'] = Proxy.add_proxy(stream['url'], headers_str, stream_type=stream_type, network_prefix=SERVICE_URL)
+        stream['url'] = Proxy.add_proxy(stream['url'], headers_str, stream_type=stream_type, network_prefix=LOCAL_URL)
         stream['subtitles'] = [
             {
                 **sub,
@@ -423,6 +423,9 @@ class Proxy:
     def add_proxy(url: str, headers: str, id: Optional[str] = None, bitrate_kbs: Optional[int] = None, stream_type: str = "stream.ts", network_prefix: Optional[str] = TUNNEL_URL) -> str:
 
         if not network_prefix: raise Exception("Network prefix not set")
+        if not LOCAL_URL: raise Exception("LOCAL_URL not set")
+        
+        if LOCAL_URL in url: network_prefix = LOCAL_URL
 
         if isinstance(headers, dict): headers_str = json.dumps(headers, separators=(",", ":"))
         else: headers_str = str(headers)

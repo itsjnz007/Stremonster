@@ -5,7 +5,7 @@ load_dotenv()
 
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 TUNNEL_URL = os.getenv("TUNNEL_URL")
-SERVICE_URL = os.getenv("SERVICE_URL")
+LOCAL_URL = os.getenv("LOCAL_URL")
 
 CACHE_DIR = ".cache"
 
