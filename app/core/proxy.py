@@ -513,6 +513,8 @@ class Proxy:
 
                     rewritten_line = uri_pattern.sub(replace_uri, line)
 
+                    # Handle cases where the stream is tested using mpv with the function test_stream
+                    # This is to prevent issues with local mpv testing and subtitle/audio tags can break playback
                     if (
                         (
                             rewritten_line.startswith("#EXT-X-MEDIA:TYPE=SUBTITLES")
