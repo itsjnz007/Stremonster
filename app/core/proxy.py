@@ -423,9 +423,6 @@ class Proxy:
     def add_proxy(url: str, headers: str, id: Optional[str] = None, bitrate_kbs: Optional[int] = None, stream_type: str = "stream.ts", network_prefix: Optional[str] = TUNNEL_URL) -> str:
 
         if not network_prefix: raise Exception("Network prefix not set")
-        if not LOCAL_URL: raise Exception("LOCAL_URL not set")
-
-        if url.startswith(LOCAL_URL): network_prefix = LOCAL_URL
 
         if isinstance(headers, dict): headers_str = json.dumps(headers, separators=(",", ":"))
         else: headers_str = str(headers)
@@ -443,7 +440,7 @@ class Proxy:
 
 
     @staticmethod
-    def parse_segment(content: bytes, headers: str, master_url: str, id: Optional[str], index: Optional[str], bitrate_kbs: Optional[int]) -> str:
+    def parse_segment(content: bytes, headers: str, master_url: str, id: Optional[str], index: Optional[str], bitrate_kbs: Optional[int], network_prefix: Optional[str] = TUNNEL_URL) -> str:
         text = content.decode("utf-8", errors="ignore")
         rewritten: list[str] = []
 
@@ -490,7 +487,7 @@ class Proxy:
                     def replace_uri(match: re.Match[str]):
                         full_url = resolve_url(match.group(2))
                         stream_type = get_stream_type(match.group(2))
-                        proxied_url = Proxy.add_proxy(full_url, headers, stream_type=stream_type, id=id, bitrate_kbs=bitrate_kbs) + (f"&index={quote(index, safe='')}" if index else "")
+                        proxied_url = Proxy.add_proxy(full_url, headers, stream_type=stream_type, id=id, bitrate_kbs=bitrate_kbs, network_prefix=network_prefix) + (f"&index={quote(index, safe='')}" if index else "")
                         return f'{match.group(1)}{proxied_url}{match.group(3)}'
                     
                     rewritten.append(uri_pattern.sub(replace_uri, line))
@@ -501,7 +498,7 @@ class Proxy:
             # Handle segment URLs (lines not starting with #)
             else:
                 stream_type = get_stream_type(line)
-                rewritten.append(Proxy.add_proxy(resolve_url(line), headers, stream_type=stream_type, id=id, bitrate_kbs=bitrate_kbs) + (f"&index={quote(index, safe='')}" if index else ""))
+                rewritten.append(Proxy.add_proxy(resolve_url(line), headers, stream_type=stream_type, id=id, bitrate_kbs=bitrate_kbs, network_prefix=network_prefix) + (f"&index={quote(index, safe='')}" if index else ""))
 
         return "\n".join(rewritten)
     
@@ -584,6 +581,8 @@ class Proxy:
 
     @staticmethod
     def proxy(content_type: Optional[str] = None) -> Response:
+        assert LOCAL_URL, "LOCAL_URL must be set in config.py"
+        assert TUNNEL_URL, "TUNNEL_URL must be set in config.py"
 
         start_time = time.time()
 
@@ -708,7 +707,8 @@ class Proxy:
                 media_url,
                 id=id,
                 index=index,
-                bitrate_kbs=bitrate_kbs
+                bitrate_kbs=bitrate_kbs,
+                network_prefix=LOCAL_URL if media_url.startswith(LOCAL_URL) else TUNNEL_URL
             )
             resp = Response(
                 updated_content,
