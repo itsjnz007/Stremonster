@@ -708,7 +708,7 @@ class Proxy:
                 id=id,
                 index=index,
                 bitrate_kbs=bitrate_kbs,
-                network_prefix=LOCAL_URL if media_url.startswith(LOCAL_URL) else TUNNEL_URL
+                network_prefix=LOCAL_URL if request.url.startswith(LOCAL_URL) else TUNNEL_URL
             )
             resp = Response(
                 updated_content,
