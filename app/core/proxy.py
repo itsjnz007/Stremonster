@@ -264,88 +264,75 @@ class Proxy:
     @staticmethod
     def test_stream(
         stream: WebResponse,
-        test_seconds: float = 1,
-        network_timeout: int = 30,
+        test_seconds: float = 1.0,
+        network_timeout: int = 10,
     ) -> tuple[bool, Optional[int]]:
-        """
-        Test a stream by decoding its beginning using headless mpv.
-
-        Returns:
-            (success, bitrate_KBps)
-
-            success:
-                True if mpv successfully plays the requested duration.
-                False if playback fails or times out.
-
-            bitrate_KBps:
-                Video bitrate in kilobytes per second (KB/s), or None if unavailable.
-        """
         url = stream.get("url")
-
         if not url:
             logger.error("Stream test failed: Missing URL")
             return False, None
 
         mpv = shutil.which("mpv")
-
         if not mpv:
             logger.error("Unable to test stream: mpv is not installed")
             return False, None
 
         headers = stream.get("headers") or {}
+        effective_length = max(float(test_seconds), 0.5)
+        hard_timeout = network_timeout + effective_length + 3
 
         command = [
             mpv,
             "--vo=null",
             "--ao=null",
-            f"--length={max(test_seconds, 1.0)}",
+            f"--length={effective_length}",
             f"--network-timeout={network_timeout}",
-            "--demuxer-readahead-secs=2",
-            "--cache=yes",
-            "--cache-secs=2",
+            "--cache=no",
+            "--demuxer-readahead-secs=0.5",
             "--no-config",
-            "--msg-level=all=info",
+            "--msg-level=all=warn,cplayer=info",
         ]
 
         if headers:
-            header_fields = ",".join(
-                f"{key}: {value}"
-                for key, value in headers.items()
-            )
+            header_fields = ",".join(f"{k}: {v}" for k, v in headers.items())
             command.append(f"--http-header-fields={header_fields}")
 
         command.append(url)
 
+        proc = None
         try:
-            result = subprocess.run(
+            proc = subprocess.Popen(
                 command,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                timeout=network_timeout + test_seconds + 2,
             )
+            stdout, stderr = proc.communicate(timeout=hard_timeout)
+            output = f"{stdout}\n{stderr}"
 
-            output = f"{result.stdout}\n{result.stderr}"
-            logger.info(output)
-
-            if result.returncode == 0:
+            if proc.returncode == 0:
                 bitrate_KBps = None
-                # Matches mpv's track summary line, e.g.:
-                # ● Video  --vid=1  (h264 [High] 1920x1080 25 fps 1494 kbps) [default]
                 match = re.search(
                     r"Video\s+--vid=\d+.*?\b(\d+)\s*kbps\b",
                     output,
                     re.IGNORECASE,
                 )
                 if match:
-                    kbps = int(match.group(1))
-                    bitrate_KBps = round(kbps / 8)
+                    bitrate_KBps = round(int(match.group(1)) / 8)
 
                 logger.info(f"Stream playback test passed ({bitrate_KBps} KB/s): {url}")
                 return True, bitrate_KBps
 
             logger.error(
-                f"Stream playback test failed (exit code {result.returncode}): {url}"
+                f"Stream playback test failed (exit code {proc.returncode}): {url}"
             )
+            return False, None
+
+        except subprocess.TimeoutExpired:
+            if proc:
+                proc.kill()
+                proc.communicate()
+            logger.warning(f"Stream playback test timed out after {hard_timeout}s: {url}")
             return False, None
 
         except FileNotFoundError:
@@ -353,6 +340,9 @@ class Proxy:
             return False, None
 
         except Exception as e:
+            if proc and proc.poll() is None:
+                proc.kill()
+                proc.communicate()
             logger.error(f"Stream playback test failed: {e}")
             return False, None
 
