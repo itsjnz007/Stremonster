@@ -16,7 +16,7 @@ class SevenMovies(Scraper):
                         )
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
-        url = f"{self.base_url}/movie/{tmdb_id}"
+        url = f"{self.base_url}/movie/{tmdb_id}/watch"
         result = self.get_stream(url, stop_event)
         return result
     
