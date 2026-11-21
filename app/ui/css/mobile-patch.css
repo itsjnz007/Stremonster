@@ -634,8 +634,12 @@ html.mobile-device:not(.mobile-orientation) .modern-sidebar-shell.expanded {
 
 @media (display-mode: standalone), (display-mode: minimal-ui) {
   html.nuvio-pwa,
-  html.nuvio-pwa body,
-  html.nuvio-pwa #app {
+  html.nuvio-pwa body {
+    width: 100%;
+    height: 100%;
+  }
+
+  html.nuvio-pwa:not(.mobile-device) #app {
     width: 100%;
     height: 100%;
   }
