@@ -83,14 +83,5 @@
       src="app.bundle.js?v=20261121commoncontext"
       onerror="window.NuvioBootGuard && window.NuvioBootGuard.scriptFailed(this.src)"
     ></script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", function registerServiceWorker() {
-          navigator.serviceWorker.register("./service-worker.js").catch(function (error) {
-            console.error("Service worker registration failed:", error);
-          });
-        });
-      }
-    </script>
   </body>
 </html>
