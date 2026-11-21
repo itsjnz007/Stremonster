@@ -399,7 +399,13 @@ class Proxy:
         headers_str = json.dumps(stream['headers'])
 
         
-        stream['url'] = Proxy.add_proxy(stream['url'], headers_str, stream_type=stream_type, network_prefix=LOCAL_URL)
+        stream['url'] = Proxy.add_proxy(
+            stream['url'],
+            headers_str,
+            stream_type=stream_type,
+            network_prefix=LOCAL_URL,
+            local_test=True,
+        )
         stream['subtitles'] = [
             {
                 **sub,
@@ -424,7 +430,15 @@ class Proxy:
 
     
     @staticmethod
-    def add_proxy(url: str, headers: str, id: Optional[str] = None, bitrate_kbs: Optional[int] = None, stream_type: str = "stream.ts", network_prefix: Optional[str] = TUNNEL_URL) -> str:
+    def add_proxy(
+        url: str,
+        headers: str,
+        id: Optional[str] = None,
+        bitrate_kbs: Optional[int] = None,
+        stream_type: str = "stream.ts",
+        network_prefix: Optional[str] = TUNNEL_URL,
+        local_test: bool = False,
+    ) -> str:
 
         if not network_prefix: raise Exception("Network prefix not set")
 
@@ -439,6 +453,7 @@ class Proxy:
         )
         if id: proxy_url += f"&id={quote(id, safe='')}"
         if bitrate_kbs: proxy_url = Proxy.add_bitrate(proxy_url, bitrate_kbs)
+        if local_test: proxy_url += "&_local_test=1"
         # if index: proxy_url +=  f"&index={quote(index, safe='')}"
         return proxy_url
 
@@ -452,6 +467,7 @@ class Proxy:
         index: Optional[str],
         bitrate_kbs: Optional[int],
         network_prefix: Optional[str] = TUNNEL_URL,
+        local_test: bool = False,
     ) -> str:
         text = content.decode("utf-8", errors="ignore")
         rewritten: list[str] = []
@@ -508,6 +524,7 @@ class Proxy:
                             id=id,
                             bitrate_kbs=bitrate_kbs,
                             network_prefix=network_prefix,
+                            local_test=local_test,
                         ) + (f"&index={quote(index, safe='')}" if index else "")
                         return f"{match.group(1)}{proxied_url}{match.group(3)}"
 
@@ -519,9 +536,7 @@ class Proxy:
                         (
                             rewritten_line.startswith("#EXT-X-MEDIA:TYPE=SUBTITLES")
                             or rewritten_line.startswith("#EXT-X-MEDIA:TYPE=AUDIO")
-                        )
-                        and LOCAL_URL
-                        and LOCAL_URL in rewritten_line
+                        ) and local_test
                     ):
                         logger.warning("Detected local URL in subtitle/audio tag. Discarding tag.")
                         continue
@@ -542,6 +557,7 @@ class Proxy:
                         id=id,
                         bitrate_kbs=bitrate_kbs,
                         network_prefix=network_prefix,
+                        local_test=local_test,
                     )
                     + (f"&index={quote(index, safe='')}" if index else "")
                 )
@@ -635,6 +651,7 @@ class Proxy:
         # Proxy arguments
         media_url = request.args.get("url")
         if not media_url: raise Exception("No media_url found")
+        local_test = request.args.get("_local_test") == "1"
         id = request.args.get("id")
         index = request.args.get("index")
         try:
@@ -754,7 +771,8 @@ class Proxy:
                 id=id,
                 index=index,
                 bitrate_kbs=bitrate_kbs,
-                network_prefix=LOCAL_URL if request.url.startswith(LOCAL_URL) else TUNNEL_URL
+                network_prefix=LOCAL_URL if request.url.startswith(LOCAL_URL) else TUNNEL_URL,
+                local_test=local_test,
             )
             resp = Response(
                 updated_content,
@@ -905,5 +923,5 @@ class Proxy:
 
         return Proxy.apply_headers(resp)
 
-# if __name__ == "__main__":
-#     print(Proxy.test_stream({"url": "https://something.dpdns.org/stream.mp4?url=https%3A%2F%2Fusa7-nas35.shegu.net%2Fvip%2Fp1%2Forg_movie%2F6%2F4%2F0%2F470%2Fmovie.470.2012.original.399286.20190618182818.mp4%3FKEY1%3DJ32JfTp6EQwNkZHCOgYexw%26KEY2%3D1795114201%26KEY3%3D2522611%26KEY4%3Dworld%26KEY5%3DThe.Hunger.Games.2012.1080p.BluRay.H264.AAC-RARBG.mp4%26KEY7%3Dfebbox_video_quality_list_v3%26KEY8%3D2522611%26KEY0%3D2&headers=%7B%22Origin%22%3A%20%22https%3A%2F%2Fshowbox.codiv.dpdns.org%2F%257B%2522cookie%2522%253A%2522eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIyMjg0OTcsIm5iZiI6MTc5MjIyODQ5NywiZXhwIjoxODIzMzMyNTE3LCJkYXRhIjp7InVpZCI6MjUyMjYxMSwidG9rZW4iOiI4OTQ0MjY4NDJkY2M2M2U0NDRhZDdhMjg4ZDQ4YjdkZCJ9fQ.UEnZ2pZefUH-rHCt1bdp9-qcj9ZRH2vabgjmtyZhjBo%2522%257D%22%2C%20%22Referer%22%3A%20%22https%3A%2F%2Fshowbox.codiv.dpdns.org%2F%257B%2522cookie%2522%253A%2522eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIyMjg0OTcsIm5iZiI6MTc5MjIyODQ5NywiZXhwIjoxODIzMzMyNTE3LCJkYXRhIjp7InVpZCI6MjUyMjYxMSwidG9rZW4iOiI4OTQ0MjY4NDJkY2M2M2U0NDRhZDdhMjg4ZDQ4YjdkZCJ9fQ.UEnZ2pZefUH-rHCt1bdp9-qcj9ZRH2vabgjmtyZhjBo%2522%257D%2F%22%7D", "headers": {}}, test_seconds=1))
+if __name__ == "__main__":
+    print(Proxy.test_stream({"url": "https://something.dpdns.org/stream.mp4?url=https%3A%2F%2Fusa7-nas35.shegu.net%2Fvip%2Fp1%2Forg_movie%2F6%2F4%2F0%2F470%2Fmovie.470.2012.original.399286.20190618182818.mp4%3FKEY1%3DJ32JfTp6EQwNkZHCOgYexw%26KEY2%3D1795114201%26KEY3%3D2522611%26KEY4%3Dworld%26KEY5%3DThe.Hunger.Games.2012.1080p.BluRay.H264.AAC-RARBG.mp4%26KEY7%3Dfebbox_video_quality_list_v3%26KEY8%3D2522611%26KEY0%3D2&headers=%7B%22Origin%22%3A%20%22https%3A%2F%2Fshowbox.codiv.dpdns.org%2F%257B%2522cookie%2522%253A%2522eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIyMjg0OTcsIm5iZiI6MTc5MjIyODQ5NywiZXhwIjoxODIzMzMyNTE3LCJkYXRhIjp7InVpZCI6MjUyMjYxMSwidG9rZW4iOiI4OTQ0MjY4NDJkY2M2M2U0NDRhZDdhMjg4ZDQ4YjdkZCJ9fQ.UEnZ2pZefUH-rHCt1bdp9-qcj9ZRH2vabgjmtyZhjBo%2522%257D%22%2C%20%22Referer%22%3A%20%22https%3A%2F%2Fshowbox.codiv.dpdns.org%2F%257B%2522cookie%2522%253A%2522eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIyMjg0OTcsIm5iZiI6MTc5MjIyODQ5NywiZXhwIjoxODIzMzMyNTE3LCJkYXRhIjp7InVpZCI6MjUyMjYxMSwidG9rZW4iOiI4OTQ0MjY4NDJkY2M2M2U0NDRhZDdhMjg4ZDQ4YjdkZCJ9fQ.UEnZ2pZefUH-rHCt1bdp9-qcj9ZRH2vabgjmtyZhjBo%2522%257D%2F%22%7D", "headers": {}}, test_seconds=1))
