@@ -1,0 +1,291 @@
+:root {
+  --tv-secondary-text: clamp(28px,1.08vw,21px);
+  --tv-body-text: clamp(26px, 1.18vw, 24px);
+}
+
+html .detail-hero-section {
+  height: 100%;
+  min-height: 100%;
+  justify-content: flex-end;
+}
+
+#detailHeroSection {
+  height: 100%;
+}
+
+html.mobile-device #detailHeroSection {
+  height: 200vh;
+}
+
+html.mobile-device .detail-hero-section {
+  height: 200vh;
+  min-height: 200vh;
+}
+
+html.mobile-device .series-detail-content {
+  height: 200vh;
+}
+
+html.mobile-device .series-detail-actions {
+  flex-wrap: wrap;
+  margin: 5px 5px 30px;
+}
+
+.player-ui-root {
+  pointer-events: auto;
+}
+
+.player-platform-webos .player-bitmap-subtitles {
+  position: absolute;
+}
+
+.player-platform-webos .player-html-subtitle-cue {
+  max-width: 90%;
+}
+
+.player-platform-webos .player-html-subtitle-default {
+  right: 5%;
+  bottom: calc(8% + var(--player-subtitle-clearance, 0px));
+  left: 5%;
+}
+
+.player-platform-webos .player-html-subtitle-positioned.player-html-subtitle-align-start {
+  right: 30%;
+  left: 5%;
+}
+
+.player-platform-webos .player-html-subtitle-positioned.player-html-subtitle-align-center {
+  right: 5%;
+  left: 5%;
+}
+
+.player-platform-webos .player-html-subtitle-positioned.player-html-subtitle-align-end {
+  right: 5%;
+  left: 30%;
+}
+
+.player-platform-webos .player-html-subtitle-line {
+  --player-html-subtitle-padding-inline: 0.08em;
+  max-width: min(86%, 1500px);
+}
+
+.player-modal {
+  pointer-events: auto;
+}
+
+.universal-back-button {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 999;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  border: 1px solid rgba(var(--focus-color-rgb-legacy), 0.22);
+  border-radius: 50%;
+  background: rgba(var(--focus-color-rgb-legacy), 0.08);
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.universal-back-button .material-icons {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.universal-back-button:hover,
+.universal-back-button.focused,
+.universal-back-button:focus-visible {
+  transform: none;
+  border-color: var(--focus-color);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(var(--focus-color-rgb-legacy), 0.2);
+}
+
+.universal-back-button[hidden] {
+  display: none;
+}
+
+#playerUiRoot {
+  --player-controls-x: 64px;
+  --player-controls-y: 48px;
+  --player-control-size: 96px;
+  --player-control-icon: 48px;
+  --player-overlay-label-font: 28px;
+}
+
+#playerUiRoot .player-controls-top {
+  padding: 4px;
+}
+
+#playerUiRoot .player-clock {
+  font-size: 26px;
+}
+
+#playerUiRoot .player-ends-at {
+  font-size: 20px;
+}
+
+#playerUiRoot .player-title {
+  font-size: 48px;
+}
+
+#playerUiRoot .player-clock {
+  font-size: 32px;
+}
+
+#playerUiRoot .player-ends-at {
+  font-size: 24px;
+}
+
+#playerUiRoot .player-controls-top {
+  padding: 60px;
+}
+
+#playerUiRoot .player-time-label {
+  font-size: 32px;
+}
+
+#playerUiRoot .player-control-btn {
+  font-size: 20px;
+}
+
+#playerUiRoot .player-control-label {
+  font-size: 18px;
+}
+
+#playerUiRoot .player-progress-shell {
+  margin-top: 24px;
+}
+
+#playerUiRoot .player-progress-track {
+  height: 12px;
+  border-radius: 6px;
+}
+
+#playerUiRoot .player-progress-shell.focused .player-progress-track {
+  height: 20px;
+}
+
+#playerUiRoot .player-controls-row {
+  gap: 32px;
+  margin-top: 32px;
+}
+
+#playerUiRoot .player-control-buttons,
+#playerUiRoot .player-controls-row .player-control-buttons {
+  gap: 8px;
+}
+
+/* PWA / browser app shell */
+html.nuvio-web-app {
+  color-scheme: dark;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html.nuvio-web-app,
+html.nuvio-web-app body {
+  min-width: 320px;
+  background: var(--bg-color);
+}
+
+html.nuvio-web-app body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+html.nuvio-web-app * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+
+html.nuvio-web-app *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html.nuvio-web-app *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html.nuvio-web-app *::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: padding-box;
+}
+
+html.nuvio-pwa body {
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+}
+
+@media (display-mode: standalone), (display-mode: window-controls-overlay) {
+  html.nuvio-pwa,
+  html.nuvio-pwa body,
+  html.nuvio-pwa #app,
+  html.nuvio-pwa .screen {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.home-screen-shell.home-layout-modern.home-modern-fullscreen-backdrop
+  .home-modern-stage.is-hero-trailer-active
+  .home-modern-rows-content {
+  opacity: 0;
+}
+
+.home-screen-shell.home-layout-modern .home-modern-rows-viewport {
+  top: 0;
+  height: auto;
+}
+
+.home-screen-shell.home-layout-modern .home-modern-rows-scroll {
+  box-sizing: content-box;
+  height: 100%;
+  gap: 0;
+}
+
+.home-screen-shell.home-layout-modern .home-hero,
+.home-screen-shell.home-layout-modern .home-modern-hero-spacer {
+  position: relative;
+  flex: 0 0 var(--modern-hero-scroll-spacer-height);
+  height: var(--modern-hero-scroll-spacer-height);
+  margin: 0;
+}
+
+.home-screen-shell.home-layout-modern .home-hero {
+  position: static;
+  overflow: visible;
+}
+
+.home-screen-shell.home-layout-modern .home-modern-hero-card {
+  inset: 0 0 auto;
+  height: 100%;
+}
+
+.home-screen-shell.home-layout-modern .home-modern-rows-content {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 48px;
+  transition: opacity 480ms ease;
+}
+
+.home-screen-shell.home-layout-modern {
+  --modern-hero-scroll-spacer-height: 48%;
+}
+
+.home-screen-shell.home-layout-modern.home-modern-landscape-posters {
+  --modern-hero-scroll-spacer-height: 51%;
+}
+
+

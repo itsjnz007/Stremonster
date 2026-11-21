@@ -1,0 +1,110 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+import logging, os
+from logging.handlers import RotatingFileHandler
+from app.config import CACHE_DIR
+
+
+class ColoredFormatter(logging.Formatter):
+    """Adds terminal colors for different log levels while keeping file logs plain."""
+
+    COLORS = {
+        "ERROR": "\033[31m",   # red
+        "WARNING": "\033[33m", # yellow
+        "INFO": "",
+        "DEBUG": ""
+    }
+    RESET = "\033[0m"
+
+    def format(self, record: logging.LogRecord) -> str:
+        # ensure emoji is available to the format string
+        try:
+            record.emoji = self.emojie(record.levelno)
+        except Exception:
+            record.emoji = ""
+        message = super().format(record)
+        color = self.COLORS.get(record.levelname, "")
+        if color and hasattr(sys.stdout, "isatty") and sys.stdout.isatty():
+            return f"{color}{message}{self.RESET}"
+        return message
+
+    def emojie(self, level: int = logging.INFO) -> str:
+        if level == logging.WARNING:
+            return "⚠️  "
+        elif level == logging.ERROR:
+            return "‼️  "
+        else:
+            return ""
+
+class Logger:
+    def __init__(self, module_name: str, level: int = logging.INFO, log_file: str = f"{CACHE_DIR}/app.log"):
+        """
+        Initializes a module-specific logger instance.
+        """
+        self.module_name = module_name.upper()
+        
+        # 1. Ensure log directory exists
+        log_dir = os.path.dirname(log_file)
+        if log_dir and not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+
+        # 2. Structural log formatting (includes your custom method layout)
+        # include emoji via %(emoji)s (set by ColoredFormatter.format)
+        # fmt_string = f"[%(asctime)s] [%(emoji)s%(levelname)s] [{self.module_name}] %(message)s"
+        fmt_string = f"[%(emoji)s%(levelname)s] [{self.module_name}] %(message)s"
+        log_formatter = ColoredFormatter(
+            fmt=fmt_string,
+            datefmt="%Y-%m-%d %H:%M:%S"
+        )
+        console_formatter = ColoredFormatter(
+            fmt=fmt_string,
+            datefmt="%Y-%m-%d %H:%M:%S"
+        )
+
+        # 3. Create Console Handler
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(console_formatter)
+
+        # 4. Create Rotating File Handler (Crucial for server disk safety)
+        file_handler = RotatingFileHandler(
+            log_file, 
+            maxBytes=2 * 1024 * 1024, # 2MB per file max
+            backupCount=3,
+            encoding="utf-8"
+        )
+        file_handler.setFormatter(log_formatter)
+
+        # 5. Build isolated logger instance unique to this module name
+        self._internal_logger = logging.getLogger(f"stremonster.{module_name}")
+        self._internal_logger.setLevel(level)
+        
+        # Guard against duplicate handler attachments
+        if not self._internal_logger.handlers:
+            self._internal_logger.addHandler(console_handler)
+            self._internal_logger.addHandler(file_handler)
+
+    def info(self, message: str):
+        """Logs an informational message."""
+        self._internal_logger.info(f"{message}")
+
+    def error(self, message: str):
+        """Logs an error message."""
+        self._internal_logger.error(f"{message}")
+
+    def warning(self, message: str):
+        """Logs a warning message."""
+        self._internal_logger.warning(f"{message}")
+
+    def debug(self, message: str):
+        """Logs a debugging message."""
+        self._internal_logger.debug(f"{message}")
+
+
+if __name__ == "__main__":
+    logger = Logger("demo")
+    logger.debug("debug message")
+    logger.info("info message")
+    logger.warning("warning message")
+    logger.error("error message")

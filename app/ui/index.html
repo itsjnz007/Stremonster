@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en" class="no-flex-gap no-css-grid no-css-math no-backdrop-filter no-aspect-ratio">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0d0d0d" />
+    <meta name="application-name" content="Nuvio TV" />
+    <meta name="apple-mobile-web-app-title" content="Nuvio TV" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="msapplication-TileColor" content="#0d0d0d" />
+    <meta name="msapplication-TileImage" content="assets/icons/nuvio-icon-144.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/nuvio-icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/nuvio-icon-180.png" />
+    <script src="assets/runtime/legacy-features.js"></script>
+    <script>
+      (function configureTizenLaunch() {
+        var root = typeof globalThis !== "undefined" ? globalThis : window;
+        var search = String((window.location && window.location.search) || "").toLowerCase();
+        var userAgent = String(
+          (window.navigator && window.navigator.userAgent) || ""
+        ).toLowerCase();
+        var webapis = root.webapis || {};
+        var isTizenLaunch = Boolean(
+          root.__NUVIO_PLATFORM__ === "tizen" ||
+          root.tizen ||
+          root.avplay ||
+          webapis.avplay ||
+          webapis.avPlay ||
+          webapis.productinfo ||
+          search.indexOf("wrapper=tizen") !== -1 ||
+          userAgent.indexOf("tizen") !== -1
+        );
+
+        if (!isTizenLaunch) {
+          return;
+        }
+
+        root.__NUVIO_PLATFORM__ = "tizen";
+        var viewport = document.querySelector("meta[name='viewport']");
+        if (!viewport) {
+          viewport = document.createElement("meta");
+          viewport.name = "viewport";
+          document.head.appendChild(viewport);
+        }
+        viewport.setAttribute(
+          "content",
+          "width=1920, height=1080, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        );
+      })();
+    </script>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Nuvio TV</title>
+
+    <link rel="stylesheet" href="css/base.css?v=20260509s" />
+    <link rel="stylesheet" href="css/layout.css?v=20260509s" />
+    <link rel="stylesheet" href="css/components.css?v=20260531supporters2" />
+    <link rel="stylesheet" href="css/themes.css?v=20260509s" />
+    <link rel="stylesheet" href="css/common-patch.css?v=20261121fixedoverlaylabels" />
+    <link rel="stylesheet" href="css/pc-patch.css?v=20261121playercontrols" />
+    <link rel="stylesheet" href="css/mobile-patch.css?v=20261121mobilebehaviors" />
+  </head>
+  <body>
+    <script src="boot-guard.js"></script>
+    <!-- Tizen fast path: deferred scripts keep document order but no longer
+         parser-block first paint / focus-engine init on single-core TVs. -->
+    <script
+      defer
+      src="core-js.bundle.js"
+      onerror="window.NuvioBootGuard && window.NuvioBootGuard.scriptFailed(this.src)"
+    ></script>
+    <script defer src="nuvio.env.js"></script>
+    <script defer src="assets/runtime/common-patch.js"></script>
+
+    <script
+      defer
+      src="app.bundle.js?v=20261121commoncontext"
+      onerror="window.NuvioBootGuard && window.NuvioBootGuard.scriptFailed(this.src)"
+    ></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function registerServiceWorker() {
+          navigator.serviceWorker.register("./service-worker.js").catch(function (error) {
+            console.error("Service worker registration failed:", error);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

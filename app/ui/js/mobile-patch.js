@@ -1,0 +1,186 @@
+const MOBILE_RUNTIME_PATCHED = Symbol("mobile-patch-runtime-patched");
+const PORTRAIT_QUERY = "(orientation: portrait)";
+const MOBILE_POINTER_QUERY = "(max-width: 950px) and (pointer: coarse)";
+
+let playerFullscreenTarget = null;
+let playerOwnsFullscreen = false;
+let playerOrientationLocked = false;
+let fullscreenChangeHandler = null;
+
+function isPortrait() {
+  const mediaQuery = globalThis.matchMedia?.(PORTRAIT_QUERY);
+  if (mediaQuery) {
+    return mediaQuery.matches;
+  }
+
+  const width = Number(globalThis.innerWidth || document.documentElement?.clientWidth || 0);
+  const height = Number(globalThis.innerHeight || document.documentElement?.clientHeight || 0);
+  return width > 0 && height >= width;
+}
+
+function isMobileDevice() {
+  const mediaQuery = globalThis.matchMedia?.(MOBILE_POINTER_QUERY);
+  if (mediaQuery) {
+    return mediaQuery.matches;
+  }
+
+  const width = Number(globalThis.innerWidth || 0);
+  const touchPoints = Number(globalThis.navigator?.maxTouchPoints || 0);
+  return width > 0 && width <= 950 && touchPoints > 0;
+}
+
+function isFullscreenTarget(documentObject, target) {
+  return (
+    documentObject?.fullscreenElement === target ||
+    documentObject?.webkitFullscreenElement === target
+  );
+}
+
+function restorePlayerOrientation() {
+  if (!playerOrientationLocked) {
+    return;
+  }
+  playerOrientationLocked = false;
+
+  const orientation = globalThis.screen?.orientation;
+  try {
+    orientation?.unlock?.();
+  } catch (error) {
+    console.warn("Unable to restore the previous player orientation", error);
+  }
+}
+
+export const MobilePatch = {
+  installRuntime() {
+    if (this[MOBILE_RUNTIME_PATCHED]) {
+      return;
+    }
+    this[MOBILE_RUNTIME_PATCHED] = true;
+
+    const syncOrientation = () => {
+      const root = document.documentElement;
+      if (!root) {
+        return;
+      }
+
+      const mobileDevice = isMobileDevice();
+      const mobileOrientation = mobileDevice && isPortrait();
+      root.classList.toggle("mobile-device", mobileDevice);
+      root.classList.toggle("mobile-orientation", mobileOrientation);
+      if (!mobileDevice) {
+        root.style.removeProperty("--mobile-ui-compensation");
+        return;
+      }
+
+      const zoom = Number.parseFloat(
+        globalThis.getComputedStyle(root).getPropertyValue("--mobile-ui-zoom")
+      );
+      if (!Number.isFinite(zoom) || zoom <= 0) {
+        throw new RangeError("Mobile UI zoom must be a positive number.");
+      }
+      root.style.setProperty("--mobile-ui-compensation", `${100 / zoom}%`);
+    };
+    const portraitQuery = globalThis.matchMedia?.(PORTRAIT_QUERY);
+    const mobileQuery = globalThis.matchMedia?.(MOBILE_POINTER_QUERY);
+
+    syncOrientation();
+    if (typeof portraitQuery?.addEventListener === "function") {
+      portraitQuery.addEventListener("change", syncOrientation);
+    } else {
+      portraitQuery?.addListener?.(syncOrientation);
+    }
+    if (typeof mobileQuery?.addEventListener === "function") {
+      mobileQuery.addEventListener("change", syncOrientation);
+    } else {
+      mobileQuery?.addListener?.(syncOrientation);
+    }
+    globalThis.addEventListener?.("resize", syncOrientation, { passive: true });
+    globalThis.addEventListener?.("orientationchange", syncOrientation, { passive: true });
+  },
+
+  async enterPlayerFullscreen(target) {
+    if (!isMobileDevice() || !target) {
+      return false;
+    }
+
+    const documentObject = globalThis.document;
+    if (!documentObject) {
+      return false;
+    }
+
+    if (playerFullscreenTarget && playerFullscreenTarget !== target) {
+      await this.exitPlayerFullscreen();
+    }
+
+    const alreadyFullscreen = isFullscreenTarget(documentObject, target);
+    if (!alreadyFullscreen) {
+      const requestFullscreen = target.requestFullscreen || target.webkitRequestFullscreen;
+      if (typeof requestFullscreen !== "function") {
+        console.warn("Mobile player full screen is unavailable; landscape lock was skipped.");
+        return false;
+      }
+
+      try {
+        await requestFullscreen.call(target);
+      } catch (error) {
+        console.warn("Unable to enter mobile player full screen", error);
+        return false;
+      }
+      if (!isFullscreenTarget(documentObject, target)) {
+        console.warn("Mobile player did not enter full screen; landscape lock was skipped.");
+        return false;
+      }
+    }
+
+    playerFullscreenTarget = target;
+    playerOwnsFullscreen = !alreadyFullscreen;
+
+    const orientation = globalThis.screen?.orientation;
+    if (typeof orientation?.lock === "function") {
+      try {
+        await orientation.lock("landscape");
+        playerOrientationLocked = true;
+      } catch (error) {
+        console.warn("Unable to lock player orientation to landscape", error);
+      }
+    }
+
+    if (!fullscreenChangeHandler) {
+      fullscreenChangeHandler = () => {
+        if (playerFullscreenTarget && !isFullscreenTarget(documentObject, playerFullscreenTarget)) {
+          restorePlayerOrientation();
+        }
+      };
+      documentObject.addEventListener("fullscreenchange", fullscreenChangeHandler);
+      documentObject.addEventListener("webkitfullscreenchange", fullscreenChangeHandler);
+    }
+    return true;
+  },
+
+  async exitPlayerFullscreen() {
+    const documentObject = globalThis.document;
+    const target = playerFullscreenTarget;
+    const shouldExitFullscreen = playerOwnsFullscreen && isFullscreenTarget(documentObject, target);
+
+    if (fullscreenChangeHandler) {
+      documentObject?.removeEventListener("fullscreenchange", fullscreenChangeHandler);
+      documentObject?.removeEventListener("webkitfullscreenchange", fullscreenChangeHandler);
+      fullscreenChangeHandler = null;
+    }
+
+    if (shouldExitFullscreen) {
+      const exitFullscreen = documentObject.exitFullscreen || documentObject.webkitExitFullscreen;
+      if (typeof exitFullscreen === "function") {
+        try {
+          await exitFullscreen.call(documentObject);
+        } catch (error) {
+          console.warn("Unable to exit mobile player full screen", error);
+        }
+      }
+    }
+
+    restorePlayerOrientation();
+    playerFullscreenTarget = null;
+    playerOwnsFullscreen = false;
+  }
+};

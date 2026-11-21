@@ -1,0 +1,169 @@
+html {
+  zoom: 0.6;
+  width: 100%;
+  height: 100%;
+}
+
+#app,
+.screen {
+  width: 100%;
+  height: 100%;
+}
+
+.qr-layout,
+.profile-screen,
+.home-shell,
+.search-screen-shell,
+.discover-shell,
+.trakt-route-shell,
+.supporters-route-shell,
+.addons-route-shell,
+.plugins-route-shell,
+.catalog-order-shell,
+.series-detail-shell,
+.detail-loading-shell,
+.stream-route-shell,
+.cast-detail-shell,
+.tmdb-entity-shell,
+.collections-shell {
+  width: 100%;
+  height: 100%;
+}
+
+.auth-simple-shell,
+.account-shell,
+.home-screen-shell .home-loading-state,
+.debug-console-shell,
+.experience-mode-screen,
+.licenses-screen,
+.tmdb-entity-state,
+.tmdb-entity-empty,
+.detail-hero-section {
+  min-height: 100%;
+}
+
+.home-main,
+.home-sidebar,
+.search-sidebar,
+.search-content,
+.series-detail-content,
+.detail-hero-section,
+.debug-console-shell {
+  height: 100%;
+}
+
+.legacy-webos .stream-route-left {
+  width: 40%;
+}
+
+.legacy-webos .stream-route-right {
+  left: 40%;
+  right: auto;
+  width: 60%;
+}
+
+.nuvio-dialog-panel.detail-synopsis-dialog {
+  width: 100%;
+  height: 100%;
+}
+
+.player-loading-overlay,
+.player-loading-spinner {
+  width: 100%;
+  height: 100%;
+}
+
+#playerUiRoot .player-controls-overlay {
+  zoom: 0.8;
+}
+
+.tizen-tv #player,
+.tizen-tv #videoPlayer,
+.tizen-tv .tizen-avplay-object,
+.tizen-tv .player-ui-root,
+.legacy-webos #player,
+.legacy-webos #videoPlayer,
+.legacy-webos .player-ui-root {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.legacy-tizen .player-pause-overlay,
+.tizen-tv .player-pause-overlay {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.home-screen-shell .modern-sidebar-shell > .pc-sidebar-profile-trigger {
+  position: absolute;
+  top: calc(var(--modern-sidebar-pill-top) + var(--modern-sidebar-pill-height) + 20px);
+  left: var(--modern-sidebar-pill-left);
+  z-index: 1;
+  width: var(--modern-sidebar-pill-height);
+  min-height: var(--modern-sidebar-pill-height);
+  margin: 0;
+  padding: 8px;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--bg-elevated), var(--card-bg));
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.home-screen-shell .modern-sidebar-shell > .pc-sidebar-profile-trigger.focused {
+  background: rgba(255, 255, 255, 0.16);
+  outline: 2px solid var(--focus-color);
+}
+
+.home-screen-shell .home-sidebar:not(.content-expanded) .home-profile-pill {
+  width: var(--legacy-sidebar-item-width);
+  height: var(--legacy-sidebar-item-height);
+  margin: var(--legacy-sidebar-profile-top-gap) auto var(--legacy-sidebar-profile-bottom-gap);
+  padding: 0;
+  justify-content: center;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition: none;
+}
+
+.home-screen-shell .home-sidebar:not(.content-expanded) .home-profile-name {
+  display: none;
+}
+
+.home-screen-shell .modern-sidebar-shell.expanded > .pc-sidebar-profile-trigger,
+.home-screen-shell .modern-sidebar-shell.opening > .pc-sidebar-profile-trigger {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@media screen and (pointer: fine) {
+  html.nuvio-web-app {
+    --tv-card-radius: 14px;
+  }
+
+  html.nuvio-web-app button,
+  html.nuvio-web-app [role="button"] {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  html.nuvio-web-app img,
+  html.nuvio-web-app video {
+    -webkit-user-drag: none;
+  }
+
+  html.nuvio-web-app .screen {
+    background: var(--bg-color);
+  }
+}

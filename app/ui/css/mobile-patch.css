@@ -1,0 +1,652 @@
+html.mobile-device,
+html.mobile-orientation {
+  --mobile-ui-zoom: 0.5;
+  --mobile-nav-height: 92px;
+  --mobile-nav-bottom-bleed: 2px;
+  width: 100%;
+  height: 100%;
+  zoom: 1;
+}
+
+html.mobile-device body,
+html.mobile-orientation body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+html.mobile-device #app,
+html.mobile-orientation #app {
+  position: relative;
+  width: var(--mobile-ui-compensation);
+  height: var(--mobile-ui-compensation);
+  overflow: hidden;
+  transform: scale(var(--mobile-ui-zoom));
+  transform-origin: top left;
+}
+
+html.mobile-device #app > .screen,
+html.mobile-orientation #app > .screen {
+  width: 100%;
+  height: 100%;
+}
+
+html.mobile-device #app > .screen > *,
+html.mobile-orientation #app > .screen > * {
+  width: 100%;
+  height: 100%;
+}
+
+html.mobile-device .stream-route-shell,
+html.mobile-orientation .stream-route-shell {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+}
+
+html.mobile-device .stream-route-content,
+html.mobile-orientation .stream-route-content {
+  display: grid;
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+html.mobile-device .stream-route-left,
+html.mobile-orientation .stream-route-left {
+  position: relative;
+  inset: auto;
+  width: auto;
+  justify-content: center;
+  padding: 48px 48px 24px;
+}
+
+html.mobile-device .stream-route-left-inner,
+html.mobile-orientation .stream-route-left-inner {
+  width: 100%;
+}
+
+html.mobile-device .stream-route-right,
+html.mobile-orientation .stream-route-right {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: auto;
+  max-width: none;
+  min-height: 0;
+  padding: 0 48px 48px;
+  overflow: hidden;
+}
+
+html.mobile-device .stream-route-panel-shell,
+html.mobile-orientation .stream-route-panel-shell {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+html.mobile-device .stream-route-list,
+html.mobile-orientation .stream-route-list {
+  position: relative;
+  inset: auto;
+  height: 100%;
+  max-height: none;
+  overflow-y: auto;
+}
+
+html.mobile-device #playerUiRoot {
+  --player-controls-x: 48px;
+  --player-controls-y: 32px;
+  --player-control-size: 112px;
+  --player-control-icon: 56px;
+  --player-overlay-label-font: 32px;
+}
+
+html.mobile-device #playerUiRoot .player-control-btn {
+  width: var(--player-control-size);
+  min-width: var(--player-control-size);
+  height: var(--player-control-size);
+}
+
+html.mobile-device #playerUiRoot .player-control-btn.has-text {
+  width: auto;
+}
+
+html.mobile-device #playerUiRoot .player-control-icon {
+  width: var(--player-control-icon);
+  height: var(--player-control-icon);
+}
+
+html.mobile-device .qr-layout,
+html.mobile-orientation .qr-layout {
+  width: 100%;
+  height: 100%;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: start;
+  gap: 24px;
+  padding-top: 200px;
+  overflow-y: auto;
+}
+
+html.mobile-device .qr-card-panel,
+html.mobile-orientation .qr-card-panel {
+  align-items: flex-start;
+}
+
+html.mobile-device body > .nuvio-dialog-backdrop,
+html.mobile-orientation body > .nuvio-dialog-backdrop {
+  inset: 0 auto auto 0;
+  width: var(--mobile-ui-compensation);
+  height: var(--mobile-ui-compensation);
+  transform: scale(var(--mobile-ui-zoom));
+  transform-origin: top left;
+}
+
+html.mobile-device .nuvio-dialog-panel,
+html.mobile-orientation .nuvio-dialog-panel {
+  width: 100%;
+  max-width: none !important;
+}
+
+html.mobile-orientation .home-sidebar,
+html.mobile-orientation .home-sidebar.expanded,
+html.mobile-orientation .home-sidebar[data-collapsible="true"]:not(.expanded) {
+  position: fixed;
+  z-index: 100;
+  inset: auto 0 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+  padding: 4px 8px env(safe-area-inset-bottom, 0px);
+  border-top: 1px solid var(--border-color);
+  background: rgb(var(--bg-color-rgb) / 0.98);
+  overflow: visible;
+  transition: none;
+}
+
+html.mobile-orientation .home-sidebar:not(.content-expanded) .home-profile-pill,
+html.mobile-orientation .home-sidebar.content-expanded .home-profile-pill,
+html.mobile-orientation .modern-sidebar-panel .modern-sidebar-profile {
+  display: inline-flex;
+  flex: 0 0 42px;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  margin: 0 4px 0 0;
+  padding: 0 0 0 60px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition: none;
+}
+
+html.mobile-orientation .home-sidebar .home-profile-name,
+html.mobile-orientation .home-nav-label,
+html.mobile-orientation .modern-sidebar-profile-name,
+html.mobile-orientation .modern-sidebar-nav-label,
+html.mobile-orientation .modern-sidebar-pill,
+html.mobile-orientation .pc-sidebar-profile-trigger {
+  display: none;
+}
+
+html.mobile-orientation .home-sidebar .home-nav-list,
+html.mobile-orientation .home-sidebar.content-expanded .home-nav-list,
+html.mobile-orientation .modern-sidebar-nav-list {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-around;
+  gap: 4px;
+  padding: 0 0 0 60px;
+  box-sizing: border-box;
+  transform: none;
+}
+
+html.mobile-orientation .home-sidebar .home-nav-item,
+html.mobile-orientation .home-sidebar.content-expanded .home-nav-item,
+html.mobile-orientation .modern-sidebar-nav-item {
+  display: inline-flex;
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  min-height: 48px;
+  height: 48px;
+  margin: 0;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  border-radius: 12px;
+  transform: none;
+}
+
+html.mobile-orientation .home-nav-icon-wrap,
+html.mobile-orientation .home-nav-icon,
+html.mobile-orientation .modern-sidebar-nav-icon-circle,
+html.mobile-orientation .modern-sidebar-nav-icon {
+  width: 44px;
+  height: 44px;
+  font-size: 24px;
+}
+
+html.mobile-orientation .modern-sidebar-shell,
+html.mobile-orientation .modern-sidebar-shell.expanded {
+  position: fixed;
+  z-index: 100;
+  inset: auto 0 0;
+  width: 100%;
+  height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+  overflow: visible;
+  pointer-events: auto;
+}
+
+html.mobile-device.mobile-orientation .home-sidebar,
+html.mobile-device.mobile-orientation .home-sidebar.expanded,
+html.mobile-device.mobile-orientation .home-sidebar[data-collapsible="true"]:not(.expanded),
+html.mobile-device.mobile-orientation .modern-sidebar-shell,
+html.mobile-device.mobile-orientation .modern-sidebar-shell.expanded {
+  bottom: calc(0px - var(--mobile-nav-bottom-bleed));
+  height: calc(
+    var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + var(--mobile-nav-bottom-bleed)
+  );
+}
+
+html.mobile-orientation .modern-sidebar-panel,
+html.mobile-orientation .modern-sidebar-shell.panel-visible .modern-sidebar-panel {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  padding: 4px 8px env(safe-area-inset-bottom, 0px);
+  align-items: center;
+  flex-direction: row;
+  border: 0;
+  border-top: 1px solid var(--border-color);
+  border-radius: 0;
+  background: rgb(var(--bg-color-rgb) / 0.98);
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  pointer-events: auto;
+  transition: none;
+}
+
+html.mobile-orientation #home .home-main,
+html.mobile-orientation #library .home-main,
+html.mobile-orientation #search .search-content,
+html.mobile-orientation #discover .discover-main {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 16px 0 calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 16px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+}
+
+html.mobile-orientation #home .home-main {
+  padding-top: 0;
+}
+
+html.mobile-orientation #home .home-route-content,
+html.mobile-orientation #home .home-screen-shell.home-layout-modern .home-modern-stage,
+html.mobile-orientation #home .home-screen-shell.home-layout-modern .home-modern-rows-viewport,
+html.mobile-orientation #home .home-screen-shell.home-layout-modern .home-modern-rows-scroll {
+  height: 100%;
+}
+
+html.mobile-orientation #home .home-screen-shell.home-layout-modern .home-hero {
+  position: relative;
+}
+
+html.mobile-orientation #home .home-screen-shell.home-layout-modern .home-modern-hero-copy {
+  bottom: auto;
+  justify-content: flex-start;
+}
+
+html.mobile-device.mobile-orientation
+  #home
+  .home-screen-shell.home-layout-modern
+  .home-modern-hero-copy {
+  top: var(--mobile-home-content-inset);
+  left: var(--mobile-home-content-inset);
+  bottom: var(--mobile-home-content-inset);
+  justify-content: flex-end;
+}
+
+html.mobile-device.mobile-orientation
+  #home
+  .home-screen-shell.home-layout-modern
+  .home-modern-catalogs
+  .home-row-head {
+  padding-left: var(--mobile-home-content-inset);
+}
+
+html.mobile-device.mobile-orientation
+  #home
+  .home-screen-shell.home-layout-modern
+  .home-row-continue
+  .home-row-head {
+  padding-left: var(--mobile-home-content-inset);
+}
+
+html.mobile-device.mobile-orientation
+  #home
+  .home-screen-shell.home-layout-modern
+  .home-modern-catalogs
+  .home-track {
+  padding-left: calc(var(--mobile-home-content-inset) + var(--modern-track-peek-extension));
+}
+
+html.mobile-device.mobile-orientation
+  #home
+  .home-screen-shell.home-layout-modern
+  .home-row-continue
+  .home-track {
+  padding-left: calc(var(--mobile-home-content-inset) + var(--modern-track-peek-extension));
+}
+
+html.mobile-device.mobile-orientation #home .home-screen-shell.home-layout-modern .home-track {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+html.mobile-device.mobile-orientation
+  #home
+  .home-screen-shell.home-layout-modern
+  .home-modern-hero-media::before {
+  width: 100%;
+  right: 0;
+  background: none;
+}
+
+html.mobile-device.mobile-orientation
+  #home
+  .home-screen-shell.home-layout-modern
+  .home-modern-hero-media::after {
+  bottom: calc(0px - var(--mobile-home-content-inset));
+  background: linear-gradient(
+    to top,
+    var(--bg-color) 0%,
+    rgba(var(--bg-color-rgb-legacy), 1) 10%,
+    rgba(var(--bg-color-rgb-legacy), 0.6) 45%,
+    transparent 100%
+  );
+}
+
+html.mobile-device.mobile-orientation
+  #home
+  .home-screen-shell.home-layout-modern
+  .home-hero-backdrop {
+  object-fit: cover;
+  object-position: 50% 50%;
+}
+
+html.mobile-orientation #home .home-screen-shell.home-layout-modern .home-modern-rows-viewport {
+  position: relative;
+  inset: auto;
+  height: auto;
+  overflow: visible;
+}
+
+html.mobile-device.mobile-orientation #home .home-screen-shell.home-layout-modern {
+  --modern-hero-scroll-spacer-height: 96vh;
+  --mobile-home-content-inset: 50px;
+}
+
+html.mobile-device.mobile-orientation #home .home-route-content,
+html.mobile-device.mobile-orientation
+  #home
+  .home-screen-shell.home-layout-modern
+  .home-modern-stage {
+  height: auto;
+  min-height: 100%;
+}
+
+html.mobile-device.mobile-orientation
+  #home
+  .home-screen-shell.home-layout-modern
+  .home-modern-rows-scroll {
+  height: auto;
+  min-height: 100%;
+}
+
+html.mobile-device.mobile-orientation
+  #home
+  .home-screen-shell.home-layout-modern
+  .home-modern-hero-media {
+  right: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+html.mobile-device.mobile-orientation
+  #home
+  .home-screen-shell.home-layout-modern
+  .home-modern-hero-card {
+  overflow: visible;
+}
+
+html.mobile-orientation #search .search-sidebar {
+  display: none;
+}
+
+html.mobile-orientation #settings .settings-workspace,
+html.mobile-orientation #settings .settings-shell.has-collapsible-sidebar .settings-workspace,
+html.mobile-orientation #settings .settings-shell.has-modern-sidebar .settings-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) 44px;
+  grid-template-areas:
+    "content"
+    "tabs";
+  width: calc(100% - 24px);
+  height: calc(100% - var(--mobile-nav-height) - 16px);
+  margin: 8px 12px calc(var(--mobile-nav-height) + 8px);
+  padding: 12px;
+}
+
+html.mobile-orientation #settings .settings-sidebar-frame {
+  grid-area: tabs;
+  display: block;
+  width: 100%;
+  height: 44px;
+  overflow: hidden;
+}
+
+html.mobile-orientation #settings .settings-sidebar {
+  display: flex;
+  height: 44px;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-padding-inline: 2px;
+  scroll-snap-type: x proximity;
+}
+
+html.mobile-orientation #settings .settings-nav-item {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 36px;
+  scroll-snap-align: start;
+}
+
+html.mobile-orientation #settings .settings-nav-chevron,
+html.mobile-orientation #settings .settings-sidebar-frame .settings-scroll-indicator {
+  display: none;
+}
+
+html.mobile-orientation #settings .settings-content-frame {
+  grid-area: content;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+html.mobile-orientation #settings .settings-content {
+  height: 100%;
+  padding: 0 2px 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+html.mobile-device #profileSelection .profile-screen,
+html.mobile-orientation #profileSelection .profile-screen {
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+html.mobile-device #profileSelection .profile-title {
+  font-size: 60px;
+}
+
+html.mobile-device #profileSelection .profile-subtitle {
+  font-size: 32px;
+}
+
+html.mobile-device #profileSelection .profile-main-layer,
+html.mobile-device #profileSelection .profile-screen-compact-grid .profile-main-layer,
+html.mobile-orientation #profileSelection .profile-main-layer,
+html.mobile-orientation #profileSelection .profile-screen-compact-grid .profile-main-layer {
+  height: auto;
+  min-height: 100%;
+  padding: 120px 12px 20px;
+  justify-content: flex-start;
+}
+
+html.mobile-device #profileSelection .profile-grid,
+html.mobile-device #profileSelection .profile-grid-compact,
+html.mobile-orientation #profileSelection .profile-grid,
+html.mobile-orientation #profileSelection .profile-grid-compact {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  padding: 80px;
+  gap: 8px;
+  min-height: 0;
+  margin-top: 24px;
+  align-content: start;
+}
+
+html.mobile-device #profileSelection .profile-grid .profile-card,
+html.mobile-device #profileSelection .profile-grid-compact .profile-card,
+html.mobile-orientation #profileSelection .profile-grid .profile-card,
+html.mobile-orientation #profileSelection .profile-grid-compact .profile-card {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 4px;
+}
+
+.profile-grid-compact .profile-avatar-ring {
+  width: 170px;
+  height: 170px;
+}
+
+html.mobile-device
+  #profileSelection
+  .profile-grid-compact
+  .profile-card.focused
+  .profile-avatar-ring {
+  width: 185px;
+  height: 185px;
+}
+
+.profile-grid-compact .profile-avatar {
+  width: 150px;
+  height: 150px;
+}
+
+html.mobile-device #profileSelection .profile-grid-compact .profile-card.focused .profile-avatar {
+  width: 160px;
+  height: 160px;
+}
+
+.profile-grid-compact .profile-name {
+  font-size: 22px;
+}
+
+html.mobile-device .universal-back-button {
+  top: max(20px, env(safe-area-inset-top, 0px));
+  right: max(20px, env(safe-area-inset-right, 0px));
+  width: 72px;
+  height: 72px;
+}
+
+html.mobile-device .universal-back-button .material-icons {
+  font-size: 32px;
+}
+
+html.mobile-device:not(.mobile-orientation) .home-shell,
+html.mobile-device:not(.mobile-orientation) .search-screen-shell,
+html.mobile-device:not(.mobile-orientation) .discover-shell,
+html.mobile-device:not(.mobile-orientation) .settings-shell,
+html.mobile-device:not(.mobile-orientation) .home-shell.library-shell {
+  width: 100%;
+  height: 100%;
+}
+
+html.mobile-device:not(.mobile-orientation) .home-sidebar,
+html.mobile-device:not(.mobile-orientation) .home-sidebar.expanded {
+  position: fixed;
+  z-index: 100;
+  inset: 0 auto 0 0;
+  flex-direction: column;
+  width: var(--legacy-sidebar-rail-width);
+  height: 100%;
+  border-top: 0;
+  border-right: 1px solid var(--border-color);
+}
+
+html.mobile-device:not(.mobile-orientation) .modern-sidebar-shell,
+html.mobile-device:not(.mobile-orientation) .modern-sidebar-shell.expanded {
+  position: fixed;
+  z-index: 100;
+  inset: 0 auto 0 0;
+  width: var(--modern-sidebar-collapsed-width);
+  height: 100%;
+}
+
+@media (display-mode: standalone), (display-mode: minimal-ui) {
+  html.nuvio-pwa,
+  html.nuvio-pwa body,
+  html.nuvio-pwa #app {
+    width: 100%;
+    height: 100%;
+  }
+
+  html.nuvio-pwa body {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html.nuvio-pwa .mobile-nav,
+  html.nuvio-pwa .home-sidebar,
+  html.nuvio-pwa .modern-sidebar-shell {
+    bottom: env(safe-area-inset-bottom, 0px);
+  }
+}

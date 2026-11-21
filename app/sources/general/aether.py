@@ -1,0 +1,106 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+
+from app.config import GENERIC_REQUEST_TIMEOUT
+from app.models.responses import WebResponse
+from typing import Optional
+from threading import Event
+import requests
+from app.core.logger import Logger
+import logging
+from app.core.scraper import Scraper
+
+logger = Logger('aether', logging.INFO)
+
+class Subtitulado(Scraper):
+    def __init__(self, source: str = "subtitulado") -> None:
+        super().__init__(base_url = "https://le.aether.cx", source=source)
+        
+    def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+        url = f"{self.base_url}/movie/{tmdb_id}?lang=sub"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
+        if response.status_code in [200]: return self.build_response(response.json().get('url'))
+
+    def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+        url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}?ser=tik"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
+        if response.status_code in [200]: return self.build_response(response.json().get('url'))
+
+class Lul(Scraper):
+    def __init__(self, source: str = "lul") -> None:
+        super().__init__(base_url = "https://tiki.raccoonunbutteredbagel.zip", source=source)
+        
+    def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+        url = f"{self.base_url}/movie/{tmdb_id}"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
+        if response.status_code in [200]: return self.build_response(response.json().get('stream'))
+
+    def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+        url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
+        if response.status_code in [200]: return self.build_response(response.json().get('stream'))
+
+class Link(Scraper):
+    headers_2 = {
+        "Origin": "https://nextgencloudfabric.com",
+        "Referer": "https://nextgencloudfabric.com/"
+    }
+    def __init__(self, source: str = "link") -> None:
+        super().__init__(base_url = "https://link.aether.cx", source=source)
+
+    def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+        url = f"{self.base_url}/movie/{tmdb_id}"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
+        if response.status_code in [200]: return self.build_response(response.json().get('stream'), headers=self.headers_2)
+
+    def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+        url = f"{self.base_url}/tv/{tmdb_id}/{season}/{episode}"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers=self.headers, timeout=GENERIC_REQUEST_TIMEOUT)
+        if response.status_code in [200]: return self.build_response(response.json().get('stream'), headers=self.headers_2)
+
+
+class Meridian(Scraper):
+    def __init__(self, source: str = "meridian") -> None:
+        super().__init__(base_url = "https://meridian.raccoonunbutteredbagel.zip", source=source)
+        
+    def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+        url = f"{self.base_url}/movie/{tmdb_id}"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers={"Origiin": "https://aether.ist", "Referer": "https://aether.ist/"}, timeout=GENERIC_REQUEST_TIMEOUT)
+        if response.status_code in [200]: return self.build_response(response.json().get('url'), headers={"Origin": "https://cdn.kaxate.fun","Referer": "https://cdn.kaxate.fun/"})
+
+    def get_series(self, tmdb_id: str, season: str, episode: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
+        url = f"{self.base_url}/show/{tmdb_id}/{season}/{episode}"
+        self.logger.info(f"GET stream: {url}")
+        response = requests.get(url, headers={"Origiin": "https://aether.ist", "Referer": "https://aether.ist/"}, timeout=GENERIC_REQUEST_TIMEOUT)
+        print(response.status_code, response.text)
+        if response.status_code in [200]: return self.build_response(response.json().get('url'), headers={"Origin": "https://cdn.kaxate.fun","Referer": "https://cdn.kaxate.fun/"})
+
+
+
+if __name__ == "__main__":
+    scraper = Subtitulado()
+    res = scraper.get_movie("634649")
+    print(f"Response: {res}")
+
+    scraper = Lul()
+    res = scraper.get_movie("652")
+    print(f"Response: {res}")
+
+    scraper = Link()
+    res = scraper.get_series("3308", "2", "21")
+    print(f"Response: {res}")
+
+    scraper = Meridian()
+    res = scraper.get_series("2691", "4", "1")
+    print(f"Response: {res}")
+    res = scraper.get_movie("652")
+    print(f"Response: {res}")

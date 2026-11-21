@@ -1,0 +1,909 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+import threading, shutil, os
+from app.config import TUNNEL_URL, LOCAL_URL
+from flask import Response, request, jsonify, stream_with_context
+from urllib.parse import quote, urlparse
+from app.core.logger import Logger
+import json, re, urllib3, logging, time, requests, pycurl, subprocess
+from typing import Optional, Any, ClassVar
+from app.core.caching import WebCache
+from app.models.responses import WebResponse, SpeedWindow
+from typing import Optional
+from flask import request, Response, stream_with_context
+from app.core.multithreading import MultiThreading
+from app.external.cinemeta import Cinemeta
+from app.core.parsers import Parsers
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+logger = Logger("proxy", logging.INFO)
+session = requests.Session()
+web_cache = WebCache()
+threadpool = MultiThreading(1)
+cinemeta = Cinemeta()
+
+
+def respond_with(data: dict[str, Any]) -> Response:
+    resp = jsonify(data)
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    resp.headers['Access-Control-Allow-Headers'] = '*'
+    return resp
+
+
+class Proxy:
+    """Collection of proxy-related helpers exposed as static methods.
+
+    Optimized for Android ExoPlayer compatibility by preserving clean explicit 
+    extensions and handling precise mime-types.
+    """
+    _speed_windows: ClassVar[dict[str, SpeedWindow]] = {}
+    _speed_windows_lock: ClassVar[threading.Lock] = threading.Lock()
+
+    @classmethod
+    def _speed_window_for(cls, content_id: Optional[str]) -> SpeedWindow:
+        if not content_id:
+            return SpeedWindow()
+
+        with cls._speed_windows_lock:
+            if content_id not in cls._speed_windows:
+                cls._speed_windows[content_id] = SpeedWindow()
+            return cls._speed_windows[content_id]
+
+    @classmethod
+    def _record_speed_sample(
+        cls,
+        speed_window: SpeedWindow,
+        read_end: float,
+        chunk_len: int,
+        read_time: float,
+        evaluation_seconds: float,
+        source_index: Optional[str],
+    ) -> tuple[float, int, float]:
+        with cls._speed_windows_lock:
+            if (
+                speed_window.source_index != source_index
+                or speed_window.last_chunk_at is None
+                or read_end - speed_window.last_chunk_at > evaluation_seconds
+            ):
+                speed_window.chunks.clear()
+                speed_window.started_at = read_end
+                speed_window.source_index = source_index
+
+            speed_window.last_chunk_at = read_end
+            speed_window.chunks.append((read_end, chunk_len, read_time))
+
+            while speed_window.chunks and speed_window.chunks[0][0] < read_end - evaluation_seconds:
+                speed_window.chunks.popleft()
+
+            elapsed_time = read_end - speed_window.started_at
+            if elapsed_time >= evaluation_seconds:
+                total_bytes = sum(item[1] for item in speed_window.chunks)
+                total_read_time = sum(item[2] for item in speed_window.chunks)
+            else:
+                total_bytes = 0
+                total_read_time = 0.0
+
+        return elapsed_time, total_bytes, total_read_time
+
+    # @staticmethod
+    # def is_valid(stream_url: str) -> bool:
+    #     try:
+    #         response = requests.head(stream_url, timeout=10, allow_redirects=True)
+    #         if response.status_code in [200, 203, 206]: return True 
+    #     except Exception as e:
+    #         logger.error(f"Error checking URL validity. Error: {e}")
+
+    #     return False
+
+    # @staticmethod
+    # def get_external_proxy_url(stream_url: str, origin: str) -> str:
+    #     if 'proxy' in stream_url: return stream_url
+    #     headers = {
+    #         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
+    #         "accept": "*/*",
+    #         "accept-language": "en-US,en;q=0.5",
+    #         "sec-fetch-dest": "empty",
+    #         "sec-fetch-mode": "cors",
+    #         "sec-fetch-site": "cross-site",
+    #         "origin": origin,
+    #         "referer": origin.rstrip("/") + "/"
+    #     }
+
+    #     encoded_url = quote(stream_url, safe="")
+    #     encoded_headers = quote(
+    #         json.dumps(headers, separators=(",", ":")),
+    #         safe=""
+    #     )
+
+    #     return (
+    #         "https://megacloud.animanga.fun/proxy"
+    #         f"?url={encoded_url}&headers={encoded_headers}"
+    #     )
+    
+
+
+    @staticmethod
+    def get_content_type(res: requests.Response) -> Optional[str]:
+
+        # 1. Handle standard error codes
+        if res.status_code not in (200, 203, 206): 
+            logger.error(f"Unable to fetch content-type. Error code {res.status_code}")
+            return None
+            
+        # 2. DETECT DEAD/EMPTY SOURCES (The fix for your issue)
+        # If the server returns a 200 but explicitly says Content-Length is 0 (a ghost/dead token)
+        content_length = res.headers.get('content-length')
+        if content_length and int(content_length) == 0:
+            logger.warning(f"Source returned {res.status_code} OK but Content-Length is 0. URL is likely dead/invalid.")
+            return None
+
+        # 3. Extract and validate Content-Type
+        content_type = res.headers.get('content-type', "").lower()
+        if content_type:
+            if "mpegurl" in content_type or "apple.mpegurl" in content_type:
+                return "application/vnd.apple.mpegurl"
+            elif "dash+xml" in content_type:
+                return "application/dash+xml"
+            elif "mp4" in content_type:
+                return "video/mp4"
+            elif "webm" in content_type:
+                return "video/webm"
+            elif "mp2t" in content_type:
+                return "video/mp2t"
+
+        # 4. Fallback 1: URL extension parsing if Content-Type is vague
+        if res.request and res.request.url:
+            url_lower = res.request.url.lower()
+            if ".mp4" in url_lower:
+                return "video/mp4"
+            if ".webm" in url_lower:
+                return "video/webm"
+            if ".m3u8" in url_lower:
+                return "application/vnd.apple.mpegurl"
+            if ".mpd" in url_lower:
+                return "application/dash+xml"
+
+        # 5. Fallback 2: Magic byte signature detection on binary payload
+        head_bytes = res.content[:512]
+        if head_bytes:
+            # Check for HLS Playlist (#EXTM3U)
+            if head_bytes.startswith(b'#EXTM3U'):
+                return "application/vnd.apple.mpegurl"
+            
+            # Check for MP4 container ('ftyp', 'moov', or 'mdat' at offset 4)
+            if len(head_bytes) >= 8 and head_bytes[4:8] in (b'ftyp', b'moov', b'mdat'):
+                return "video/mp4"
+                
+            # Check for WebM / MKV container
+            if head_bytes.startswith(b'\x1a\x45\xdf\xa3'):
+                return "video/webm"
+                
+            # Check for MPEG Transport Stream (.ts) sync byte
+            if head_bytes.startswith(b'G') and len(head_bytes) >= 189 and head_bytes[188] == 0x47:
+                return "video/mp2t"
+
+        return None
+
+    # @staticmethod
+    # def test_stream(stream: WebResponse, test_seconds: int = 3) -> bool:
+    #     """Test the stream using ffprobe instead of ffmpeg to avoid HLS variant buffer truncation."""
+    #     logger.info(f"Testing stream URL: {stream['url']} for {test_seconds} seconds using ffprobe.")
+
+    #     command = [
+    #         "ffprobe",
+    #         "-v", "error",
+    #         "-show_format",
+    #         "-show_streams",
+    #         "-print_format", "json",
+    #         "-read_intervals", f"%+{test_seconds}",
+    #         "-headers", (
+    #             "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\r\n"
+    #             "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8\r\n"
+    #             "Accept-Language: en-US,en;q=0.5\r\n"
+    #         ),
+    #         stream['url']
+    #     ]
+
+    #     try:
+    #         result = subprocess.run(
+    #             command,
+    #             capture_output=True,
+    #             text=True,
+    #             timeout=15,
+    #             check=False,
+    #         )
+    #     except FileNotFoundError:
+    #         logger.error("Unable to test stream: ffprobe is not installed.")
+    #         return False
+    #     except subprocess.TimeoutExpired:
+    #         logger.error("Unable to test stream: ffprobe timed out.")
+    #         return False
+    #     except Exception as e:
+    #         logger.error(f"Unexpected error occurred while testing stream: {e}")
+    #         return False
+
+    #     # if result.stdout:
+    #     #     logger.info(f"ffprobe stdout:\n{result.stdout.strip()}")
+    #     # if result.stderr:
+    #     #     logger.info(f"ffprobe stderr:\n{result.stderr.strip()}")
+
+    #     if result.returncode != 0:
+    #         error_reason = result.stderr.strip() if result.stderr else "No error output provided by ffprobe."
+    #         logger.error(f"Stream test failed (code {result.returncode}). Reason: {error_reason}")
+    #         return False
+
+    #     logger.info("Stream playback test passed.")
+    #     return True
+
+    @staticmethod
+    def _parse_video_bitrate(stderr: str) -> Optional[int]:
+        for line in stderr.splitlines():
+            if line.startswith("Stream mapping:"):
+                break
+            if "Video:" not in line:
+                continue
+
+            match = re.search(r"\b(\d+(?:\.\d+)?)\s*([kM]?)b/s\b", line)
+            if match:
+                value = float(match.group(1))
+                unit = match.group(2)
+                bits_per_second = value * (
+                    1000 if unit == "k" else 1_000_000 if unit == "M" else 1
+                )
+                bitrate_kbs = int(bits_per_second / 8000)
+                if bitrate_kbs > 0:
+                    return bitrate_kbs
+            break
+
+        return None
+    
+
+    @staticmethod
+    def test_stream(
+        stream: WebResponse,
+        test_seconds: float = 1.0,
+        network_timeout: int = 10,
+    ) -> tuple[bool, Optional[int]]:
+        url = stream.get("url")
+        if not url:
+            logger.error("Stream test failed: Missing URL")
+            return False, None
+
+        mpv = shutil.which("mpv")
+        if not mpv:
+            logger.error("Unable to test stream: mpv is not installed")
+            return False, None
+
+        headers = stream.get("headers") or {}
+        effective_length = max(float(test_seconds), 0.5)
+        hard_timeout = network_timeout + effective_length + 3
+
+        command = [
+            mpv,
+            "--vo=null",
+            "--ao=null",
+                        # Does not work for some reason, stripping audio and subtitle in parse_segment
+            "--aid=no", # Disable audio decoding to speed up the test
+            "--sid=no", # Disable subtitle decoding to speed up the test
+            "--vid=1", # Force video decoding to ensure we can measure the bitrate
+            f"--length={effective_length}",
+            f"--network-timeout={network_timeout}",
+            "--cache=no",
+            "--demuxer-readahead-secs=0.5",
+            "--no-config", # Ignore user config files to ensure consistent behavior
+            "--msg-level=all=info",
+        ]
+
+        if headers:
+            header_fields = ",".join(f"{k}: {v}" for k, v in headers.items())
+            command.append(f"--http-header-fields={header_fields}")
+
+        command.append(url)
+
+        proc = None
+        try:
+            proc = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            stdout, stderr = proc.communicate(timeout=hard_timeout)
+            output = f"{stdout}\n{stderr}"
+            if stdout:
+                logger.info(stdout)
+            if stderr:
+                logger.error(stderr)
+
+            if proc.returncode == 0:
+                bitrate_KBps = None
+                match = re.search(
+                    r"Video\s+--vid=\d+.*?\b(\d+)\s*kbps\b",
+                    output,
+                    re.IGNORECASE,
+                )
+                if match:
+                    bitrate_KBps = round(int(match.group(1)) / 8)
+
+                logger.info(f"Stream playback test passed ({bitrate_KBps} KB/s): {url}")
+                return True, bitrate_KBps
+
+            logger.error(
+                f"Stream playback test failed (exit code {proc.returncode}): {url}"
+            )
+            return False, None
+
+        except subprocess.TimeoutExpired:
+            if proc:
+                proc.kill()
+                proc.communicate()
+            logger.warning(f"Stream playback test timed out after {hard_timeout}s: {url}")
+            return False, None
+
+        except FileNotFoundError:
+            logger.error("Unable to test stream: mpv executable not found")
+            return False, None
+
+        except Exception as e:
+            if proc and proc.poll() is None:
+                proc.kill()
+                proc.communicate()
+            logger.error(f"Stream playback test failed: {e}")
+            return False, None
+
+
+
+    @staticmethod
+    def apply_proxy(stream: WebResponse) -> Optional[WebResponse]:
+        if not stream.get('headers'): stream['headers'] = {}
+
+        try:
+            r = session.get(stream['url'], 
+                            timeout=10, 
+                            headers={
+                                **(stream.get('headers') or {}),
+                                'Range': 'bytes=0-1023',
+                                'Accept-Encoding': 'identity'
+                            }, 
+                            allow_redirects=True, 
+                            stream=True
+                        )
+        except Exception as e:
+            logger.error(f"Network error while probing stream URL: {e}")
+            return None
+
+        if r.status_code not in (200, 203, 206): 
+            logger.error(f"Unable to fetch content-type. Error code {r.status_code}")
+            return None
+        
+        if not stream.get('contentType'): 
+            stream['contentType'] = Proxy.get_content_type(r)
+            if not stream.get('contentType'): 
+                logger.error("Unable to determine content-type for proxying. Rejecting source.")
+                r.close()
+                return None
+            logger.info(f"Detected content-type: {stream['contentType']}")
+        r.close()
+
+
+        if stream['contentType'] == "video/mp4":
+            stream_type = "stream.mp4"
+        elif stream['contentType'] == "video/webm":
+            stream_type = "stream.mkv"
+        else:
+            stream_type = "stream.m3u8"
+
+        headers_str = json.dumps(stream['headers'])
+
+        
+        stream['url'] = Proxy.add_proxy(stream['url'], headers_str, stream_type=stream_type, network_prefix=LOCAL_URL)
+        stream['subtitles'] = [
+            {
+                **sub,
+                'url': Proxy.add_proxy(sub['url'], headers=headers_str, stream_type="proxy.vtt" if '.vtt' in sub['url'] else 'proxy.srt')
+            }
+            for sub in stream['subtitles']
+        ]
+        test_passed, detected_bitrate = Proxy.test_stream(stream)
+        if not test_passed:
+            logger.error("Stream failed playback validation. Rejecting source.")
+            return None
+        stream['url'] = Proxy.add_proxy(stream['url'], headers_str, stream_type=stream_type)
+        if detected_bitrate: stream["url"] = Proxy.add_bitrate(stream["url"], detected_bitrate)
+
+        return stream
+
+    @staticmethod
+    def add_bitrate(url: str, bitrate_kbs: Optional[int]) -> str:
+        if bitrate_kbs:
+            url += "&bitrate_kbs=" + quote(str(bitrate_kbs), safe='')
+        return url
+
+    
+    @staticmethod
+    def add_proxy(url: str, headers: str, id: Optional[str] = None, bitrate_kbs: Optional[int] = None, stream_type: str = "stream.ts", network_prefix: Optional[str] = TUNNEL_URL) -> str:
+
+        if not network_prefix: raise Exception("Network prefix not set")
+
+        if isinstance(headers, dict): headers_str = json.dumps(headers, separators=(",", ":"))
+        else: headers_str = str(headers)
+
+        url_str = str(url)
+        proxy_url = (
+            f"{network_prefix}/{stream_type}"
+            + "?url=" + quote(url_str, safe="")
+            + "&headers=" + quote(headers_str, safe="")
+        )
+        if id: proxy_url += f"&id={quote(id, safe='')}"
+        if bitrate_kbs: proxy_url = Proxy.add_bitrate(proxy_url, bitrate_kbs)
+        # if index: proxy_url +=  f"&index={quote(index, safe='')}"
+        return proxy_url
+
+
+    @staticmethod
+    def parse_segment(
+        content: bytes,
+        headers: str,
+        master_url: str,
+        id: Optional[str],
+        index: Optional[str],
+        bitrate_kbs: Optional[int],
+        network_prefix: Optional[str] = TUNNEL_URL,
+    ) -> str:
+        text = content.decode("utf-8", errors="ignore")
+        rewritten: list[str] = []
+
+        parsed = urlparse(master_url)
+        host = f"{parsed.scheme}://{parsed.netloc}"
+        base_path = "/".join(parsed.path.split("/")[:-1])
+
+        is_master = "#EXT-X-STREAM-INF" in text
+        is_fmp4 = "#EXT-X-MAP" in text
+
+        def resolve_url(url: str) -> str:
+            """Converts relative URLs to absolute."""
+            if url.startswith("http"):
+                return url
+            elif url.startswith("/"):
+                return host + url
+            else:
+                return f"{host}{base_path}/{url}"
+
+        # Helper function to dynamically pull the extension (.mp4, .m4s, .ts, .m3u8) from any target line
+        def get_stream_type(target: str) -> str:
+            if is_master:
+                return "stream.m3u8"  # Master playlists should always be treated as m3u8
+            ext = os.path.splitext(urlparse(target).path)[1]
+            if is_fmp4:
+                return "stream.m4s"
+            elif ext == ".webm":
+                return "stream.mkv"
+            elif ext in [".mp4", ".m4s", ".ts", ".m3u8"]:
+                return f"stream{ext}"
+            return "stream.ts"
+
+        # Regex to find URI="..." inside tags
+        uri_pattern = re.compile(r'(URI=["\'])(.*?)(["\'])')
+
+        for line in text.split("\n"):
+            line = line.strip()
+            if not line:
+                rewritten.append("")
+                continue
+
+            # Handle tags that might contain URIs
+            if line.startswith("#"):
+                if "URI=" in line:
+                    # Replace the URI inside the tag with the proxied version
+                    def replace_uri(match: re.Match[str]):
+                        full_url = resolve_url(match.group(2))
+                        stream_type = get_stream_type(match.group(2))
+                        proxied_url = Proxy.add_proxy(
+                            full_url,
+                            headers,
+                            stream_type=stream_type,
+                            id=id,
+                            bitrate_kbs=bitrate_kbs,
+                            network_prefix=network_prefix,
+                        ) + (f"&index={quote(index, safe='')}" if index else "")
+                        return f"{match.group(1)}{proxied_url}{match.group(3)}"
+
+                    rewritten_line = uri_pattern.sub(replace_uri, line)
+
+                    # Handle cases where the stream is tested using mpv with the function test_stream
+                    # This is to prevent issues with local mpv testing and subtitle/audio tags can break playback
+                    if (
+                        (
+                            rewritten_line.startswith("#EXT-X-MEDIA:TYPE=SUBTITLES")
+                            or rewritten_line.startswith("#EXT-X-MEDIA:TYPE=AUDIO")
+                        )
+                        and LOCAL_URL
+                        and LOCAL_URL in rewritten_line
+                    ):
+                        logger.warning("Detected local URL in subtitle/audio tag. Discarding tag.")
+                        continue
+
+                    rewritten.append(rewritten_line)
+                else:
+                    # Standard tag, no URI to proxy
+                    rewritten.append(line)
+
+            # Handle segment URLs (lines not starting with #)
+            else:
+                stream_type = get_stream_type(line)
+                rewritten.append(
+                    Proxy.add_proxy(
+                        resolve_url(line),
+                        headers,
+                        stream_type=stream_type,
+                        id=id,
+                        bitrate_kbs=bitrate_kbs,
+                        network_prefix=network_prefix,
+                    )
+                    + (f"&index={quote(index, safe='')}" if index else "")
+                )
+
+        return "\n".join(rewritten)
+    
+    @staticmethod
+    def apply_headers(response: Response):
+        excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
+        for header in excluded_headers:
+            response.headers.pop(header, None)
+
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, HEAD"
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        response.headers["Connection"] = "close"
+        response.headers["Accept-Ranges"] = "bytes"
+        return response
+
+    @staticmethod
+    def _capture_curl_status(curl_obj: Any, state: dict[str, Any]) -> int:
+        if state.get("status_code") is not None:
+            return int(state["status_code"])
+
+        try:
+            status_code = curl_obj.getinfo(curl_obj.RESPONSE_CODE)
+        except pycurl.error as exc:
+            logger.warning(f"Unable to read curl status after handle closed: {exc}")
+            status_code = None
+
+        if status_code is None:
+            status_code = 200
+
+        state["status_code"] = int(status_code)
+        return int(status_code)
+    
+    @staticmethod
+    def redirect() -> Response:
+        id = request.args.get("id")
+        if not id: 
+            logger.error("Missing 'id' parameter")
+            return Response("Missing 'id' parameter", status=400)
+
+        idx = request.args.get("idx")
+        if not idx: 
+            logger.error("Missing 'idx' parameter")
+            return Response("Missing 'idx' parameter", status=400)
+
+        cache = web_cache.get(id)
+        if not cache: 
+            logger.error(f"Stream not found for id {id}. Unable to process request.")
+            return Response("Stream not found", status=404)
+
+        current_index: Optional[int] = cache.get("current_index")
+        if current_index is None: 
+            logger.error(f"Missing 'current_index' in cache for id {id}. Unable to process request.")
+            return Response("Missing 'current_index' in cache", status=404)
+
+        streams: Optional[list[list[dict[str, Any]]]] = cache.get("streams")
+        if not streams: return Response("No streams found", status=404)
+        # if len(streams[int(current_index)]) != 1:
+        #     logger.error(f"Stream length {len(streams[int(current_index)])} is not 1. Unable to process request.")
+        #     return Response(f"Stream length {len(streams[int(current_index)])} is not 1. Unable to process request.", status=404)
+        
+        current_stream = streams[int(current_index)][int(idx)]
+        stream = current_stream.get("url")
+        if not stream: return Response("Stream URL not found", status=404)
+
+        stream += f"&id={id}&index={current_index}:0"
+
+        # if id and len(id.split(":"))>1:
+        #     from app.core.extractors import StreamExtractor
+        #     logger.info("Series found. Calculating cache for next episode.")
+        #     next_eps_id = cinemeta.get_next_episode(id)
+        #     if next_eps_id: threadpool.run_in_background(lambda _: StreamExtractor().extract(next_eps_id, type="series", seek=2), delay=30)
+
+        logger.info(f"Redirecting to proxied stream URL: {stream}")
+        return Response(status=302, headers={"Location": stream})
+
+
+    @staticmethod
+    def proxy(content_type: Optional[str] = None) -> Response:
+        assert LOCAL_URL, "LOCAL_URL must be set in config.py"
+        assert TUNNEL_URL, "TUNNEL_URL must be set in config.py"
+
+        start_time = time.time()
+
+        # Proxy arguments
+        media_url = request.args.get("url")
+        if not media_url: raise Exception("No media_url found")
+        id = request.args.get("id")
+        index = request.args.get("index")
+        try:
+            bitrate_kbs_str = request.args.get("bitrate_kbs")
+            bitrate_kbs = int(bitrate_kbs_str) if bitrate_kbs_str else None
+        except (ValueError, TypeError): bitrate_kbs = None
+        media_headers = request.args.get("headers", "{}")
+        if not media_headers: raise Exception("No media_headers found")
+        logger.debug(f"id {id} | index {index}\n{'-'*10}\nmedia_url {media_url}\n{'-'*10}\nmedia_headers {media_headers}")
+
+        # Request arguments
+        request_headers = dict(request.headers)
+        logger.debug(f"request_headers: {request_headers}")
+
+        try: arg_headers = json.loads(media_headers)
+        except Exception as e: return Response(f"Unable to parse headers_str. Error: {e}", status=503)
+        logger.debug(f"arg_headers: {arg_headers}")
+
+        is_m3u8 = (
+            ".m3u8" in media_url
+            or (content_type and "mpegurl" in content_type.lower())
+            or (content_type and "application/vnd.apple.mpegurl" in content_type)
+        )
+        request_range = request_headers.get("Range") or request_headers.get("range")
+        for header_name in list(arg_headers):
+            if header_name.lower() == "range": del arg_headers[header_name]
+        if request_range and not is_m3u8: arg_headers["Range"] = request_range
+
+
+        ############# New logic to determine if the media is segmented (HLS/DASH) or not
+        # # Only forward Range requests if it's a progressive file, 
+        # # not an individual HLS/DASH segment (.ts, .m4s, .mp4 chunks)
+        # is_segmented_media = any(ext in media_url.lower() for ext in ['.ts', '.m4s', '.mp4', '.chunk'])
+        # if request_range and not is_m3u8 and not is_segmented_media:
+        #     arg_headers["Range"] = request_range
+        # else:
+        #     # Drop range request so upstream serves the complete segment cleanly
+        #     arg_headers.pop("Range", None)
+        ##################################################################################
+
+        if id and index:
+            web_res = web_cache.get(id)
+            if web_res:
+                current_index = int(web_res.get('current_index'))
+                source_index = int(index.split(':')[0])
+                logger.debug(f"current_index: {current_index} | source_index: {source_index}")
+                if current_index != source_index:
+                    logger.error(f"Stream aborted for id {id}")
+                    return Response("Stream aborted", status=503)
+
+        try:
+            if request.method == "HEAD":
+                upstream_response = session.head(
+                    media_url,
+                    timeout=(5, 30),
+                    headers=arg_headers,
+                    verify=False,
+                    allow_redirects=True,
+                )
+            elif request.method == "POST":
+                upstream_response = session.post(
+                    media_url,
+                    timeout=(5, 30),
+                    headers=arg_headers,
+                    stream=True,
+                    verify=False,
+                    allow_redirects=True,
+                )
+            else:
+                upstream_response = session.get(
+                    media_url,
+                    timeout=(5, 30),
+                    headers=arg_headers,
+                    stream=True,
+                    verify=False,
+                    allow_redirects=True,
+                )
+        except Exception as e: 
+            logger.error(f"Proxy upstream error, {e}")
+            if id: 
+                web_cache.switch_source(id)
+            else: logger.warning("'request_id' not available, skipping source switch")
+            return Response(f"Upstream error {e}", status=503) 
+
+        # Log unusual but legal request ##################################################
+        if upstream_response.status_code == 416:
+            logger.warning(
+                "Upstream rejected byte range: "
+                f"method={request.method!r}, "
+                f"requested_range={request_range!r}, "
+                f"content_range={upstream_response.headers.get('Content-Range')!r}, "
+                f"content_length={upstream_response.headers.get('Content-Length')!r}, "
+                f"accept_ranges={upstream_response.headers.get('Accept-Ranges')!r}"
+            )
+        ##################################################################################
+
+        if upstream_response.status_code not in (200, 203, 206, 416):
+            logger.error(f"Upstream error [{upstream_response.status_code}] {upstream_response.text}")
+            if id:
+                web_cache.switch_source(id)
+            else: logger.warning("'request_id' not available, skipping source switch")
+            return Response(f"Upstream error {upstream_response.text}", status=503)
+
+        if not content_type: content_type = upstream_response.headers.get("content-type", "").lower()
+
+        # Drop ImageX / PNG obfuscation headers sent by TikTok CDN
+        sanitized_headers = dict(upstream_response.headers)
+        keys_to_remove = [k for k in sanitized_headers if 'imagex' in k.lower() or 'png' in k.lower()]
+        for k in keys_to_remove: sanitized_headers.pop(k, None)
+
+        if is_m3u8 and upstream_response.status_code in (200, 203, 206):
+            content = upstream_response.content
+            updated_content = Proxy.parse_segment(
+                content,
+                arg_headers,
+                media_url,
+                id=id,
+                index=index,
+                bitrate_kbs=bitrate_kbs,
+                network_prefix=LOCAL_URL if request.url.startswith(LOCAL_URL) else TUNNEL_URL
+            )
+            resp = Response(
+                updated_content,
+                status=upstream_response.status_code,
+                mimetype=content_type,
+                headers=sanitized_headers,
+            )
+            logger.info(f"{upstream_response.status_code} | {round(time.time() - start_time, 2)}s | Parsing m3u8 {request.url}")
+            return Proxy.apply_headers(resp)
+
+        def generate_media():
+            MIN_EVALUATION_SECONDS = 15.0
+            MIN_SPEED_KBS = bitrate_kbs if bitrate_kbs and bitrate_kbs > 256 else 256
+            
+            speed_window = Proxy._speed_window_for(id)
+            chunks = upstream_response.iter_content(chunk_size=32 * 1024)
+            source_index = index.split(":", 1)[0] if index else None
+            
+            first_chunk = True
+            
+            try:
+                while True:
+                    read_start = time.monotonic()
+                    try:
+                        chunk = next(chunks)
+                    except StopIteration:
+                        break
+                    
+                    read_end = time.monotonic()
+                    read_time = read_end - read_start
+
+                    if not chunk:
+                        continue
+
+                    # Strip leading non-MPEG-TS junk/image bytes from the initial chunk
+                    if first_chunk:
+                        first_chunk = False
+                        if (
+                            (".ts" in media_url or "mp2t" in content_type) 
+                            # or (".m4s" in media_url or ".mp4" in media_url or "mp4" in content_type)
+                        ) and not ("styp" in chunk[:16].hex() or "ftyp" in chunk[:16].hex()):
+                            sync_idx = chunk.find(b'\x47')
+                            if sync_idx > 0:
+                                logger.warning(f"Stripped {sync_idx} bytes of non-video header data before MPEG-TS sync byte.")
+                                chunk = chunk[sync_idx:]
+                            elif sync_idx == -1:
+                                logger.error("No MPEG-TS sync byte (0x47) found in the initial chunk payload.")
+
+                    chunk_len = len(chunk)
+                    if chunk_len == 0:
+                        continue
+
+                    # Avoid division by zero by ensuring a minimum read time
+                    actual_read_time = max(read_time, 0.0001)
+                    # Calculate current speed in KB/s
+                    current_speed = (chunk_len / 1024) / actual_read_time
+                    elapsed_time, total_bytes, total_read_time = Proxy._record_speed_sample(
+                        speed_window,
+                        read_end,
+                        chunk_len,
+                        actual_read_time,
+                        MIN_EVALUATION_SECONDS,
+                        source_index,
+                    )
+
+                    # Calculate rolling speed only if we have enough data and time has elapsed
+                    if elapsed_time >= MIN_EVALUATION_SECONDS and total_read_time > 0:
+                        rolling_speed = (total_bytes / 1024) / total_read_time
+                    else:
+                        rolling_speed = None
+
+                    if current_speed < MIN_SPEED_KBS and (
+                        rolling_speed is None or rolling_speed >= MIN_SPEED_KBS
+                    ):
+                        rolling_status = (
+                            "not available yet"
+                            if rolling_speed is None
+                            else f"{rolling_speed:.2f} / {MIN_SPEED_KBS} KB/s"
+                        )
+                        logger.warning(
+                            f"Upstream speed for id '{id}' low: {current_speed:.2f} KB/s "
+                            f"(rolling speed: {rolling_status})"
+                        )
+
+                    if rolling_speed is not None and rolling_speed < MIN_SPEED_KBS:
+                        if id and index:
+                            logger.error(
+                                f"Terminating stream 'id' {id}. Upstream rolling network speed dropped to: {rolling_speed:.2f} KB/s "
+                                f"(Read Time: {total_read_time:.2f}s | Wall Time: {elapsed_time:.2f}s) | Bitrate Threshold: {MIN_SPEED_KBS} KB/s"
+                            )
+                            logger.error(f"Slow upstream speed for id '{id}': {rolling_speed:.2f} KB/s")
+                            web_res = web_cache.get(id)
+                            if web_res:
+                                current_index = int(web_res.get('current_index'))
+                                requested_source_index = int(index.split(':')[0])
+                                logger.debug(
+                                    f"current_index: {current_index} | "
+                                    f"source_index: {requested_source_index}"
+                                )
+                                if current_index == requested_source_index:
+                                    if web_cache.switch_source(id):
+                                        break
+                                    else:
+                                        logger.warning('Ignoring source switch since no other sources available. Resetting speed evaluation window.')
+                                        with Proxy._speed_windows_lock:
+                                            speed_window.chunks.clear()
+                                            speed_window.started_at = time.monotonic()
+                                            speed_window.last_chunk_at = None
+                                else:
+                                    logger.warning('Ignoring source switch since source already switched.')
+                            else:
+                                logger.warning("'id' or 'index' not available, skipping source switch")
+
+                        else:
+                            logger.error(f"Upstream network speed dropped to: {rolling_speed:.2f} KB/s, below threshold of {MIN_SPEED_KBS} KB/s. But 'id' or 'index' not available, skipping source switch.")
+
+                    yield chunk
+
+            except Exception as e:
+                logger.error(f"Error while yielding chunk. Error: {e}")
+                if id and index:
+                    web_res = web_cache.get(id)
+                    if web_res:
+                        current_index = int(web_res.get('current_index'))
+                        requested_source_index = int(index.split(':')[0])
+                        logger.debug(
+                            f"current_index: {current_index} | "
+                            f"source_index: {requested_source_index}"
+                        )
+                        if current_index == requested_source_index:
+                            web_cache.switch_source(id)
+                        else: 
+                            logger.debug('Ignoring source switch since source already switched.')
+                else: 
+                    logger.warning("'id' or 'index' not available, skipping source switch")
+
+            finally: 
+                upstream_response.close()
+
+        resp = Response(
+            stream_with_context(generate_media()), 
+            status=upstream_response.status_code,
+            content_type=content_type,
+            headers=sanitized_headers,
+        )
+
+        logger.info(f"{upstream_response.status_code} | {round(time.time() - start_time, 2)}s | Streaming 'id' {id} - 'url' {Parsers.extract_segment_name(media_url)}")
+
+        return Proxy.apply_headers(resp)
+
+# if __name__ == "__main__":
+#     print(Proxy.test_stream({"url": "https://something.dpdns.org/stream.mp4?url=https%3A%2F%2Fusa7-nas35.shegu.net%2Fvip%2Fp1%2Forg_movie%2F6%2F4%2F0%2F470%2Fmovie.470.2012.original.399286.20190618182818.mp4%3FKEY1%3DJ32JfTp6EQwNkZHCOgYexw%26KEY2%3D1795114201%26KEY3%3D2522611%26KEY4%3Dworld%26KEY5%3DThe.Hunger.Games.2012.1080p.BluRay.H264.AAC-RARBG.mp4%26KEY7%3Dfebbox_video_quality_list_v3%26KEY8%3D2522611%26KEY0%3D2&headers=%7B%22Origin%22%3A%20%22https%3A%2F%2Fshowbox.codiv.dpdns.org%2F%257B%2522cookie%2522%253A%2522eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIyMjg0OTcsIm5iZiI6MTc5MjIyODQ5NywiZXhwIjoxODIzMzMyNTE3LCJkYXRhIjp7InVpZCI6MjUyMjYxMSwidG9rZW4iOiI4OTQ0MjY4NDJkY2M2M2U0NDRhZDdhMjg4ZDQ4YjdkZCJ9fQ.UEnZ2pZefUH-rHCt1bdp9-qcj9ZRH2vabgjmtyZhjBo%2522%257D%22%2C%20%22Referer%22%3A%20%22https%3A%2F%2Fshowbox.codiv.dpdns.org%2F%257B%2522cookie%2522%253A%2522eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIyMjg0OTcsIm5iZiI6MTc5MjIyODQ5NywiZXhwIjoxODIzMzMyNTE3LCJkYXRhIjp7InVpZCI6MjUyMjYxMSwidG9rZW4iOiI4OTQ0MjY4NDJkY2M2M2U0NDRhZDdhMjg4ZDQ4YjdkZCJ9fQ.UEnZ2pZefUH-rHCt1bdp9-qcj9ZRH2vabgjmtyZhjBo%2522%257D%2F%22%7D", "headers": {}}, test_seconds=1))

@@ -1,0 +1,219 @@
+import os
+import sys
+from pathlib import Path
+from decimal import Decimal
+from urllib.parse import parse_qs, unquote, urlparse
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+import re
+from typing import Optional, List
+from app.models.metadata import Metadata
+
+class Parsers:
+    def __init__(self):
+        self.languages = ['english', 'tamil', 'malayalam', 'kannada', 'hindi', 'telugu']
+
+    def is_match(self, item_title: str, target_title: str) -> bool:
+        # 1. Clean the prefix from the item_title (e.g., "LIK: " -> "")
+        # This regex removes anything followed by a colon at the start of the string
+        cleaned_item = re.sub(r'^[^:]+:\s*', '', item_title)
+        
+        # 2. Normalize both
+        norm_item = self.normalize_text(cleaned_item)
+        norm_target = self.normalize_text(target_title)
+        
+        # 3. Use Regex with Word Boundaries (\b) to ensure complete word matching
+        # \b ensures that "Lokahe" does not match "Lokah"
+        pattern = rf"\b{re.escape(norm_target)}\b"
+        
+        return bool(re.search(pattern, norm_item))
+
+
+    def normalize_text(self, text: str) -> str:
+        """Maps numerical synonyms/symbols to digits, then removes special characters."""
+        # 1. Map symbols and number words before removing punctuation
+        mapping = {
+            "&": "and",
+            "one": "1", "two": "2", "three": "3", "four": "4", "five": "5"
+        }
+        
+        text = text.lower()
+        
+        # Replace keys while maintaining boundaries for word-based keys
+        pattern = re.compile(
+            r'|'.join(r'\b{}\b'.format(re.escape(k)) if k.isalnum() else re.escape(k) for k in mapping.keys())
+        )
+        text = pattern.sub(lambda m: mapping[m.group(0)], text)
+        
+        # 2. Replace remaining non-alphanumeric characters with spaces
+        text = re.sub(r'[^a-zA-Z0-9\s]', ' ', text)
+        
+        # 3. Clean up extra spaces
+        return " ".join(text.split())
+    
+
+    def find_all_matches(
+        self, 
+        input_title: str, 
+        input_year: Optional[str], 
+        metadata_list: List[Metadata]
+    ) -> List[Metadata]:
+        
+        target_title_norms = {
+            self.normalize_text(input_title),
+            self.normalize_text(input_title.split(':', 1)[0]),
+        }
+        target_year = str(input_year).strip() if input_year else None
+        
+        matches: list[Metadata] = []
+        
+        for item in metadata_list:
+            # 1. Compare Year Logic:
+            # Skip only if BOTH have a year AND they don't match
+            if item.year and target_year and str(item.year) != target_year:
+                continue
+                
+            # 2. Compare Title:
+            if self.normalize_text(item.title) in target_title_norms:
+            # if self.is_match(self.normalize_text(item.title), target_title_norm):
+                matches.append(item)
+                
+        return matches
+    
+    def parse_metadata(
+        self, 
+        text: str, 
+        url: str, 
+        languages: Optional[List[str]] = None
+    ) -> Metadata:
+        if not languages: 
+            languages = self.languages
+
+        lang_map = {lang.casefold(): lang for lang in languages}
+        
+        # 1. Extract Year
+        year_match = re.search(r'\(?(\d{4})\)?', text)
+        year = year_match.group(1) if year_match else None
+
+        # 2. Extract Quality (e.g., WEB-DL, HD, 1080p, 720p, HDRip, CAM, DVDRip)
+        quality_pattern = r'\b(WEB-DL|WEBRip|HDRip|DVDRip|BRRip|BluRay|HDTV|CAMRip|CAM|PreDVD|1080p|720p|480p|4k)\b'
+        quality_match = re.search(quality_pattern, text, flags=re.IGNORECASE)
+        quality = quality_match.group(1) if quality_match else None
+
+        # 3. Extract file size
+        size_pattern = r'\b(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[KMGT]?i?B)\b'
+        size_match = re.search(size_pattern, text, flags=re.IGNORECASE)
+        size_kb = None
+        if size_match:
+            value = Decimal(size_match.group("value"))
+            unit = size_match.group("unit").casefold()
+            if unit == "b":
+                multiplier = Decimal("0.001")
+            else:
+                exponent = {"k": 1, "m": 2, "g": 3, "t": 4}[unit[0]]
+                multiplier = (
+                    Decimal(1024) ** exponent / Decimal(1000)
+                    if "i" in unit
+                    else Decimal(1000) ** (exponent - 1)
+                )
+            size_kb = int(value * multiplier)
+
+        # 4. Clean string for title processing
+        clean_text = re.sub(r'\(?\d{4}\)?', '', text)  # remove year
+        clean_text = re.sub(quality_pattern, '', clean_text, flags=re.IGNORECASE)  # remove quality
+        clean_text = re.sub(size_pattern, '', clean_text, flags=re.IGNORECASE)  # remove file size
+        clean_text = re.sub(r'[\[\]\(\)\+\,\-]', ' ', clean_text)  # remove punctuation
+        
+        tokens = clean_text.split()
+        
+        found_languages: list[str] = []
+        title_words: list[str] = []
+        
+        # Common trailing metadata words to skip if encountered after title
+        garbage_words = {"full", "movie", "hd"}
+
+        # 4. Identify title and languages
+        for token in tokens:
+            token_folded = token.casefold()
+            
+            if token_folded in lang_map:
+                found_languages.append(lang_map[token_folded])
+                # Once a language token is hit, stop accumulating title words
+                break
+            elif token_folded in garbage_words:
+                continue
+            else:
+                title_words.append(token)
+                
+        return Metadata(
+            title=" ".join(title_words).strip(),
+            url=url,
+            year=year,
+            languages=found_languages,
+            quality=quality,
+            size_kb=size_kb
+        )
+
+    @staticmethod
+    def extract_segment_name(stream_url: str) -> str:
+        # 1. Parse the main URL query string
+        parsed_url = urlparse(stream_url)
+        query_params = parse_qs(parsed_url.query)
+        
+        # 2. Extract the nested 'url' parameter if it exists
+        target_url = query_params.get('url', [None])[0]
+        
+        if not target_url:
+            # Fallback: if there's no 'url' parameter, inspect the path itself
+            target_url = stream_url
+
+        # 3. Fully unquote/decode the nested URL (handles double-encoding too)
+        decoded_url = unquote(target_url)
+        if '%' in decoded_url:
+            decoded_url = unquote(decoded_url)
+            
+        # 4. Parse the inner URL and get the filename from the path
+        inner_path = urlparse(decoded_url).path
+        filename = os.path.basename(inner_path)
+        
+        return filename
+    
+
+if __name__ == "__main__":
+    parsers = Parsers()
+    metadata = parsers.parse_metadata("Idhayam Murali 2026 Tamil Full Movie WEB-DL", "https://example.com/movie")
+    print(f"Metadata -> {metadata}")
+
+    # --- Size extraction tests ---
+    size_examples: List[tuple[str, Optional[int]]] = [
+        ("📁 Inception.2010.1080p.BluRay.H264.AAC-RARBG.mp4\n⚙️ 1080P • 💾 3.61 GB", 3_610_000),
+        ("Example Movie 1080p 1.5 GiB", 1_610_612),
+        ("Example Movie 1080p", None),
+    ]
+    for example, expected_size in size_examples:
+        parsed = parsers.parse_metadata(example, "https://example.com/video")
+        assert parsed.size_kb == expected_size, f"{parsed.size_kb!r} != {expected_size!r}"
+        assert parsed.size_kb is None or isinstance(parsed.size_kb, int)
+        print(f"Size test passed: {parsed.size_kb!r}")
+
+    # --- Testing ---
+    database = [
+        Metadata(title="Lokah: Chapter One", url="", year="2026", languages=["Tamil", "Hindi"]),
+        Metadata(title="Kara", url="", year=None, languages=["Tamil"]),
+        Metadata(title="Karaa", url="", year="2026", languages=["Hindi"]),
+        Metadata(title="Bison Kaalamaadan", url="", year="2025"),
+        Metadata(title="Toxic", url="", year="2026")
+    ]
+
+    # Test Case 1: Match "Lokah chapter 1" (2026 matches)
+    print(f"Match 1: {parsers.find_all_matches('lokah chapter 1', '2026', database)}")
+
+    # Test Case 2: Match "Kara" (No year in DB, matches 2025 input)
+    print(f"Match 2: {parsers.find_all_matches('kara', '2025', database)}")
+
+    # Test Case 3: "Karaa" (2026) vs 2025 input (Mismatch, should be None)
+    print(f"Match 3: {parsers.find_all_matches('karaa', '2025', database)}")
+
+    print(f"Match 4: {parsers.find_all_matches('Bison: Kaalamaadan', '2025', database)}")
+
+    print(f"Match 5: {parsers.find_all_matches('Toxic: A Fairy Tale for Grown-ups', '2026', database)}")
