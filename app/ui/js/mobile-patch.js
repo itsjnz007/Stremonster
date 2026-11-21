@@ -20,12 +20,24 @@ function isPortrait() {
 
 function isMobileDevice() {
   const mediaQuery = globalThis.matchMedia?.(MOBILE_POINTER_QUERY);
+  if (mediaQuery?.matches) {
+    return true;
+  }
+
+  const touchPoints = Number(globalThis.navigator?.maxTouchPoints || 0);
+  const isStandalone =
+    globalThis.navigator?.standalone === true ||
+    globalThis.matchMedia?.("(display-mode: standalone)")?.matches ||
+    globalThis.matchMedia?.("(display-mode: minimal-ui)")?.matches;
+  if (isStandalone && touchPoints > 0) {
+    return true;
+  }
+
   if (mediaQuery) {
-    return mediaQuery.matches;
+    return false;
   }
 
   const width = Number(globalThis.innerWidth || 0);
-  const touchPoints = Number(globalThis.navigator?.maxTouchPoints || 0);
   return width > 0 && width <= 950 && touchPoints > 0;
 }
 
