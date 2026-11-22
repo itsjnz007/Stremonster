@@ -203,6 +203,23 @@ html.nuvio-web-app * {
   scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
 }
 
+html.nuvio-web-app,
+html.nuvio-web-app body,
+html.nuvio-web-app *:not(input):not(textarea):not([contenteditable="true"]) {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html.nuvio-web-app img,
+html.nuvio-web-app picture,
+html.nuvio-web-app video,
+html.nuvio-web-app canvas,
+html.nuvio-web-app svg {
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
 html.nuvio-web-app *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
