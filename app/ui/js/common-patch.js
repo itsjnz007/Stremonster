@@ -40,6 +40,9 @@ export const CommonPatch = {
 
   handleHomeCatalogContextMenu(event, Router) {
     const screen = Router.getCurrentScreen();
+    if (String(Router.getCurrent?.() || "") === "detail") {
+      return false;
+    }
     const genericTarget = event?.target?.closest?.(".focusable");
     if (
       genericTarget &&
@@ -50,6 +53,8 @@ export const CommonPatch = {
     ) {
       event.preventDefault();
       event.stopPropagation();
+      this.cancelPointerHold();
+      this.suppressPointerHoldClick(genericTarget);
       void screen.openPosterOptionsMenu(genericTarget);
       return true;
     }
@@ -64,6 +69,8 @@ export const CommonPatch = {
       event.preventDefault();
       event.stopPropagation();
       screen.markUserInteractionSinceHomePaint();
+      this.cancelPointerHold();
+      this.suppressPointerHoldClick(homeTarget);
       screen.openHoldMenuForNode(homeTarget);
       return true;
     }
@@ -84,6 +91,63 @@ export const CommonPatch = {
     }
 
     return false;
+  },
+
+  getPointerHoldTarget(event, Router) {
+    const screen = Router.getCurrentScreen();
+    if (!screen?.container) {
+      return null;
+    }
+    if (String(Router.getCurrent?.() || "") === "detail") {
+      return null;
+    }
+    const node = event?.target?.closest?.(".focusable");
+    if (!node || !screen.container.contains(node)) {
+      return null;
+    }
+    if (typeof screen.isPosterHoldTarget === "function" && screen.isPosterHoldTarget(node)) {
+      if (typeof screen.openPosterOptionsMenu === "function") {
+        return { screen, node, kind: "poster" };
+      }
+      if (typeof screen.openHoldMenuForNode === "function") {
+        return { screen, node, kind: "home" };
+      }
+    }
+    if (
+      typeof screen.isHomeHoldTarget === "function" &&
+      screen.isHomeHoldTarget(node) &&
+      typeof screen.openHoldMenuForNode === "function"
+    ) {
+      return { screen, node, kind: "home" };
+    }
+    return null;
+  },
+
+  cancelPointerHold() {
+    if (this._pointerHoldTimer) {
+      clearTimeout(this._pointerHoldTimer);
+      this._pointerHoldTimer = null;
+    }
+    this._pointerHold = null;
+  },
+
+  openPointerHoldMenu(hold) {
+    if (hold.kind === "poster") {
+      void hold.screen.openPosterOptionsMenu(hold.node);
+      return;
+    }
+    hold.screen.openHoldMenuForNode(hold.node);
+  },
+
+  suppressPointerHoldClick(node) {
+    if (this._pointerHoldClickTimer) {
+      clearTimeout(this._pointerHoldClickTimer);
+    }
+    this._pointerHoldClickTarget = node;
+    this._pointerHoldClickTimer = setTimeout(() => {
+      this._pointerHoldClickTimer = null;
+      this._pointerHoldClickTarget = null;
+    }, 1200);
   },
 
   normalizeServerCapabilities(capabilities, { isCustom = false } = {}) {
@@ -237,6 +301,93 @@ export const CommonPatch = {
     document.addEventListener(
       "contextmenu",
       (event) => this.handleHomeCatalogContextMenu(event, Router),
+      true
+    );
+
+    document.addEventListener(
+      "pointerdown",
+      (event) => {
+        if (event.button !== 0 || event.isPrimary === false) {
+          return;
+        }
+        const hold = this.getPointerHoldTarget(event, Router);
+        if (!hold) {
+          this.cancelPointerHold();
+          return;
+        }
+        this.cancelPointerHold();
+        const pending = {
+          ...hold,
+          pointerId: event.pointerId,
+          startX: Number(event.clientX),
+          startY: Number(event.clientY),
+          triggered: false
+        };
+        this._pointerHold = pending;
+        this._pointerHoldTimer = setTimeout(() => {
+          if (this._pointerHold !== pending || !pending.node.isConnected) {
+            return;
+          }
+          this._pointerHoldTimer = null;
+          pending.triggered = true;
+          this.suppressPointerHoldClick(pending.node);
+          this.openPointerHoldMenu(pending);
+        }, 650);
+      },
+      true
+    );
+
+    document.addEventListener(
+      "pointermove",
+      (event) => {
+        const pending = this._pointerHold;
+        if (!pending || pending.triggered || event.pointerId !== pending.pointerId) {
+          return;
+        }
+        const deltaX = Number(event.clientX) - pending.startX;
+        const deltaY = Number(event.clientY) - pending.startY;
+        if (Math.hypot(deltaX, deltaY) > 12) {
+          this.cancelPointerHold();
+        }
+      },
+      true
+    );
+
+    document.addEventListener(
+      "pointerup",
+      (event) => {
+        const pending = this._pointerHold;
+        if (!pending || event.pointerId !== pending.pointerId) {
+          return;
+        }
+        this.cancelPointerHold();
+      },
+      true
+    );
+
+    document.addEventListener(
+      "pointercancel",
+      (event) => {
+        const pending = this._pointerHold;
+        if (!pending || event.pointerId !== pending.pointerId) {
+          return;
+        }
+        this.cancelPointerHold();
+      },
+      true
+    );
+
+    document.addEventListener(
+      "click",
+      (event) => {
+        const node = event?.target?.closest?.(".focusable");
+        if (!node || node !== this._pointerHoldClickTarget) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+      },
       true
     );
 
