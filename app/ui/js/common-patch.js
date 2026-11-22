@@ -40,6 +40,20 @@ export const CommonPatch = {
 
   handleHomeCatalogContextMenu(event, Router) {
     const screen = Router.getCurrentScreen();
+    const genericTarget = event?.target?.closest?.(".focusable");
+    if (
+      genericTarget &&
+      screen?.container?.contains?.(genericTarget) &&
+      typeof screen.isPosterHoldTarget === "function" &&
+      screen.isPosterHoldTarget(genericTarget) &&
+      typeof screen.openPosterOptionsMenu === "function"
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      void screen.openPosterOptionsMenu(genericTarget);
+      return true;
+    }
+
     const homeTarget = event?.target?.closest?.(".home-main .focusable");
     if (
       homeTarget &&

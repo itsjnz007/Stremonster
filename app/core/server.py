@@ -266,7 +266,10 @@ def proxy() -> Response | tuple[dict[str, str], int]:
 
 @app.route("/nuvioweb/")
 def ui_index() -> Response:
-    return send_from_directory(UI_DIST, "index.html")
+    response = send_from_directory(UI_DIST, "index.html")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
 
 @app.route("/nuvioweb/manifest.webmanifest")
 def ui_manifest() -> Response:
@@ -278,7 +281,10 @@ def ui_manifest() -> Response:
 
 @app.route("/nuvioweb/<path:filename>")
 def ui_asset(filename: str) -> Response:
-    return send_from_directory(UI_DIST, filename)
+    response = send_from_directory(UI_DIST, filename)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
 
 
 if __name__ == "__main__":

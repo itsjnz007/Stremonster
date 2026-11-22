@@ -14,6 +14,16 @@ html.mobile-orientation body {
   overflow: hidden;
 }
 
+html.mobile-device .focusable,
+html.mobile-orientation .focusable,
+html.mobile-device img,
+html.mobile-orientation img {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
 html.mobile-device #app,
 html.mobile-orientation #app {
   position: relative;
