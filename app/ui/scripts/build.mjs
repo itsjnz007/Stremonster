@@ -799,7 +799,10 @@ async function runBuild() {
     console.log("copying static assets...");
     const copiedAppInfoSource = await copyOptionalRootFile("appinfo.json");
     await copyOptionalRootFile("manifest.webmanifest");
-    const { version: buildVersion } = await readAppMetadata();
+    const { version: appVersion } = await readAppMetadata();
+    const buildVersion =
+      process.env.NUVIO_BUILD_ID ||
+      `${appVersion}-${Date.now().toString(36)}-${process.hrtime.bigint().toString(36)}`;
     const serviceWorkerSource = await readFile(
       path.join(rootDir, "service-worker.js"),
       "utf8"

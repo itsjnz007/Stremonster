@@ -36,10 +36,6 @@ function isMobileDevice() {
     return true;
   }
 
-  if (mediaQuery || landscapeQuery) {
-    return false;
-  }
-
   const width = Number(globalThis.innerWidth || 0);
   const height = Number(globalThis.innerHeight || 0);
   const isNarrowTouchDevice = width > 0 && width <= 950;
