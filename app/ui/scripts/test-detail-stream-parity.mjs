@@ -152,6 +152,7 @@ const ruleBody = (css, selector) =>
   css.match(
     new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*\\{([^}]*)\\}")
   )?.[1] || "";
+const mobileCss = await readFile("css/mobile-patch.css", "utf8");
 // Tizen 4 has no CSS grid, so its flex fallback must keep the Android TV
 // 40/60 split and the base 96px panel insets instead of reintroducing the
 // old fixed columns with their own padding.
@@ -165,6 +166,15 @@ assert.doesNotMatch(
   ruleBody(streamCss, ".legacy-tizen .stream-route-panel-shell"),
   /border-radius|padding:/
 );
+assert.match(
+  streamBaseCss,
+  /\.stream-route-content\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*0\.4fr\)\s+minmax\(0,\s*0\.6fr\);/s
+);
+assert.match(
+  mobileCss,
+  /html\.mobile-orientation \.stream-route-content\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s
+);
+assert.doesNotMatch(mobileCss, /html\.mobile-device \.stream-route-content/);
 assert.match(streamBaseCss, /\.stream-route-right\s*\{[^}]*padding:\s*96px 96px 96px 0;/);
 assert.match(streamBaseCss, /\.stream-route-panel-shell\s*\{[^}]*border-radius:\s*32px;/);
 // Legacy webOS keeps the absolute layout needed by webOS 6 and older, but

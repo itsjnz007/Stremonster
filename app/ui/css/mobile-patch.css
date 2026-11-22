@@ -1,11 +1,10 @@
 html.mobile-device,
 html.mobile-orientation {
-  --mobile-ui-zoom: 0.5;
   --mobile-nav-height: 92px;
   --mobile-nav-bottom-bleed: 2px;
   width: 100%;
   height: 100%;
-  zoom: 1;
+  zoom: 0.6;
 }
 
 html.mobile-device body,
@@ -18,11 +17,9 @@ html.mobile-orientation body {
 html.mobile-device #app,
 html.mobile-orientation #app {
   position: relative;
-  width: var(--mobile-ui-compensation);
-  height: var(--mobile-ui-compensation);
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  transform: scale(var(--mobile-ui-zoom));
-  transform-origin: top left;
 }
 
 html.mobile-device #app > .screen,
@@ -45,7 +42,6 @@ html.mobile-orientation .stream-route-shell {
   height: 100%;
 }
 
-html.mobile-device .stream-route-content,
 html.mobile-orientation .stream-route-content {
   display: grid;
   position: absolute;
@@ -55,7 +51,6 @@ html.mobile-orientation .stream-route-content {
   grid-template-rows: auto minmax(0, 1fr);
 }
 
-html.mobile-device .stream-route-left,
 html.mobile-orientation .stream-route-left {
   position: relative;
   inset: auto;
@@ -64,12 +59,10 @@ html.mobile-orientation .stream-route-left {
   padding: 48px 48px 24px;
 }
 
-html.mobile-device .stream-route-left-inner,
 html.mobile-orientation .stream-route-left-inner {
   width: 100%;
 }
 
-html.mobile-device .stream-route-right,
 html.mobile-orientation .stream-route-right {
   position: relative;
   inset: auto;
@@ -81,7 +74,6 @@ html.mobile-orientation .stream-route-right {
   overflow: hidden;
 }
 
-html.mobile-device .stream-route-panel-shell,
 html.mobile-orientation .stream-route-panel-shell {
   position: relative;
   inset: auto;
@@ -90,7 +82,6 @@ html.mobile-orientation .stream-route-panel-shell {
   min-height: 0;
 }
 
-html.mobile-device .stream-route-list,
 html.mobile-orientation .stream-route-list {
   position: relative;
   inset: auto;
@@ -100,11 +91,11 @@ html.mobile-orientation .stream-route-list {
 }
 
 html.mobile-device #playerUiRoot {
-  --player-controls-x: 48px;
-  --player-controls-y: 32px;
-  --player-control-size: 112px;
-  --player-control-icon: 56px;
-  --player-overlay-label-font: 32px;
+  --player-controls-x: clamp(24px, 11vw, 48px);
+  --player-controls-y: clamp(18px, 7.5vw, 32px);
+  --player-control-size: clamp(72px, 26vw, 112px);
+  --player-control-icon: clamp(36px, 13vw, 56px);
+  --player-overlay-label-font: clamp(22px, 7.5vw, 32px);
 }
 
 html.mobile-device #playerUiRoot .player-control-btn {
@@ -120,6 +111,11 @@ html.mobile-device #playerUiRoot .player-control-btn.has-text {
 html.mobile-device #playerUiRoot .player-control-icon {
   width: var(--player-control-icon);
   height: var(--player-control-icon);
+}
+
+html.mobile-device #playerUiRoot .player-controls-overlay,
+html.mobile-orientation #playerUiRoot .player-controls-overlay {
+  zoom: 0.8;
 }
 
 html.mobile-device .qr-layout,
@@ -142,10 +138,8 @@ html.mobile-orientation .qr-card-panel {
 html.mobile-device body > .nuvio-dialog-backdrop,
 html.mobile-orientation body > .nuvio-dialog-backdrop {
   inset: 0 auto auto 0;
-  width: var(--mobile-ui-compensation);
-  height: var(--mobile-ui-compensation);
-  transform: scale(var(--mobile-ui-zoom));
-  transform-origin: top left;
+  width: 100%;
+  height: 100%;
 }
 
 html.mobile-device .nuvio-dialog-panel,
