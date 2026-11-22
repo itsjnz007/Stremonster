@@ -206,9 +206,9 @@ html.nuvio-web-app * {
 html.nuvio-web-app,
 html.nuvio-web-app body,
 html.nuvio-web-app *:not(input):not(textarea):not([contenteditable="true"]) {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
 }
 
 html.nuvio-web-app img,
@@ -216,8 +216,22 @@ html.nuvio-web-app picture,
 html.nuvio-web-app video,
 html.nuvio-web-app canvas,
 html.nuvio-web-app svg {
-  -webkit-user-drag: none;
-  -webkit-touch-callout: none;
+  -webkit-user-drag: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
+html.nuvio-web-app .home-poster-card,
+html.nuvio-web-app .home-poster-card *,
+html.nuvio-web-app .home-continue-card,
+html.nuvio-web-app .home-continue-card *,
+html.nuvio-web-app .home-content-card,
+html.nuvio-web-app .home-content-card * {
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-user-drag: none !important;
 }
 
 html.nuvio-web-app *::-webkit-scrollbar {
