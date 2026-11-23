@@ -551,7 +551,7 @@ html.mobile-orientation #profileSelection .profile-grid-compact {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   width: 100%;
-  padding: 80px;
+  padding: 20px;
   gap: 8px;
   min-height: 0;
   margin-top: 24px;
