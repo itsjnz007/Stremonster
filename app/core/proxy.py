@@ -398,7 +398,7 @@ class Proxy:
 
         headers_str = json.dumps(stream['headers'])
 
-        
+        og_stream_url = stream["url"]
         stream['url'] = Proxy.add_proxy(
             stream['url'],
             headers_str,
@@ -417,7 +417,7 @@ class Proxy:
         if not test_passed:
             logger.error("Stream failed playback validation. Rejecting source.")
             return None
-        stream['url'] = Proxy.add_proxy(stream['url'], headers_str, stream_type=stream_type)
+        stream['url'] = Proxy.add_proxy(og_stream_url, headers_str, stream_type=stream_type)
         if detected_bitrate: stream["url"] = Proxy.add_bitrate(stream["url"], detected_bitrate)
 
         return stream
