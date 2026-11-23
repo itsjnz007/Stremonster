@@ -556,6 +556,7 @@ html.mobile-orientation #profileSelection .profile-grid-compact {
   min-height: 0;
   margin-top: 24px;
   align-content: start;
+  max-width: 600px;
 }
 
 html.mobile-device #profileSelection .profile-grid .profile-card,
