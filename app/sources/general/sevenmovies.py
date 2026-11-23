@@ -28,5 +28,5 @@ class SevenMovies(Scraper):
 if __name__ == "__main__":
     scraper = SevenMovies()
     
-    series_response = scraper.get_series("66573", "3", "4")
+    series_response = scraper.get_series("291507", "1", "3")
     print(f"Series response: {series_response}")

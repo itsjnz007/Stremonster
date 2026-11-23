@@ -539,9 +539,7 @@ class Proxy:
                         ) and local_test
                     ):
                         logger.warning("Detected local URL in subtitle/audio tag. Discarding tag.")
-                        continue
-
-                    rewritten.append(rewritten_line)
+                    else: rewritten.append(rewritten_line)
                 else:
                     # Standard tag, no URI to proxy
                     rewritten.append(line)
@@ -924,4 +922,4 @@ class Proxy:
         return Proxy.apply_headers(resp)
 
 # if __name__ == "__main__":
-#     print(Proxy.test_stream({"url": "https://something.dpdns.org/stream.mp4?url=https%3A%2F%2Fusa7-nas35.shegu.net%2Fvip%2Fp1%2Forg_movie%2F6%2F4%2F0%2F470%2Fmovie.470.2012.original.399286.20190618182818.mp4%3FKEY1%3DJ32JfTp6EQwNkZHCOgYexw%26KEY2%3D1795114201%26KEY3%3D2522611%26KEY4%3Dworld%26KEY5%3DThe.Hunger.Games.2012.1080p.BluRay.H264.AAC-RARBG.mp4%26KEY7%3Dfebbox_video_quality_list_v3%26KEY8%3D2522611%26KEY0%3D2&headers=%7B%22Origin%22%3A%20%22https%3A%2F%2Fshowbox.codiv.dpdns.org%2F%257B%2522cookie%2522%253A%2522eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIyMjg0OTcsIm5iZiI6MTc5MjIyODQ5NywiZXhwIjoxODIzMzMyNTE3LCJkYXRhIjp7InVpZCI6MjUyMjYxMSwidG9rZW4iOiI4OTQ0MjY4NDJkY2M2M2U0NDRhZDdhMjg4ZDQ4YjdkZCJ9fQ.UEnZ2pZefUH-rHCt1bdp9-qcj9ZRH2vabgjmtyZhjBo%2522%257D%22%2C%20%22Referer%22%3A%20%22https%3A%2F%2Fshowbox.codiv.dpdns.org%2F%257B%2522cookie%2522%253A%2522eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3OTIyMjg0OTcsIm5iZiI6MTc5MjIyODQ5NywiZXhwIjoxODIzMzMyNTE3LCJkYXRhIjp7InVpZCI6MjUyMjYxMSwidG9rZW4iOiI4OTQ0MjY4NDJkY2M2M2U0NDRhZDdhMjg4ZDQ4YjdkZCJ9fQ.UEnZ2pZefUH-rHCt1bdp9-qcj9ZRH2vabgjmtyZhjBo%2522%257D%2F%22%7D", "headers": {}}, test_seconds=1))
+#     print(Proxy.test_stream({"url": "https://norway-canary.bigbang.cymru/origin_tv/tv/tmdb-291507/S01E03/index.m3u8.png?exp=1795559400&sig=f4979cebb15f99ac8726c1643cab270e27b218172d7d03efa7b58a59d18b11e4", "headers": {}}, test_seconds=1))
