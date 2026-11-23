@@ -399,7 +399,13 @@ class Proxy:
         headers_str = json.dumps(stream['headers'])
 
         
-        stream['url'] = Proxy.add_proxy(stream['url'], headers_str, stream_type=stream_type, network_prefix=LOCAL_URL)
+        stream['url'] = Proxy.add_proxy(
+            stream['url'],
+            headers_str,
+            stream_type=stream_type,
+            network_prefix=LOCAL_URL,
+            local_test=True,
+        )
         stream['subtitles'] = [
             {
                 **sub,
@@ -424,7 +430,15 @@ class Proxy:
 
     
     @staticmethod
-    def add_proxy(url: str, headers: str, id: Optional[str] = None, bitrate_kbs: Optional[int] = None, stream_type: str = "stream.ts", network_prefix: Optional[str] = TUNNEL_URL) -> str:
+    def add_proxy(
+        url: str,
+        headers: str,
+        id: Optional[str] = None,
+        bitrate_kbs: Optional[int] = None,
+        stream_type: str = "stream.ts",
+        network_prefix: Optional[str] = TUNNEL_URL,
+        local_test: bool = False,
+    ) -> str:
 
         if not network_prefix: raise Exception("Network prefix not set")
 
@@ -439,6 +453,7 @@ class Proxy:
         )
         if id: proxy_url += f"&id={quote(id, safe='')}"
         if bitrate_kbs: proxy_url = Proxy.add_bitrate(proxy_url, bitrate_kbs)
+        if local_test: proxy_url += "&_local_test=1"
         # if index: proxy_url +=  f"&index={quote(index, safe='')}"
         return proxy_url
 
@@ -452,6 +467,7 @@ class Proxy:
         index: Optional[str],
         bitrate_kbs: Optional[int],
         network_prefix: Optional[str] = TUNNEL_URL,
+        local_test: bool = False,
     ) -> str:
         text = content.decode("utf-8", errors="ignore")
         rewritten: list[str] = []
@@ -508,6 +524,7 @@ class Proxy:
                             id=id,
                             bitrate_kbs=bitrate_kbs,
                             network_prefix=network_prefix,
+                            local_test=local_test,
                         ) + (f"&index={quote(index, safe='')}" if index else "")
                         return f"{match.group(1)}{proxied_url}{match.group(3)}"
 
@@ -519,9 +536,7 @@ class Proxy:
                         (
                             rewritten_line.startswith("#EXT-X-MEDIA:TYPE=SUBTITLES")
                             or rewritten_line.startswith("#EXT-X-MEDIA:TYPE=AUDIO")
-                        )
-                        and LOCAL_URL
-                        and LOCAL_URL in rewritten_line
+                        ) and local_test
                     ):
                         logger.warning("Detected local URL in subtitle/audio tag. Discarding tag.")
                         continue
@@ -542,6 +557,7 @@ class Proxy:
                         id=id,
                         bitrate_kbs=bitrate_kbs,
                         network_prefix=network_prefix,
+                        local_test=local_test,
                     )
                     + (f"&index={quote(index, safe='')}" if index else "")
                 )
@@ -635,6 +651,7 @@ class Proxy:
         # Proxy arguments
         media_url = request.args.get("url")
         if not media_url: raise Exception("No media_url found")
+        local_test = request.args.get("_local_test") == "1"
         id = request.args.get("id")
         index = request.args.get("index")
         try:
@@ -754,7 +771,8 @@ class Proxy:
                 id=id,
                 index=index,
                 bitrate_kbs=bitrate_kbs,
-                network_prefix=LOCAL_URL if request.url.startswith(LOCAL_URL) else TUNNEL_URL
+                network_prefix=LOCAL_URL if request.url.startswith(LOCAL_URL) else TUNNEL_URL,
+                local_test=local_test,
             )
             resp = Response(
                 updated_content,
