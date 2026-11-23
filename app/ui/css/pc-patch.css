@@ -147,6 +147,23 @@ html {
   pointer-events: none;
 }
 
+@media (max-width: 1280px), (max-height: 820px) {
+  .profile-grid-compact .profile-card.focused .profile-avatar {
+    width: 156px;
+    height: 156px;
+  }
+
+  .profile-grid-compact .profile-card.focused .profile-avatar-ring {
+    width: 186px;
+    height: 186px;
+  }
+
+  .profile-grid-compact .profile-card {
+    width: 200px;
+    padding: 14px 14px;
+  }
+}
+
 @media screen and (pointer: fine) {
   html.nuvio-web-app {
     --tv-card-radius: 14px;
