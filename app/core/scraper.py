@@ -19,6 +19,7 @@ from playwright.async_api import Page, Playwright
 STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/mp4)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
 IGNORED_REQUEST_PATTERNS = ["google-analytics", "doubleclick", "analytics.google.com"]
+SUBTITLE_CONTENT_TYPES = ["text/vtt"]
 
 class Scraper:
     _playwright: Optional[Playwright] = None
@@ -187,7 +188,10 @@ class Scraper:
                 local_stop_event.set()
                 self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
 
-            if re.search(self.subtitle_url_pattern, response.url, re.I):
+            if (
+                re.search(self.subtitle_url_pattern, response.url, re.I) 
+                or response.headers.get("content-type") in SUBTITLE_CONTENT_TYPES
+            ):
                 subtitle_urls.append(
                     Subtitle(
                         id=hashlib.sha256(response.url.encode("utf-8")).hexdigest(),
@@ -197,6 +201,7 @@ class Scraper:
                     )
                 )
                 self.logger.info(f'💬 Subtitles from {domain}: {subtitle_urls}')
+
 
         try:
             page.on("request", on_request)
