@@ -50,6 +50,21 @@ function isFullscreenTarget(documentObject, target) {
   );
 }
 
+function moveUniversalBackButtonToFullscreenTarget(documentObject, target) {
+  const backButton = documentObject?.getElementById?.("universalBackButton");
+  if (backButton && target?.append && backButton.parentNode !== target) {
+    target.append(backButton);
+  }
+}
+
+function restoreUniversalBackButtonToDocument(documentObject) {
+  const backButton = documentObject?.getElementById?.("universalBackButton");
+  const container = documentObject?.body || documentObject?.getElementById?.("app");
+  if (backButton && container?.append && backButton.parentNode !== container) {
+    container.append(backButton);
+  }
+}
+
 function restorePlayerOrientation() {
   if (!playerOrientationLocked) {
     return;
@@ -142,6 +157,7 @@ export const MobilePatch = {
 
     playerFullscreenTarget = target;
     playerOwnsFullscreen = !alreadyFullscreen;
+    moveUniversalBackButtonToFullscreenTarget(documentObject, target);
 
     const orientation = globalThis.screen?.orientation;
     if (typeof orientation?.lock === "function") {
@@ -157,6 +173,7 @@ export const MobilePatch = {
       fullscreenChangeHandler = () => {
         if (playerFullscreenTarget && !isFullscreenTarget(documentObject, playerFullscreenTarget)) {
           restorePlayerOrientation();
+          restoreUniversalBackButtonToDocument(documentObject);
         }
       };
       documentObject.addEventListener("fullscreenchange", fullscreenChangeHandler);
@@ -188,6 +205,9 @@ export const MobilePatch = {
     }
 
     restorePlayerOrientation();
+    if (target && !isFullscreenTarget(documentObject, target)) {
+      restoreUniversalBackButtonToDocument(documentObject);
+    }
     playerFullscreenTarget = null;
     playerOwnsFullscreen = false;
   }

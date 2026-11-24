@@ -607,6 +607,17 @@ html.mobile-device .universal-back-button .material-icons {
   font-size: 32px;
 }
 
+html.mobile-device #player:fullscreen:has(#playerLoadingOverlay:not(.hidden)) > .universal-back-button,
+html.mobile-device #player:-webkit-full-screen:has(#playerLoadingOverlay:not(.hidden)) > .universal-back-button {
+  box-sizing: border-box;
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
+  height: 72px;
+  min-height: 72px;
+  max-height: 72px;
+}
+
 html.mobile-device:not(.mobile-orientation) .home-shell,
 html.mobile-device:not(.mobile-orientation) .search-screen-shell,
 html.mobile-device:not(.mobile-orientation) .discover-shell,

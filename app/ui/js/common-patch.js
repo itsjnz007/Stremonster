@@ -233,8 +233,7 @@ export const CommonPatch = {
       !screen.isExternalFrameMode() &&
       !screen.isDialogOpen() &&
       !screen.isStartupErrorVisible() &&
-      !screen.isPostPlayVisible() &&
-      !screen.loadingVisible
+      !screen.isPostPlayVisible()
     ) {
       screen.setControlsVisible(true, { focus: false });
     }
@@ -243,6 +242,17 @@ export const CommonPatch = {
   onPlayerPointerSurfaceActivate(screen, target, original, args) {
     if (!target || screen.isExternalFrameMode()) {
       return false;
+    }
+    if (
+      screen.loadingVisible &&
+      !screen.controlsVisible &&
+      !screen.stillWatchingPromptVisible &&
+      !screen.isDialogOpen() &&
+      !screen.isStartupErrorVisible() &&
+      !screen.isPostPlayVisible()
+    ) {
+      screen.setControlsVisible(true, { focus: false });
+      return true;
     }
     if (screen.pauseOverlayVisible) {
       if (screen.stillWatchingPromptVisible) {
@@ -391,14 +401,23 @@ export const CommonPatch = {
       true
     );
 
-    FocusEngine.requestBack = function requestBack() {
-      if (Router.getCurrent() === "player") {
-        const playerScreen = Router.getCurrentScreen();
-        if (typeof playerScreen?.navigateBackToStreamScreen === "function") {
-          return playerScreen.navigateBackToStreamScreen();
+    const consumePlayerBackRequest = PlayerScreen.consumeBackRequest;
+    if (
+      typeof consumePlayerBackRequest === "function" &&
+      !consumePlayerBackRequest[COMMON_RUNTIME_PATCHED]
+    ) {
+      const patched = function consumePlayerBackRequestWithStreamInfo(...args) {
+        if (this.streamInfoVisible) {
+          this.closeStreamInfo();
+          return true;
         }
-      }
+        return consumePlayerBackRequest.apply(this, args);
+      };
+      patched[COMMON_RUNTIME_PATCHED] = true;
+      PlayerScreen.consumeBackRequest = patched;
+    }
 
+    FocusEngine.requestBack = function requestBack() {
       return this.handleBack(null, {
         repeat: false,
         preventDefault() {},
@@ -450,15 +469,35 @@ export const CommonPatch = {
       backButton.type = "button";
       backButton.setAttribute("aria-label", "Back");
       backButton.innerHTML = '<span class="material-icons" aria-hidden="true">arrow_back</span>';
-      document.getElementById("app")?.append(backButton);
+      (document.body || document.getElementById("app"))?.append(backButton);
     }
     backButton.hidden = true;
+
+    const syncPlayerBackButton = (screen) => {
+      const currentBackButton = globalThis.document?.getElementById?.("universalBackButton");
+      if (currentBackButton && Router.getCurrent() === "player") {
+        currentBackButton.hidden = !screen?.controlsVisible;
+      }
+    };
+
+    const setControlsVisible = PlayerScreen.setControlsVisible;
+    if (typeof setControlsVisible === "function" && !setControlsVisible[COMMON_RUNTIME_PATCHED]) {
+      const patched = function setControlsVisibleWithBackButton(...args) {
+        const result = setControlsVisible.apply(this, args);
+        syncPlayerBackButton(this);
+        return result;
+      };
+      patched[COMMON_RUNTIME_PATCHED] = true;
+      PlayerScreen.setControlsVisible = patched;
+    }
 
     const renderPlayerUi = PlayerScreen.renderPlayerUi;
     if (typeof renderPlayerUi === "function" && !renderPlayerUi[COMMON_RUNTIME_PATCHED]) {
       const patched = function (...args) {
         const result = renderPlayerUi.apply(this, args);
         this.uiRefs?.root?.removeAttribute?.("tabindex");
+        Router.syncUniversalBackButton?.();
+        syncPlayerBackButton(this);
         return result;
       };
       patched[COMMON_RUNTIME_PATCHED] = true;
