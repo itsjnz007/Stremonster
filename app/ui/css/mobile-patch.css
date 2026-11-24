@@ -607,8 +607,8 @@ html.mobile-device .universal-back-button .material-icons {
   font-size: 32px;
 }
 
-html.mobile-device #player:fullscreen:has(#playerLoadingOverlay:not(.hidden)) > .universal-back-button,
-html.mobile-device #player:-webkit-full-screen:has(#playerLoadingOverlay:not(.hidden)) > .universal-back-button {
+html.mobile-device #player:fullscreen > .universal-back-button,
+html.mobile-device #player:-webkit-full-screen > .universal-back-button {
   box-sizing: border-box;
   width: 72px;
   min-width: 72px;
