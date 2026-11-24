@@ -401,6 +401,7 @@ export const CommonPatch = {
       true
     );
 
+    let universalBackButtonRequestScreen = null;
     const consumePlayerBackRequest = PlayerScreen.consumeBackRequest;
     if (
       typeof consumePlayerBackRequest === "function" &&
@@ -411,19 +412,39 @@ export const CommonPatch = {
           this.closeStreamInfo();
           return true;
         }
+        if (
+          this === universalBackButtonRequestScreen &&
+          this.controlsVisible &&
+          !this.hasBackDismissableOverlay?.() &&
+          !this.isStartupErrorVisible?.() &&
+          !this.isPostPlayVisible?.() &&
+          !this.isPostPlayLoading?.() &&
+          !this.episodeOptionsDialogVisible &&
+          !this.isDialogOpen?.() &&
+          typeof this.navigateBackToStreamScreen === "function"
+        ) {
+          return this.navigateBackToStreamScreen();
+        }
         return consumePlayerBackRequest.apply(this, args);
       };
       patched[COMMON_RUNTIME_PATCHED] = true;
       PlayerScreen.consumeBackRequest = patched;
     }
 
-    FocusEngine.requestBack = function requestBack() {
-      return this.handleBack(null, {
-        repeat: false,
-        preventDefault() {},
-        stopPropagation() {},
-        stopImmediatePropagation() {}
-      });
+    FocusEngine.requestBack = function requestBack({ universalButton = false } = {}) {
+      const previousRequestScreen = universalBackButtonRequestScreen;
+      universalBackButtonRequestScreen =
+        universalButton && Router.getCurrent() === "player" ? Router.getCurrentScreen() : null;
+      try {
+        return this.handleBack(null, {
+          repeat: false,
+          preventDefault() {},
+          stopPropagation() {},
+          stopImmediatePropagation() {}
+        });
+      } finally {
+        universalBackButtonRequestScreen = previousRequestScreen;
+      }
     };
 
     // Handle this before FocusEngine's async player pointer handler consumes the click.
@@ -436,7 +457,7 @@ export const CommonPatch = {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
-        FocusEngine.requestBack();
+        FocusEngine.requestBack({ universalButton: true });
       },
       true
     );
