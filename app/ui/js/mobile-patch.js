@@ -135,6 +135,7 @@ export const MobilePatch = {
       await this.exitPlayerFullscreen();
     }
 
+    const alreadyManagingTarget = playerFullscreenTarget === target;
     const alreadyFullscreen = isFullscreenTarget(documentObject, target);
     if (!alreadyFullscreen) {
       const requestFullscreen = target.requestFullscreen || target.webkitRequestFullscreen;
@@ -156,7 +157,11 @@ export const MobilePatch = {
     }
 
     playerFullscreenTarget = target;
-    playerOwnsFullscreen = !alreadyFullscreen;
+    if (!alreadyFullscreen) {
+      playerOwnsFullscreen = true;
+    } else if (!alreadyManagingTarget) {
+      playerOwnsFullscreen = false;
+    }
     moveUniversalBackButtonToFullscreenTarget(documentObject, target);
 
     const orientation = globalThis.screen?.orientation;

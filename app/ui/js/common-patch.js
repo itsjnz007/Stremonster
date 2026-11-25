@@ -1,10 +1,160 @@
 import { NuvioDialog } from "./ui/components/nuvioDialog.js";
+import { PlayerSettingsStore } from "./data/local/playerSettingsStore.js";
+import { StreamPreferencesStore } from "./data/local/streamPreferencesStore.js";
+import { isAutoPlayEffectivelyEnabled } from "./core/streams/streamAutoPlaySelector.js";
+import { MobilePatch } from "./mobile-patch.js";
 
 const COMMON_RUNTIME_PATCHED = Symbol("common-patch-runtime-patched");
 const DIALOG_HOVER_PATCHED = Symbol("common-patch-dialog-hover-patched");
 
+function escapeHtml(value = "") {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function escapeAttribute(value = "") {
+  return escapeHtml(value).replaceAll("'", "&#39;");
+}
+
 export const CommonPatch = {
   remotePageMinHeight: "100%",
+
+  renderPlayerLoadingOverlayMarkup({
+    id = "playerLoadingOverlay",
+    title = "",
+    subtitle = "",
+    logoUrl = "",
+    backdropUrl = "",
+    escapeHtml,
+    escapeAttribute = escapeHtml
+  } = {}) {
+    const safeBackdropUrl = String(backdropUrl || "").replaceAll("'", "%27");
+    return `
+      <div${id ? ` id="${escapeAttribute(id)}"` : ""} class="player-loading-overlay">
+        <div class="player-loading-backdrop"${safeBackdropUrl ? ` style="background-image:url('${escapeAttribute(safeBackdropUrl)}')"` : ""}></div>
+        <div class="player-loading-gradient"></div>
+        <div class="player-loading-center">
+          <div class="player-loading-identity${logoUrl ? " has-logo" : ""}">
+            ${
+              logoUrl
+                ? `
+              <div class="player-loading-logo-stack">
+                <img class="player-loading-logo player-loading-logo-base" src="${escapeAttribute(logoUrl)}" alt="${escapeAttribute(title || "logo")}" />
+                <div class="player-loading-logo-fill-clip hidden">
+                  <img class="player-loading-logo player-loading-logo-fill" src="${escapeAttribute(logoUrl)}" alt="" aria-hidden="true" />
+                </div>
+              </div>
+            `
+                : ""
+            }
+            <div class="player-loading-title">${escapeHtml(title || "Nuvio")}</div>
+          </div>
+          <div class="player-loading-subtitle${subtitle ? "" : " hidden"}">${escapeHtml(subtitle || "")}</div>
+          <div class="player-loading-status hidden"></div>
+        </div>
+      </div>`;
+  },
+
+  shouldShowStreamAutoPlayLoadingOverlay(screen, settings = PlayerSettingsStore.get()) {
+    const autoPlayMode = String(settings.streamAutoPlayMode || "MANUAL").toUpperCase();
+    const savedPreference =
+      settings.streamAutoPlayPreferBingeGroupForNextEpisode && settings.streamAutoPlayReuseBingeGroup
+        ? StreamPreferencesStore.getLatestForContent(screen.params?.itemId)
+        : null;
+    const hasPreferredBingeGroup = Boolean(String(savedPreference?.bingeGroup || "").trim());
+
+    return Boolean(
+      !screen.autoResumeAttempted &&
+      !screen.params?.manualSelection &&
+      !screen.autoResumeUiActive &&
+      isAutoPlayEffectivelyEnabled(settings) &&
+      (autoPlayMode !== "MANUAL" || hasPreferredBingeGroup) &&
+      screen.loading &&
+      !screen.streams?.length &&
+      !screen.error
+    );
+  },
+
+  syncStreamAutoPlayLoadingOverlay(screen, settings = PlayerSettingsStore.get()) {
+    const shell = screen.container?.querySelector?.(".stream-route-shell");
+    if (!shell) {
+      return;
+    }
+
+    const showOverlay = this.shouldShowStreamAutoPlayLoadingOverlay(screen, settings);
+    const routeContent = shell.querySelector?.(".stream-route-content");
+    routeContent?.classList?.toggle("hidden", showOverlay);
+
+    const overlay = shell.querySelector?.("#streamAutoPlayLoadingOverlay");
+    if (!showOverlay) {
+      overlay?.remove?.();
+      return;
+    }
+    if (overlay) {
+      return;
+    }
+
+    const { title, subtitle } = screen.getHeaderMeta();
+    shell.insertAdjacentHTML?.(
+      "beforeend",
+      this.renderPlayerLoadingOverlayMarkup({
+        id: "streamAutoPlayLoadingOverlay",
+        title,
+        subtitle,
+        backdropUrl: screen.getBackdropUrl(),
+        logoUrl: screen.params?.logo || "",
+        escapeHtml,
+        escapeAttribute
+      })
+    );
+  },
+
+  installStreamScreenPatch(screen) {
+    const originalRender = screen?.render;
+    if (typeof originalRender !== "function" || originalRender[COMMON_RUNTIME_PATCHED]) {
+      return false;
+    }
+
+    const patchedRender = function (...args) {
+      const result = originalRender.apply(this, args);
+      CommonPatch.syncStreamAutoPlayLoadingOverlay(this);
+      return result;
+    };
+    patchedRender[COMMON_RUNTIME_PATCHED] = true;
+    screen.render = patchedRender;
+    return true;
+  },
+
+  installRouterNavigationPatch(Router) {
+    const originalNavigate = Router?.navigate;
+    if (typeof originalNavigate !== "function" || originalNavigate[COMMON_RUNTIME_PATCHED]) {
+      return false;
+    }
+
+    const patchedNavigate = function (...args) {
+      const routeName = args[0];
+      const previousRoute = this.getCurrent?.() || this.current;
+      if (previousRoute === "stream" && routeName !== "player") {
+        void MobilePatch.exitPlayerFullscreen();
+      }
+      if (routeName === "player" || (routeName === "stream" && previousRoute !== "player")) {
+        const app = globalThis.document?.getElementById?.("app");
+        if (app) {
+          void MobilePatch.enterPlayerFullscreen(app);
+        }
+      }
+
+      const result = originalNavigate.apply(this, args);
+      this.syncUniversalBackButton?.();
+      return result;
+    };
+    patchedNavigate[COMMON_RUNTIME_PATCHED] = true;
+    Router.navigate = patchedNavigate;
+    return true;
+  },
 
   installWebAppShell() {
     const root = globalThis.document?.documentElement;
@@ -307,6 +457,7 @@ export const CommonPatch = {
         }
       };
     }
+    this.installStreamScreenPatch(Router.routes?.stream);
 
     document.addEventListener(
       "contextmenu",
@@ -468,7 +619,8 @@ export const CommonPatch = {
         backButton.hidden = ["home", "search", "settings", "library"].includes(this.current);
       }
     };
-    for (const methodName of ["navigate", "back"]) {
+    this.installRouterNavigationPatch(Router);
+    for (const methodName of ["back"]) {
       const original = Router[methodName];
       if (typeof original !== "function" || original[COMMON_RUNTIME_PATCHED]) {
         continue;
