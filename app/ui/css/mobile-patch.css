@@ -462,7 +462,7 @@ html.mobile-orientation #settings .settings-shell.has-collapsible-sidebar .setti
 html.mobile-orientation #settings .settings-shell.has-modern-sidebar .settings-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) 52px;
+  grid-template-rows: minmax(0, 1fr) 60px;
   grid-template-areas:
     "content"
     "tabs";
@@ -476,13 +476,14 @@ html.mobile-orientation #settings .settings-sidebar-frame {
   grid-area: tabs;
   display: block;
   width: 100%;
-  height: 52px;
+  height: 60px;
   overflow: hidden;
 }
 
 html.mobile-orientation #settings .settings-sidebar {
   display: flex;
-  height: 52px;
+  height: 60px;
+  min-height: 60px;
   flex-direction: row;
   align-items: center;
   gap: 4px;
@@ -495,8 +496,13 @@ html.mobile-orientation #settings .settings-sidebar {
 html.mobile-orientation #settings .settings-nav-item {
   flex: 0 0 auto;
   width: auto;
-  min-height: 44px;
+  height: 52px;
+  min-height: 52px;
   scroll-snap-align: start;
+}
+
+html.mobile-orientation #settings .settings-nav-label {
+  line-height: 1.2;
 }
 
 html.mobile-orientation #settings .settings-nav-chevron,
