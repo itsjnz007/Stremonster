@@ -129,6 +129,59 @@ test("parallel app and player fullscreen requests share one app-shell request", 
   }
 });
 
+test("browser-driven exit unlocks orientation even if the landscape lock rejected", async () => {
+  let fullscreenChangeHandler;
+  let unlockCount = 0;
+  const documentObject = {
+    fullscreenElement: null,
+    addEventListener(name, handler) {
+      if (name === "fullscreenchange") fullscreenChangeHandler = handler;
+    },
+    removeEventListener() {},
+    getElementById(id) {
+      return id === "app" ? app : null;
+    }
+  };
+  const orientation = {
+    type: "portrait-primary",
+    async lock(type) {
+      if (type === "landscape") {
+        this.type = "landscape-primary";
+        throw new Error("orientation lock rejected");
+      }
+    },
+    unlock() {
+      unlockCount += 1;
+      this.type = "portrait-primary";
+    }
+  };
+  const app = {
+    async requestFullscreen() {
+      documentObject.fullscreenElement = app;
+    }
+  };
+  const restoreMatchMedia = replaceGlobal("matchMedia", () => ({ matches: true }));
+  const restoreDocument = replaceGlobal("document", documentObject);
+  const restoreScreen = replaceGlobal("screen", { orientation });
+  const originalWarn = console.warn;
+  console.warn = () => {};
+
+  try {
+    assert.equal(await MobilePatch.enterPlayerFullscreen(app), true);
+    documentObject.fullscreenElement = null;
+    fullscreenChangeHandler();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(unlockCount, 1);
+    assert.equal(orientation.type, "portrait-primary");
+  } finally {
+    await MobilePatch.exitPlayerFullscreen();
+    console.warn = originalWarn;
+    restoreScreen();
+    restoreDocument();
+    restoreMatchMedia();
+  }
+});
+
 test("stream and player routes share fullscreen before their screens mount", async () => {
   const originalEnterFullscreen = MobilePatch.enterPlayerFullscreen;
   const app = {};

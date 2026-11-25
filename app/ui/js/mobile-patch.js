@@ -6,7 +6,7 @@ const MOBILE_LANDSCAPE_QUERY =
 
 let playerFullscreenTarget = null;
 let playerOwnsFullscreen = false;
-let playerOrientationLocked = false;
+let playerOrientationLockAttempted = false;
 let fullscreenChangeHandler = null;
 let fullscreenEntryTarget = null;
 let fullscreenEntryPromise = null;
@@ -68,10 +68,10 @@ function restoreUniversalBackButtonToDocument(documentObject) {
 }
 
 function restorePlayerOrientation() {
-  if (!playerOrientationLocked) {
+  if (!playerOrientationLockAttempted) {
     return;
   }
-  playerOrientationLocked = false;
+  playerOrientationLockAttempted = false;
 
   const orientation = globalThis.screen?.orientation;
   try {
@@ -178,9 +178,9 @@ export const MobilePatch = {
       moveUniversalBackButtonToFullscreenTarget(documentObject, fullscreenTarget);
 
       if (typeof orientation?.lock === "function") {
+        playerOrientationLockAttempted = true;
         try {
           await orientation.lock("landscape");
-          playerOrientationLocked = true;
         } catch (error) {
           console.warn("Unable to lock player orientation to landscape", error);
         }
@@ -189,8 +189,7 @@ export const MobilePatch = {
       if (!fullscreenChangeHandler) {
         fullscreenChangeHandler = () => {
           if (playerFullscreenTarget && !isFullscreenTarget(documentObject, playerFullscreenTarget)) {
-            restorePlayerOrientation();
-            restoreUniversalBackButtonToDocument(documentObject);
+            void this.exitPlayerFullscreen();
           }
         };
         documentObject.addEventListener("fullscreenchange", fullscreenChangeHandler);
