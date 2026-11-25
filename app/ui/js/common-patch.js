@@ -137,7 +137,10 @@ export const CommonPatch = {
     const patchedNavigate = function (...args) {
       const routeName = args[0];
       const previousRoute = this.getCurrent?.() || this.current;
-      if (previousRoute === "stream" && routeName !== "player") {
+      if (
+        (previousRoute === "stream" && routeName !== "player") ||
+        (previousRoute === "player" && routeName !== "player")
+      ) {
         void MobilePatch.exitPlayerFullscreen();
       }
       if (routeName === "player" || (routeName === "stream" && previousRoute !== "player")) {

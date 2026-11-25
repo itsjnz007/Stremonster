@@ -129,6 +129,60 @@ test("parallel app and player fullscreen requests share one app-shell request", 
   }
 });
 
+test("parallel exit requests share one fullscreen exit and orientation unlock", async () => {
+  let resolveFullscreenExit;
+  let exitCount = 0;
+  let unlockCount = 0;
+  const documentObject = {
+    fullscreenElement: null,
+    addEventListener() {},
+    removeEventListener() {},
+    getElementById(id) {
+      return id === "app" ? app : null;
+    },
+    exitFullscreen() {
+      exitCount += 1;
+      return new Promise((resolve) => {
+        resolveFullscreenExit = () => {
+          this.fullscreenElement = null;
+          resolve();
+        };
+      });
+    }
+  };
+  const app = {
+    async requestFullscreen() {
+      documentObject.fullscreenElement = app;
+    }
+  };
+  const restoreMatchMedia = replaceGlobal("matchMedia", () => ({ matches: true }));
+  const restoreDocument = replaceGlobal("document", documentObject);
+  const restoreScreen = replaceGlobal("screen", {
+    orientation: {
+      async lock() {},
+      unlock() {
+        unlockCount += 1;
+      }
+    }
+  });
+
+  try {
+    assert.equal(await MobilePatch.enterPlayerFullscreen(app), true);
+    const firstExit = MobilePatch.exitPlayerFullscreen();
+    const secondExit = MobilePatch.exitPlayerFullscreen();
+    assert.equal(exitCount, 1);
+    resolveFullscreenExit();
+    await Promise.all([firstExit, secondExit]);
+    assert.equal(unlockCount, 1);
+    assert.equal(documentObject.fullscreenElement, null);
+  } finally {
+    await MobilePatch.exitPlayerFullscreen();
+    restoreScreen();
+    restoreDocument();
+    restoreMatchMedia();
+  }
+});
+
 test("browser-driven exit unlocks orientation even if the landscape lock rejected", async () => {
   let fullscreenChangeHandler;
   let unlockCount = 0;
@@ -184,6 +238,7 @@ test("browser-driven exit unlocks orientation even if the landscape lock rejecte
 
 test("stream and player routes share fullscreen before their screens mount", async () => {
   const originalEnterFullscreen = MobilePatch.enterPlayerFullscreen;
+  const originalExitFullscreen = MobilePatch.exitPlayerFullscreen;
   const app = {};
   const player = { style: { display: "none" } };
   const restoreDocument = replaceGlobal("document", {
@@ -201,6 +256,9 @@ test("stream and player routes share fullscreen before their screens mount", asy
   MobilePatch.enterPlayerFullscreen = (target) => {
     assert.equal(target, app);
     calls.push(`fullscreen:${router.current}`);
+  };
+  MobilePatch.exitPlayerFullscreen = () => {
+    calls.push(`exit:${router.current}`);
   };
   const router = Object.assign(
     {
@@ -234,9 +292,18 @@ test("stream and player routes share fullscreen before their screens mount", asy
   try {
     await router.navigate("stream");
     await router.navigate("player");
-    assert.deepEqual(calls, ["fullscreen:undefined", "stream-mount", "fullscreen:stream", "player-mount"]);
+    await router.navigate("stream");
+    assert.deepEqual(calls, [
+      "fullscreen:undefined",
+      "stream-mount",
+      "fullscreen:stream",
+      "player-mount",
+      "exit:player",
+      "stream-mount"
+    ]);
   } finally {
     MobilePatch.enterPlayerFullscreen = originalEnterFullscreen;
+    MobilePatch.exitPlayerFullscreen = originalExitFullscreen;
     restoreWindow();
     restoreDocument();
   }
