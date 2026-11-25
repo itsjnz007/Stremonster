@@ -8,6 +8,8 @@ let playerFullscreenTarget = null;
 let playerOwnsFullscreen = false;
 let playerOrientationLocked = false;
 let fullscreenChangeHandler = null;
+let fullscreenEntryTarget = null;
+let fullscreenEntryPromise = null;
 
 function isPortrait() {
   const mediaQuery = globalThis.matchMedia?.(PORTRAIT_QUERY);
@@ -131,63 +133,89 @@ export const MobilePatch = {
       return false;
     }
 
-    if (playerFullscreenTarget && playerFullscreenTarget !== target) {
-      await this.exitPlayerFullscreen();
+    const fullscreenTarget = documentObject.getElementById?.("app") || target;
+    if (fullscreenEntryPromise) {
+      if (fullscreenEntryTarget === fullscreenTarget) {
+        return fullscreenEntryPromise;
+      }
+      await fullscreenEntryPromise;
     }
 
-    const alreadyManagingTarget = playerFullscreenTarget === target;
-    const alreadyFullscreen = isFullscreenTarget(documentObject, target);
-    if (!alreadyFullscreen) {
-      const requestFullscreen = target.requestFullscreen || target.webkitRequestFullscreen;
-      if (typeof requestFullscreen !== "function") {
-        console.warn("Mobile player full screen is unavailable; landscape lock was skipped.");
-        return false;
+    const operation = (async () => {
+      if (playerFullscreenTarget && playerFullscreenTarget !== fullscreenTarget) {
+        await this.exitPlayerFullscreen();
       }
 
-      try {
-        await requestFullscreen.call(target);
-      } catch (error) {
-        console.warn("Unable to enter mobile player full screen", error);
-        return false;
-      }
-      if (!isFullscreenTarget(documentObject, target)) {
-        console.warn("Mobile player did not enter full screen; landscape lock was skipped.");
-        return false;
-      }
-    }
-
-    playerFullscreenTarget = target;
-    if (!alreadyFullscreen) {
-      playerOwnsFullscreen = true;
-    } else if (!alreadyManagingTarget) {
-      playerOwnsFullscreen = false;
-    }
-    moveUniversalBackButtonToFullscreenTarget(documentObject, target);
-
-    const orientation = globalThis.screen?.orientation;
-    if (typeof orientation?.lock === "function") {
-      try {
-        await orientation.lock("landscape");
-        playerOrientationLocked = true;
-      } catch (error) {
-        console.warn("Unable to lock player orientation to landscape", error);
-      }
-    }
-
-    if (!fullscreenChangeHandler) {
-      fullscreenChangeHandler = () => {
-        if (playerFullscreenTarget && !isFullscreenTarget(documentObject, playerFullscreenTarget)) {
-          restorePlayerOrientation();
-          restoreUniversalBackButtonToDocument(documentObject);
+      const alreadyManagingTarget = playerFullscreenTarget === fullscreenTarget;
+      const alreadyFullscreen = isFullscreenTarget(documentObject, fullscreenTarget);
+      if (!alreadyFullscreen) {
+        const requestFullscreen =
+          fullscreenTarget.requestFullscreen || fullscreenTarget.webkitRequestFullscreen;
+        if (typeof requestFullscreen !== "function") {
+          console.warn("Mobile player full screen is unavailable; landscape lock was skipped.");
+          return false;
         }
-      };
-      documentObject.addEventListener("fullscreenchange", fullscreenChangeHandler);
-      documentObject.addEventListener("webkitfullscreenchange", fullscreenChangeHandler);
+
+        try {
+          await requestFullscreen.call(fullscreenTarget);
+        } catch (error) {
+          console.warn("Unable to enter mobile player full screen", error);
+          return false;
+        }
+        if (!isFullscreenTarget(documentObject, fullscreenTarget)) {
+          console.warn("Mobile player did not enter full screen; landscape lock was skipped.");
+          return false;
+        }
+      }
+
+      playerFullscreenTarget = fullscreenTarget;
+      if (!alreadyFullscreen) {
+        playerOwnsFullscreen = true;
+      } else if (!alreadyManagingTarget) {
+        playerOwnsFullscreen = false;
+      }
+      moveUniversalBackButtonToFullscreenTarget(documentObject, fullscreenTarget);
+
+      const orientation = globalThis.screen?.orientation;
+      if (typeof orientation?.lock === "function") {
+        try {
+          await orientation.lock("landscape");
+          playerOrientationLocked = true;
+        } catch (error) {
+          console.warn("Unable to lock player orientation to landscape", error);
+        }
+      }
+
+      if (!fullscreenChangeHandler) {
+        fullscreenChangeHandler = () => {
+          if (playerFullscreenTarget && !isFullscreenTarget(documentObject, playerFullscreenTarget)) {
+            restorePlayerOrientation();
+            restoreUniversalBackButtonToDocument(documentObject);
+          }
+        };
+        documentObject.addEventListener("fullscreenchange", fullscreenChangeHandler);
+        documentObject.addEventListener("webkitfullscreenchange", fullscreenChangeHandler);
+      }
+      return true;
+    })();
+
+    fullscreenEntryTarget = fullscreenTarget;
+    fullscreenEntryPromise = operation;
+    try {
+      return await operation;
+    } finally {
+      if (fullscreenEntryPromise === operation) {
+        fullscreenEntryTarget = null;
+        fullscreenEntryPromise = null;
+      }
     }
-    return true;
   },
 
   async exitPlayerFullscreen() {
+    if (fullscreenEntryPromise) {
+      await fullscreenEntryPromise;
+    }
+
     const documentObject = globalThis.document;
     const target = playerFullscreenTarget;
     const shouldExitFullscreen = playerOwnsFullscreen && isFullscreenTarget(documentObject, target);

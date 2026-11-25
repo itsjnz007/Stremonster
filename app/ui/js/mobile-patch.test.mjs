@@ -63,6 +63,58 @@ test("re-entering fullscreen preserves player ownership until cleanup", async ()
   }
 });
 
+test("parallel app and player fullscreen requests share one app-shell request", async () => {
+  let resolveFullscreenRequest;
+  let requestCount = 0;
+  const documentObject = {
+    fullscreenElement: null,
+    addEventListener() {},
+    removeEventListener() {},
+    getElementById(id) {
+      return id === "app" ? app : null;
+    },
+    async exitFullscreen() {
+      this.fullscreenElement = null;
+    }
+  };
+  const app = {
+    requestFullscreen() {
+      requestCount += 1;
+      return new Promise((resolve) => {
+        resolveFullscreenRequest = () => {
+          documentObject.fullscreenElement = app;
+          resolve();
+        };
+      });
+    }
+  };
+  const player = {
+    requestFullscreen() {
+      assert.fail("fullscreen must stay on the app shell");
+    }
+  };
+  const restoreMatchMedia = replaceGlobal("matchMedia", () => ({ matches: true }));
+  const restoreDocument = replaceGlobal("document", documentObject);
+  const restoreScreen = replaceGlobal("screen", {
+    orientation: { async lock() {}, unlock() {} }
+  });
+
+  try {
+    const appRequest = MobilePatch.enterPlayerFullscreen(app);
+    const playerRequest = MobilePatch.enterPlayerFullscreen(player);
+    assert.equal(requestCount, 1);
+    resolveFullscreenRequest();
+    assert.deepEqual(await Promise.all([appRequest, playerRequest]), [true, true]);
+    await MobilePatch.exitPlayerFullscreen();
+    assert.equal(documentObject.fullscreenElement, null);
+  } finally {
+    await MobilePatch.exitPlayerFullscreen();
+    restoreScreen();
+    restoreDocument();
+    restoreMatchMedia();
+  }
+});
+
 test("stream and player routes share fullscreen before their screens mount", async () => {
   const originalEnterFullscreen = MobilePatch.enterPlayerFullscreen;
   const app = {};
