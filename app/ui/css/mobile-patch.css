@@ -4,7 +4,7 @@ html.mobile-orientation {
   --mobile-nav-bottom-bleed: 2px;
   width: 100%;
   height: 100%;
-  zoom: 0.6;
+  zoom: 0.5;
 }
 
 html.mobile-device body,
