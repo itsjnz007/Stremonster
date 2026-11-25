@@ -11,7 +11,6 @@ Object.defineProperty(globalThis, "localStorage", {
   }
 });
 
-const { MobilePatch } = await import("./mobile-patch.js");
 const { CommonPatch } = await import("./common-patch.js");
 const { createRouterMethods02 } = await import("./ui/navigation/routerMethods-02-complete-route-return-back-guard.js");
 
@@ -27,7 +26,7 @@ function replaceGlobal(name, value) {
   };
 }
 
-test("re-entering fullscreen preserves player ownership until cleanup", async () => {
+test("shared fullscreen preserves ownership until cleanup", async () => {
   const orientationCalls = [];
   const orientation = {
     type: "portrait-primary",
@@ -63,14 +62,14 @@ test("re-entering fullscreen preserves player ownership until cleanup", async ()
   };
 
   try {
-    assert.equal(await MobilePatch.enterPlayerFullscreen(target), true);
-    assert.equal(await MobilePatch.enterPlayerFullscreen(target), true);
-    await MobilePatch.exitPlayerFullscreen();
+    assert.equal(await CommonPatch.enterPlayerFullscreen(target), true);
+    assert.equal(await CommonPatch.enterPlayerFullscreen(target), true);
+    await CommonPatch.exitPlayerFullscreen();
     assert.equal(documentObject.fullscreenElement, null);
     assert.deepEqual(orientationCalls, ["landscape", "landscape", "unlock"]);
     assert.equal(globalThis.screen.orientation.type, "portrait-primary");
   } finally {
-    await MobilePatch.exitPlayerFullscreen();
+    await CommonPatch.exitPlayerFullscreen();
     restoreScreen();
     restoreDocument();
     restoreMatchMedia();
@@ -114,15 +113,15 @@ test("parallel app and player fullscreen requests share one app-shell request", 
   });
 
   try {
-    const appRequest = MobilePatch.enterPlayerFullscreen(app);
-    const playerRequest = MobilePatch.enterPlayerFullscreen(player);
+    const appRequest = CommonPatch.enterPlayerFullscreen(app);
+    const playerRequest = CommonPatch.enterPlayerFullscreen(player);
     assert.equal(requestCount, 1);
     resolveFullscreenRequest();
     assert.deepEqual(await Promise.all([appRequest, playerRequest]), [true, true]);
-    await MobilePatch.exitPlayerFullscreen();
+    await CommonPatch.exitPlayerFullscreen();
     assert.equal(documentObject.fullscreenElement, null);
   } finally {
-    await MobilePatch.exitPlayerFullscreen();
+    await CommonPatch.exitPlayerFullscreen();
     restoreScreen();
     restoreDocument();
     restoreMatchMedia();
@@ -166,13 +165,13 @@ test("player exit does not wait for a pending landscape lock", async () => {
   const restoreScreen = replaceGlobal("screen", { orientation });
 
   try {
-    assert.equal(await MobilePatch.enterPlayerFullscreen(app), true);
-    await MobilePatch.exitPlayerFullscreen();
+    assert.equal(await CommonPatch.enterPlayerFullscreen(app), true);
+    await CommonPatch.exitPlayerFullscreen();
     assert.equal(exitCount, 1);
     assert.equal(unlockCount, 1);
     assert.equal(documentObject.fullscreenElement, null);
   } finally {
-    await MobilePatch.exitPlayerFullscreen();
+    await CommonPatch.exitPlayerFullscreen();
     restoreScreen();
     restoreDocument();
     restoreMatchMedia();
@@ -217,14 +216,14 @@ test("browser-driven exit unlocks orientation even if the landscape lock rejecte
   console.warn = () => {};
 
   try {
-    assert.equal(await MobilePatch.enterPlayerFullscreen(app), true);
+    assert.equal(await CommonPatch.enterPlayerFullscreen(app), true);
     documentObject.fullscreenElement = null;
     fullscreenChangeHandler();
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(unlockCount, 1);
     assert.equal(orientation.type, "portrait-primary");
   } finally {
-    await MobilePatch.exitPlayerFullscreen();
+    await CommonPatch.exitPlayerFullscreen();
     console.warn = originalWarn;
     restoreScreen();
     restoreDocument();
@@ -247,8 +246,8 @@ test("stream auto-play fullscreen follows the loading-overlay eligibility", () =
 });
 
 test("stream and player routes enter fullscreen at the appropriate loading stage", async () => {
-  const originalEnterFullscreen = MobilePatch.enterPlayerFullscreen;
-  const originalExitFullscreen = MobilePatch.exitPlayerFullscreen;
+  const originalEnterFullscreen = CommonPatch.enterPlayerFullscreen;
+  const originalExitFullscreen = CommonPatch.exitPlayerFullscreen;
   const originalShouldStartStreamAutoPlayLoadingOverlay =
     CommonPatch.shouldStartStreamAutoPlayLoadingOverlay;
   const app = {};
@@ -266,11 +265,11 @@ test("stream and player routes enter fullscreen at the appropriate loading stage
   });
   const calls = [];
   CommonPatch.shouldStartStreamAutoPlayLoadingOverlay = (params) => params?.autoLoading === true;
-  MobilePatch.enterPlayerFullscreen = (target) => {
+  CommonPatch.enterPlayerFullscreen = (target) => {
     assert.equal(target, app);
     calls.push(`fullscreen:${router.current}`);
   };
-  MobilePatch.exitPlayerFullscreen = () => {
+  CommonPatch.exitPlayerFullscreen = () => {
     calls.push(`exit:${router.current}`);
   };
   const router = Object.assign(
@@ -321,8 +320,8 @@ test("stream and player routes enter fullscreen at the appropriate loading stage
       "stream-mount"
     ]);
   } finally {
-    MobilePatch.enterPlayerFullscreen = originalEnterFullscreen;
-    MobilePatch.exitPlayerFullscreen = originalExitFullscreen;
+    CommonPatch.enterPlayerFullscreen = originalEnterFullscreen;
+    CommonPatch.exitPlayerFullscreen = originalExitFullscreen;
     CommonPatch.shouldStartStreamAutoPlayLoadingOverlay =
       originalShouldStartStreamAutoPlayLoadingOverlay;
     restoreWindow();

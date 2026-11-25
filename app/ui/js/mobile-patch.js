@@ -4,12 +4,7 @@ const MOBILE_POINTER_QUERY = "(max-width: 950px) and (pointer: coarse)";
 const MOBILE_LANDSCAPE_QUERY =
   "(orientation: landscape) and (max-height: 600px) and (pointer: coarse)";
 
-let playerFullscreenTarget = null;
-let playerOwnsFullscreen = false;
 let playerOrientationLockAttempted = false;
-let fullscreenChangeHandler = null;
-let fullscreenEntryTarget = null;
-let fullscreenEntryPromise = null;
 
 function isPortrait() {
   const mediaQuery = globalThis.matchMedia?.(PORTRAIT_QUERY);
@@ -43,28 +38,6 @@ function isMobileDevice() {
   const isNarrowTouchDevice = width > 0 && width <= 950;
   const isShortLandscapeTouchDevice = width > height && height > 0 && height <= 600;
   return touchPoints > 0 && (isNarrowTouchDevice || isShortLandscapeTouchDevice);
-}
-
-function isFullscreenTarget(documentObject, target) {
-  return (
-    documentObject?.fullscreenElement === target ||
-    documentObject?.webkitFullscreenElement === target
-  );
-}
-
-function moveUniversalBackButtonToFullscreenTarget(documentObject, target) {
-  const backButton = documentObject?.getElementById?.("universalBackButton");
-  if (backButton && target?.append && backButton.parentNode !== target) {
-    target.append(backButton);
-  }
-}
-
-function restoreUniversalBackButtonToDocument(documentObject) {
-  const backButton = documentObject?.getElementById?.("universalBackButton");
-  const container = documentObject?.body || documentObject?.getElementById?.("app");
-  if (backButton && container?.append && backButton.parentNode !== container) {
-    container.append(backButton);
-  }
 }
 
 function restorePlayerOrientation() {
@@ -123,130 +96,32 @@ export const MobilePatch = {
     globalThis.addEventListener?.("orientationchange", syncOrientation, { passive: true });
   },
 
-  async enterPlayerFullscreen(target) {
-    if (!isMobileDevice() || !target) {
+  lockPlayerOrientation() {
+    if (!isMobileDevice()) {
       return false;
     }
 
-    const documentObject = globalThis.document;
-    if (!documentObject) {
+    const orientation = globalThis.screen?.orientation;
+    if (typeof orientation?.lock !== "function") {
       return false;
     }
 
-    const fullscreenTarget = documentObject.getElementById?.("app") || target;
-    if (fullscreenEntryPromise) {
-      if (fullscreenEntryTarget === fullscreenTarget) {
-        return fullscreenEntryPromise;
-      }
-      await fullscreenEntryPromise;
-    }
-
-    const operation = (async () => {
-      if (playerFullscreenTarget && playerFullscreenTarget !== fullscreenTarget) {
-        await this.exitPlayerFullscreen();
-      }
-
-      const alreadyManagingTarget = playerFullscreenTarget === fullscreenTarget;
-      const orientation = globalThis.screen?.orientation;
-      const alreadyFullscreen = isFullscreenTarget(documentObject, fullscreenTarget);
-      if (!alreadyFullscreen) {
-        const requestFullscreen =
-          fullscreenTarget.requestFullscreen || fullscreenTarget.webkitRequestFullscreen;
-        if (typeof requestFullscreen !== "function") {
-          console.warn("Mobile player full screen is unavailable; landscape lock was skipped.");
-          return false;
-        }
-
-        try {
-          await requestFullscreen.call(fullscreenTarget);
-        } catch (error) {
-          console.warn("Unable to enter mobile player full screen", error);
-          return false;
-        }
-        if (!isFullscreenTarget(documentObject, fullscreenTarget)) {
-          console.warn("Mobile player did not enter full screen; landscape lock was skipped.");
-          return false;
-        }
-      }
-
-      playerFullscreenTarget = fullscreenTarget;
-      if (!alreadyFullscreen) {
-        playerOwnsFullscreen = true;
-      } else if (!alreadyManagingTarget) {
-        playerOwnsFullscreen = false;
-      }
-      moveUniversalBackButtonToFullscreenTarget(documentObject, fullscreenTarget);
-
-      if (!fullscreenChangeHandler) {
-        fullscreenChangeHandler = () => {
-          if (playerFullscreenTarget && !isFullscreenTarget(documentObject, playerFullscreenTarget)) {
-            void this.exitPlayerFullscreen();
-          }
-        };
-        documentObject.addEventListener("fullscreenchange", fullscreenChangeHandler);
-        documentObject.addEventListener("webkitfullscreenchange", fullscreenChangeHandler);
-      }
-
-      if (typeof orientation?.lock === "function") {
-        playerOrientationLockAttempted = true;
-        try {
-          Promise.resolve(orientation.lock("landscape")).catch((error) => {
-            if (error?.name !== "AbortError") {
-              console.warn("Unable to lock player orientation to landscape", error);
-            }
-          });
-        } catch (error) {
-          if (error?.name !== "AbortError") {
-            console.warn("Unable to lock player orientation to landscape", error);
-          }
-        }
-      }
-      return true;
-    })();
-
-    fullscreenEntryTarget = fullscreenTarget;
-    fullscreenEntryPromise = operation;
+    playerOrientationLockAttempted = true;
     try {
-      return await operation;
-    } finally {
-      if (fullscreenEntryPromise === operation) {
-        fullscreenEntryTarget = null;
-        fullscreenEntryPromise = null;
+      Promise.resolve(orientation.lock("landscape")).catch((error) => {
+        if (error?.name !== "AbortError") {
+          console.warn("Unable to lock player orientation to landscape", error);
+        }
+      });
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        console.warn("Unable to lock player orientation to landscape", error);
       }
     }
+    return true;
   },
 
-  async exitPlayerFullscreen() {
-    if (fullscreenEntryPromise) {
-      await fullscreenEntryPromise;
-    }
-
-    const documentObject = globalThis.document;
-    const target = playerFullscreenTarget;
-    const shouldExitFullscreen = playerOwnsFullscreen && isFullscreenTarget(documentObject, target);
-
-    if (fullscreenChangeHandler) {
-      documentObject?.removeEventListener("fullscreenchange", fullscreenChangeHandler);
-      documentObject?.removeEventListener("webkitfullscreenchange", fullscreenChangeHandler);
-      fullscreenChangeHandler = null;
-    }
-
-    if (shouldExitFullscreen) {
-      const exitFullscreen = documentObject.exitFullscreen || documentObject.webkitExitFullscreen;
-      if (typeof exitFullscreen === "function") {
-        try {
-          await exitFullscreen.call(documentObject);
-        } catch (error) {
-          console.warn("Unable to exit mobile player full screen", error);
-        }
-      }
-    }
-
+  restorePlayerOrientation() {
     restorePlayerOrientation();
-    if (target && !isFullscreenTarget(documentObject, target)) {
-      restoreUniversalBackButtonToDocument(documentObject);
-    }
-    playerFullscreenTarget = null;
-    playerOwnsFullscreen = false;
   }
 };

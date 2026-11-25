@@ -7,7 +7,6 @@ import { suspendIdleArtworkWorkers, suspendIdleHomeArtworkWorkers } from "../../
 /* global __NUVIO_APP_VERSION__ */
 import * as internals from "./playerScreenContext.js";
 import { initializePlayerMountState } from "./playerMountStateInitialization.js";
-import { MobilePatch } from "../../../mobile-patch.js";
 
 export function createPlayerScreenMethods01() {
   const {
@@ -59,7 +58,6 @@ export function createPlayerScreenMethods01() {
       this.shuffleNextCache = null;
       this.shuffleRemoteWatched = new Set();
       this.playerRouteActive = true;
-      void MobilePatch.enterPlayerFullscreen(this.container);
       this.webOsClockLocaleInfo = null;
       this.webOsClockSettingsSubscription?.cancel?.();
       this.webOsClockSettingsSubscription = null;

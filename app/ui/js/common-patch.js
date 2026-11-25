@@ -7,6 +7,34 @@ import { MobilePatch } from "./mobile-patch.js";
 const COMMON_RUNTIME_PATCHED = Symbol("common-patch-runtime-patched");
 const DIALOG_HOVER_PATCHED = Symbol("common-patch-dialog-hover-patched");
 
+let playerFullscreenTarget = null;
+let playerOwnsFullscreen = false;
+let fullscreenChangeHandler = null;
+let fullscreenEntryTarget = null;
+let fullscreenEntryPromise = null;
+
+function isFullscreenTarget(documentObject, target) {
+  return (
+    documentObject?.fullscreenElement === target ||
+    documentObject?.webkitFullscreenElement === target
+  );
+}
+
+function moveUniversalBackButtonToFullscreenTarget(documentObject, target) {
+  const backButton = documentObject?.getElementById?.("universalBackButton");
+  if (backButton && target?.append && backButton.parentNode !== target) {
+    target.append(backButton);
+  }
+}
+
+function restoreUniversalBackButtonToDocument(documentObject) {
+  const backButton = documentObject?.getElementById?.("universalBackButton");
+  const container = documentObject?.body || documentObject?.getElementById?.("app");
+  if (backButton && container?.append && backButton.parentNode !== container) {
+    container.append(backButton);
+  }
+}
+
 function escapeHtml(value = "") {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -21,6 +49,119 @@ function escapeAttribute(value = "") {
 
 export const CommonPatch = {
   remotePageMinHeight: "100%",
+
+  async enterPlayerFullscreen(target) {
+    if (!target) {
+      return false;
+    }
+
+    const documentObject = globalThis.document;
+    if (!documentObject) {
+      return false;
+    }
+
+    const fullscreenTarget = documentObject.getElementById?.("app") || target;
+    if (fullscreenEntryPromise) {
+      if (fullscreenEntryTarget === fullscreenTarget) {
+        return fullscreenEntryPromise;
+      }
+      await fullscreenEntryPromise;
+    }
+
+    const operation = (async () => {
+      if (playerFullscreenTarget && playerFullscreenTarget !== fullscreenTarget) {
+        await this.exitPlayerFullscreen();
+      }
+
+      const alreadyManagingTarget = playerFullscreenTarget === fullscreenTarget;
+      const alreadyFullscreen = isFullscreenTarget(documentObject, fullscreenTarget);
+      if (!alreadyFullscreen) {
+        const requestFullscreen =
+          fullscreenTarget.requestFullscreen || fullscreenTarget.webkitRequestFullscreen;
+        if (typeof requestFullscreen !== "function") {
+          console.warn("Player full screen is unavailable.");
+          return false;
+        }
+
+        try {
+          await requestFullscreen.call(fullscreenTarget);
+        } catch (error) {
+          console.warn("Unable to enter player full screen", error);
+          return false;
+        }
+        if (!isFullscreenTarget(documentObject, fullscreenTarget)) {
+          console.warn("Player did not enter full screen.");
+          return false;
+        }
+      }
+
+      playerFullscreenTarget = fullscreenTarget;
+      if (!alreadyFullscreen) {
+        playerOwnsFullscreen = true;
+      } else if (!alreadyManagingTarget) {
+        playerOwnsFullscreen = false;
+      }
+      moveUniversalBackButtonToFullscreenTarget(documentObject, fullscreenTarget);
+
+      if (!fullscreenChangeHandler) {
+        fullscreenChangeHandler = () => {
+          if (playerFullscreenTarget && !isFullscreenTarget(documentObject, playerFullscreenTarget)) {
+            void this.exitPlayerFullscreen();
+          }
+        };
+        documentObject.addEventListener("fullscreenchange", fullscreenChangeHandler);
+        documentObject.addEventListener("webkitfullscreenchange", fullscreenChangeHandler);
+      }
+
+      MobilePatch.lockPlayerOrientation();
+      return true;
+    })();
+
+    fullscreenEntryTarget = fullscreenTarget;
+    fullscreenEntryPromise = operation;
+    try {
+      return await operation;
+    } finally {
+      if (fullscreenEntryPromise === operation) {
+        fullscreenEntryTarget = null;
+        fullscreenEntryPromise = null;
+      }
+    }
+  },
+
+  async exitPlayerFullscreen() {
+    if (fullscreenEntryPromise) {
+      await fullscreenEntryPromise;
+    }
+
+    const documentObject = globalThis.document;
+    const target = playerFullscreenTarget;
+    const shouldExitFullscreen = playerOwnsFullscreen && isFullscreenTarget(documentObject, target);
+
+    if (fullscreenChangeHandler) {
+      documentObject?.removeEventListener("fullscreenchange", fullscreenChangeHandler);
+      documentObject?.removeEventListener("webkitfullscreenchange", fullscreenChangeHandler);
+      fullscreenChangeHandler = null;
+    }
+
+    if (shouldExitFullscreen) {
+      const exitFullscreen = documentObject.exitFullscreen || documentObject.webkitExitFullscreen;
+      if (typeof exitFullscreen === "function") {
+        try {
+          await exitFullscreen.call(documentObject);
+        } catch (error) {
+          console.warn("Unable to exit player full screen", error);
+        }
+      }
+    }
+
+    MobilePatch.restorePlayerOrientation();
+    if (target && !isFullscreenTarget(documentObject, target)) {
+      restoreUniversalBackButtonToDocument(documentObject);
+    }
+    playerFullscreenTarget = null;
+    playerOwnsFullscreen = false;
+  },
 
   renderPlayerLoadingOverlayMarkup({
     id = "playerLoadingOverlay",
@@ -148,12 +289,12 @@ export const CommonPatch = {
         previousRoute !== "player" &&
         CommonPatch.shouldStartStreamAutoPlayLoadingOverlay(args[1] || {});
       if (previousRoute === "stream" && routeName !== "player") {
-        void MobilePatch.exitPlayerFullscreen();
+        void CommonPatch.exitPlayerFullscreen();
       }
       if (routeName === "player" || startStreamAutoPlayLoading) {
         const app = globalThis.document?.getElementById?.("app");
         if (app) {
-          void MobilePatch.enterPlayerFullscreen(app);
+          void CommonPatch.enterPlayerFullscreen(app);
         }
       }
 
