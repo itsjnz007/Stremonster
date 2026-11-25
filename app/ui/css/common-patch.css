@@ -1,9 +1,6 @@
 :root {
   --tv-secondary-text: clamp(28px,1.08vw,21px);
   --tv-body-text: clamp(26px, 1.18vw, 24px);
-  --bg-color: #000 !important;
-  --bg-color-rgb: 0 0 0 !important;
-  --bg-color-rgb-legacy: 0, 0, 0 !important;
 }
 
 html .detail-hero-section {
