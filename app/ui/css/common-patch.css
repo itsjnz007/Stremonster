@@ -477,4 +477,21 @@ html.nuvio-pwa body {
   --modern-hero-scroll-spacer-height: 51%;
 }
 
+.settings-workspace {
+  width: calc(100% - var(--legacy-sidebar-rail-width) - 64px);
+  height: calc(100% - 96px);
+}
+
+.settings-shell:has(.home-sidebar[data-collapsible="true"]) .settings-workspace,
+.settings-shell.has-collapsible-sidebar .settings-workspace,
+.settings-shell:has(.modern-sidebar-shell) .settings-workspace,
+.settings-shell.has-modern-sidebar .settings-workspace {
+  width: calc(100% - 128px);
+}
+
+.settings-shell:has(.modern-sidebar-shell) .settings-workspace,
+.settings-shell.has-modern-sidebar .settings-workspace {
+  height: calc(100% - 92px);
+}
+
 
