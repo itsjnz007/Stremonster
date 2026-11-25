@@ -37,6 +37,8 @@ test("re-entering fullscreen preserves player ownership until cleanup", async ()
     },
     unlock() {
       orientationCalls.push("unlock");
+      assert.equal(documentObject.fullscreenElement, null);
+      this.type = "portrait-primary";
     }
   };
   const documentObject = {
@@ -65,7 +67,7 @@ test("re-entering fullscreen preserves player ownership until cleanup", async ()
     assert.equal(await MobilePatch.enterPlayerFullscreen(target), true);
     await MobilePatch.exitPlayerFullscreen();
     assert.equal(documentObject.fullscreenElement, null);
-    assert.deepEqual(orientationCalls, ["landscape", "landscape", "portrait-primary"]);
+    assert.deepEqual(orientationCalls, ["landscape", "landscape", "unlock"]);
     assert.equal(globalThis.screen.orientation.type, "portrait-primary");
   } finally {
     await MobilePatch.exitPlayerFullscreen();

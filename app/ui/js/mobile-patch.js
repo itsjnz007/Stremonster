@@ -7,7 +7,6 @@ const MOBILE_LANDSCAPE_QUERY =
 let playerFullscreenTarget = null;
 let playerOwnsFullscreen = false;
 let playerOrientationLocked = false;
-let playerPreviousOrientationType = "";
 let fullscreenChangeHandler = null;
 let fullscreenEntryTarget = null;
 let fullscreenEntryPromise = null;
@@ -68,28 +67,17 @@ function restoreUniversalBackButtonToDocument(documentObject) {
   }
 }
 
-async function restorePlayerOrientation() {
+function restorePlayerOrientation() {
   if (!playerOrientationLocked) {
     return;
   }
   playerOrientationLocked = false;
 
   const orientation = globalThis.screen?.orientation;
-  const previousOrientationType = playerPreviousOrientationType;
-  playerPreviousOrientationType = "";
   try {
-    if (previousOrientationType && typeof orientation?.lock === "function") {
-      await orientation.lock(previousOrientationType);
-    } else {
-      await orientation?.unlock?.();
-    }
+    orientation?.unlock?.();
   } catch (error) {
     console.warn("Unable to restore the previous player orientation", error);
-    try {
-      await orientation?.unlock?.();
-    } catch (unlockError) {
-      console.warn("Unable to unlock player orientation", unlockError);
-    }
   }
 }
 
@@ -160,9 +148,6 @@ export const MobilePatch = {
 
       const alreadyManagingTarget = playerFullscreenTarget === fullscreenTarget;
       const orientation = globalThis.screen?.orientation;
-      if (!playerOrientationLocked && typeof orientation?.lock === "function") {
-        playerPreviousOrientationType = String(orientation.type || "");
-      }
       const alreadyFullscreen = isFullscreenTarget(documentObject, fullscreenTarget);
       if (!alreadyFullscreen) {
         const requestFullscreen =
@@ -204,7 +189,7 @@ export const MobilePatch = {
       if (!fullscreenChangeHandler) {
         fullscreenChangeHandler = () => {
           if (playerFullscreenTarget && !isFullscreenTarget(documentObject, playerFullscreenTarget)) {
-            void restorePlayerOrientation();
+            restorePlayerOrientation();
             restoreUniversalBackButtonToDocument(documentObject);
           }
         };
@@ -242,7 +227,6 @@ export const MobilePatch = {
     }
 
     if (shouldExitFullscreen) {
-      await restorePlayerOrientation();
       const exitFullscreen = documentObject.exitFullscreen || documentObject.webkitExitFullscreen;
       if (typeof exitFullscreen === "function") {
         try {
@@ -251,10 +235,9 @@ export const MobilePatch = {
           console.warn("Unable to exit mobile player full screen", error);
         }
       }
-    } else {
-      await restorePlayerOrientation();
     }
 
+    restorePlayerOrientation();
     if (target && !isFullscreenTarget(documentObject, target)) {
       restoreUniversalBackButtonToDocument(documentObject);
     }
