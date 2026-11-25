@@ -10,7 +10,6 @@ let playerOrientationLockAttempted = false;
 let fullscreenChangeHandler = null;
 let fullscreenEntryTarget = null;
 let fullscreenEntryPromise = null;
-let fullscreenExitPromise = null;
 
 function isPortrait() {
   const mediaQuery = globalThis.matchMedia?.(PORTRAIT_QUERY);
@@ -134,10 +133,6 @@ export const MobilePatch = {
       return false;
     }
 
-    if (fullscreenExitPromise) {
-      await fullscreenExitPromise;
-    }
-
     const fullscreenTarget = documentObject.getElementById?.("app") || target;
     if (fullscreenEntryPromise) {
       if (fullscreenEntryTarget === fullscreenTarget) {
@@ -182,15 +177,6 @@ export const MobilePatch = {
       }
       moveUniversalBackButtonToFullscreenTarget(documentObject, fullscreenTarget);
 
-      if (typeof orientation?.lock === "function") {
-        playerOrientationLockAttempted = true;
-        try {
-          await orientation.lock("landscape");
-        } catch (error) {
-          console.warn("Unable to lock player orientation to landscape", error);
-        }
-      }
-
       if (!fullscreenChangeHandler) {
         fullscreenChangeHandler = () => {
           if (playerFullscreenTarget && !isFullscreenTarget(documentObject, playerFullscreenTarget)) {
@@ -199,6 +185,21 @@ export const MobilePatch = {
         };
         documentObject.addEventListener("fullscreenchange", fullscreenChangeHandler);
         documentObject.addEventListener("webkitfullscreenchange", fullscreenChangeHandler);
+      }
+
+      if (typeof orientation?.lock === "function") {
+        playerOrientationLockAttempted = true;
+        try {
+          Promise.resolve(orientation.lock("landscape")).catch((error) => {
+            if (error?.name !== "AbortError") {
+              console.warn("Unable to lock player orientation to landscape", error);
+            }
+          });
+        } catch (error) {
+          if (error?.name !== "AbortError") {
+            console.warn("Unable to lock player orientation to landscape", error);
+          }
+        }
       }
       return true;
     })();
@@ -216,51 +217,36 @@ export const MobilePatch = {
   },
 
   async exitPlayerFullscreen() {
-    if (fullscreenExitPromise) {
-      return fullscreenExitPromise;
+    if (fullscreenEntryPromise) {
+      await fullscreenEntryPromise;
     }
 
-    const operation = (async () => {
-      if (fullscreenEntryPromise) {
-        await fullscreenEntryPromise;
-      }
+    const documentObject = globalThis.document;
+    const target = playerFullscreenTarget;
+    const shouldExitFullscreen = playerOwnsFullscreen && isFullscreenTarget(documentObject, target);
 
-      const documentObject = globalThis.document;
-      const target = playerFullscreenTarget;
-      const shouldExitFullscreen = playerOwnsFullscreen && isFullscreenTarget(documentObject, target);
+    if (fullscreenChangeHandler) {
+      documentObject?.removeEventListener("fullscreenchange", fullscreenChangeHandler);
+      documentObject?.removeEventListener("webkitfullscreenchange", fullscreenChangeHandler);
+      fullscreenChangeHandler = null;
+    }
 
-      if (fullscreenChangeHandler) {
-        documentObject?.removeEventListener("fullscreenchange", fullscreenChangeHandler);
-        documentObject?.removeEventListener("webkitfullscreenchange", fullscreenChangeHandler);
-        fullscreenChangeHandler = null;
-      }
-
-      if (shouldExitFullscreen) {
-        const exitFullscreen = documentObject.exitFullscreen || documentObject.webkitExitFullscreen;
-        if (typeof exitFullscreen === "function") {
-          try {
-            await exitFullscreen.call(documentObject);
-          } catch (error) {
-            console.warn("Unable to exit mobile player full screen", error);
-          }
+    if (shouldExitFullscreen) {
+      const exitFullscreen = documentObject.exitFullscreen || documentObject.webkitExitFullscreen;
+      if (typeof exitFullscreen === "function") {
+        try {
+          await exitFullscreen.call(documentObject);
+        } catch (error) {
+          console.warn("Unable to exit mobile player full screen", error);
         }
       }
-
-      restorePlayerOrientation();
-      if (target && !isFullscreenTarget(documentObject, target)) {
-        restoreUniversalBackButtonToDocument(documentObject);
-      }
-      playerFullscreenTarget = null;
-      playerOwnsFullscreen = false;
-    })();
-
-    fullscreenExitPromise = operation;
-    try {
-      await operation;
-    } finally {
-      if (fullscreenExitPromise === operation) {
-        fullscreenExitPromise = null;
-      }
     }
+
+    restorePlayerOrientation();
+    if (target && !isFullscreenTarget(documentObject, target)) {
+      restoreUniversalBackButtonToDocument(documentObject);
+    }
+    playerFullscreenTarget = null;
+    playerOwnsFullscreen = false;
   }
 };

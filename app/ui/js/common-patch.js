@@ -58,20 +58,26 @@ export const CommonPatch = {
       </div>`;
   },
 
-  shouldShowStreamAutoPlayLoadingOverlay(screen, settings = PlayerSettingsStore.get()) {
+  shouldStartStreamAutoPlayLoadingOverlay(params = {}, settings = PlayerSettingsStore.get()) {
     const autoPlayMode = String(settings.streamAutoPlayMode || "MANUAL").toUpperCase();
     const savedPreference =
       settings.streamAutoPlayPreferBingeGroupForNextEpisode && settings.streamAutoPlayReuseBingeGroup
-        ? StreamPreferencesStore.getLatestForContent(screen.params?.itemId)
+        ? StreamPreferencesStore.getLatestForContent(params?.itemId)
         : null;
     const hasPreferredBingeGroup = Boolean(String(savedPreference?.bingeGroup || "").trim());
 
     return Boolean(
-      !screen.autoResumeAttempted &&
-      !screen.params?.manualSelection &&
-      !screen.autoResumeUiActive &&
       isAutoPlayEffectivelyEnabled(settings) &&
-      (autoPlayMode !== "MANUAL" || hasPreferredBingeGroup) &&
+      !params?.manualSelection &&
+      (autoPlayMode !== "MANUAL" || hasPreferredBingeGroup)
+    );
+  },
+
+  shouldShowStreamAutoPlayLoadingOverlay(screen, settings = PlayerSettingsStore.get()) {
+    return Boolean(
+      !screen.autoResumeAttempted &&
+      !screen.autoResumeUiActive &&
+      this.shouldStartStreamAutoPlayLoadingOverlay(screen.params, settings) &&
       screen.loading &&
       !screen.streams?.length &&
       !screen.error
@@ -137,13 +143,14 @@ export const CommonPatch = {
     const patchedNavigate = function (...args) {
       const routeName = args[0];
       const previousRoute = this.getCurrent?.() || this.current;
-      if (
-        (previousRoute === "stream" && routeName !== "player") ||
-        (previousRoute === "player" && routeName !== "player")
-      ) {
+      const startStreamAutoPlayLoading =
+        routeName === "stream" &&
+        previousRoute !== "player" &&
+        CommonPatch.shouldStartStreamAutoPlayLoadingOverlay(args[1] || {});
+      if (previousRoute === "stream" && routeName !== "player") {
         void MobilePatch.exitPlayerFullscreen();
       }
-      if (routeName === "player" || (routeName === "stream" && previousRoute !== "player")) {
+      if (routeName === "player" || startStreamAutoPlayLoading) {
         const app = globalThis.document?.getElementById?.("app");
         if (app) {
           void MobilePatch.enterPlayerFullscreen(app);
