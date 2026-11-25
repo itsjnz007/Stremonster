@@ -29,6 +29,16 @@ function replaceGlobal(name, value) {
 
 test("re-entering fullscreen preserves player ownership until cleanup", async () => {
   const orientationCalls = [];
+  const orientation = {
+    type: "portrait-primary",
+    async lock(type) {
+      orientationCalls.push(type);
+      this.type = type === "landscape" ? "landscape-primary" : type;
+    },
+    unlock() {
+      orientationCalls.push("unlock");
+    }
+  };
   const documentObject = {
     fullscreenElement: null,
     addEventListener() {},
@@ -42,21 +52,11 @@ test("re-entering fullscreen preserves player ownership until cleanup", async ()
   };
   const restoreMatchMedia = replaceGlobal("matchMedia", () => ({ matches: true }));
   const restoreDocument = replaceGlobal("document", documentObject);
-  const restoreScreen = replaceGlobal("screen", {
-    orientation: {
-      type: "portrait-primary",
-      async lock(type) {
-        orientationCalls.push(type);
-        this.type = type === "landscape" ? "landscape-primary" : type;
-      },
-      unlock() {
-        orientationCalls.push("unlock");
-      }
-    }
-  });
+  const restoreScreen = replaceGlobal("screen", { orientation });
   const target = {
     async requestFullscreen() {
       documentObject.fullscreenElement = target;
+      orientation.type = "landscape-primary";
     }
   };
 

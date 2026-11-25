@@ -159,6 +159,10 @@ export const MobilePatch = {
       }
 
       const alreadyManagingTarget = playerFullscreenTarget === fullscreenTarget;
+      const orientation = globalThis.screen?.orientation;
+      if (!playerOrientationLocked && typeof orientation?.lock === "function") {
+        playerPreviousOrientationType = String(orientation.type || "");
+      }
       const alreadyFullscreen = isFullscreenTarget(documentObject, fullscreenTarget);
       if (!alreadyFullscreen) {
         const requestFullscreen =
@@ -188,11 +192,7 @@ export const MobilePatch = {
       }
       moveUniversalBackButtonToFullscreenTarget(documentObject, fullscreenTarget);
 
-      const orientation = globalThis.screen?.orientation;
       if (typeof orientation?.lock === "function") {
-        if (!playerOrientationLocked) {
-          playerPreviousOrientationType = String(orientation.type || "");
-        }
         try {
           await orientation.lock("landscape");
           playerOrientationLocked = true;
