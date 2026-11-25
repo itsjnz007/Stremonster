@@ -25,7 +25,10 @@ function normalizedCatalogType(value) {
     .trim()
     .toLowerCase()
     .replace(/[\s_-]+/g, "");
-  if (normalized === "tv" || normalized === "show" || normalized === "shows") {
+  if (normalized === "tv") {
+    return "tv";
+  }
+  if (normalized === "show" || normalized === "shows") {
     return "series";
   }
   if (normalized === "movies") {
@@ -46,6 +49,9 @@ export function formatContentTypeLabel(type, fallback = "") {
   if (normalized === "series") {
     return I18n.t("type_series", {}, { fallback: "Series" });
   }
+  if (normalized === "tv") {
+    return "TV";
+  }
   if (normalized === "channel") {
     return I18n.t("stream_info_channels", {}, { fallback: "Channels" });
   }
@@ -57,6 +63,14 @@ export function formatContentTypeLabel(type, fallback = "") {
 
 function escapeRegExp(value) {
   return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// The resume row of a media server mixes movies and series, so a type suffix
+// would be wrong; its name carries the server name instead.
+export function isMediaServerResumeRow(rowData) {
+  return (
+    String(rowData?.addonId || "").startsWith("media-server-") && rowData?.catalogId === "resume"
+  );
 }
 
 export function formatCatalogRowTitle(catalogName, type, showTypeSuffix = true) {
