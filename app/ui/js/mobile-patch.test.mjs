@@ -28,6 +28,7 @@ function replaceGlobal(name, value) {
 }
 
 test("re-entering fullscreen preserves player ownership until cleanup", async () => {
+  const orientationCalls = [];
   const documentObject = {
     fullscreenElement: null,
     addEventListener() {},
@@ -42,7 +43,16 @@ test("re-entering fullscreen preserves player ownership until cleanup", async ()
   const restoreMatchMedia = replaceGlobal("matchMedia", () => ({ matches: true }));
   const restoreDocument = replaceGlobal("document", documentObject);
   const restoreScreen = replaceGlobal("screen", {
-    orientation: { async lock() {}, unlock() {} }
+    orientation: {
+      type: "portrait-primary",
+      async lock(type) {
+        orientationCalls.push(type);
+        this.type = type === "landscape" ? "landscape-primary" : type;
+      },
+      unlock() {
+        orientationCalls.push("unlock");
+      }
+    }
   });
   const target = {
     async requestFullscreen() {
@@ -55,6 +65,8 @@ test("re-entering fullscreen preserves player ownership until cleanup", async ()
     assert.equal(await MobilePatch.enterPlayerFullscreen(target), true);
     await MobilePatch.exitPlayerFullscreen();
     assert.equal(documentObject.fullscreenElement, null);
+    assert.deepEqual(orientationCalls, ["landscape", "landscape", "portrait-primary"]);
+    assert.equal(globalThis.screen.orientation.type, "portrait-primary");
   } finally {
     await MobilePatch.exitPlayerFullscreen();
     restoreScreen();
