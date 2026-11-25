@@ -308,6 +308,11 @@ html.mobile-orientation #discover .discover-main {
   scroll-padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
 }
 
+html.mobile-device #library .home-shell .library-page {
+  box-sizing: border-box;
+  padding: 24px;
+}
+
 html.mobile-orientation #home .home-main {
   padding-top: 0;
 }

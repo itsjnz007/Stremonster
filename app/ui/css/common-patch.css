@@ -1,6 +1,9 @@
 :root {
   --tv-secondary-text: clamp(28px,1.08vw,21px);
   --tv-body-text: clamp(26px, 1.18vw, 24px);
+  --bg-color: #000 !important;
+  --bg-color-rgb: 0 0 0 !important;
+  --bg-color-rgb-legacy: 0, 0, 0 !important;
 }
 
 html .detail-hero-section {
@@ -494,4 +497,44 @@ html.nuvio-pwa body {
   height: calc(100% - 92px);
 }
 
+#libraryPickerGroupsMount.library-picker-groups {
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+#libraryPickerGroupsMount .library-picker-row {
+  gap: 16px;
+}
+
+#libraryPickerGroupsMount .library-picker-anchor {
+  height: 80px;
+  min-height: 80px;
+  padding: 14px 20px;
+  border-radius: 28px;
+  gap: 16px;
+}
+
+#libraryPickerGroupsMount .library-picker-copy {
+  gap: 4px;
+}
+
+#libraryPickerGroupsMount .library-picker-title {
+  font-size: 16px;
+  line-height: 20px;
+}
+
+#libraryPickerGroupsMount .library-picker-value {
+  font-size: 24px;
+  line-height: 30px;
+}
+
+#libraryPickerGroupsMount .library-picker-icon {
+  width: 32px;
+  height: 32px;
+}
+
+#libraryPickerGroupsMount .library-picker-chevron {
+  width: 24px;
+  height: 24px;
+}
 
