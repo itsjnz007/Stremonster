@@ -265,7 +265,7 @@ class Proxy:
     def test_stream(
         stream: WebResponse,
         test_seconds: float = 1.0,
-        network_timeout: int = 10,
+        network_timeout: int = 15,
     ) -> tuple[bool, Optional[int]]:
         url = stream.get("url")
         if not url:
