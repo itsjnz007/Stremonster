@@ -171,8 +171,8 @@ class Scraper:
                 return
 
             if self.log_requests: self.logger.info(f"<<< Response -> {response.url}")
-            # is_stream_url = re.search(self.stream_url_pattern, response.url, re.I)
-            is_stream_url = response.headers.get("content-type") in STREAM_CONTENT_TYPES
+            is_stream_url = re.search(self.stream_url_pattern, response.url, re.I)
+            # is_stream_url = response.headers.get("content-type") in STREAM_CONTENT_TYPES
             is_hls_playlist = False
             if response.ok and not stream_url and not is_stream_url:
                 try:
