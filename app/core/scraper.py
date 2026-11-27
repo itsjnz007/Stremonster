@@ -19,7 +19,14 @@ from playwright.async_api import Page, Playwright
 STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/mp4)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
 IGNORED_REQUEST_PATTERNS = ["google-analytics", "doubleclick", "analytics.google.com"]
-SUBTITLE_CONTENT_TYPES = ["text/vtt"]
+STREAM_CONTENT_TYPES = [
+    "application/vnd.apple.mpegurl",
+    "application/x-mpegurl",
+    "video/mp4",
+    "application/mp4",
+    "video/mp2t",
+]
+SUBTITLE_CONTENT_TYPES = ["text/vtt", "text/srt"]
 
 class Scraper:
     _playwright: Optional[Playwright] = None
@@ -164,7 +171,8 @@ class Scraper:
                 return
 
             if self.log_requests: self.logger.info(f"<<< Response -> {response.url}")
-            is_stream_url = re.search(self.stream_url_pattern, response.url, re.I)
+            # is_stream_url = re.search(self.stream_url_pattern, response.url, re.I)
+            is_stream_url = response.headers.get("content-type") in STREAM_CONTENT_TYPES
             is_hls_playlist = False
             if response.ok and not stream_url and not is_stream_url:
                 try:
@@ -188,7 +196,7 @@ class Scraper:
                 local_stop_event.set()
                 self.logger.info(f"🎥 Stream from {domain}: {stream_url}")
 
-            if (
+            if response.ok and (
                 re.search(self.subtitle_url_pattern, response.url, re.I) 
                 or response.headers.get("content-type") in SUBTITLE_CONTENT_TYPES
             ):

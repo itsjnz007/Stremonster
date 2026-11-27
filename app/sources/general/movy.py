@@ -27,8 +27,8 @@ class MovyScraper(Scraper):
 if __name__ == "__main__":
     scraper = MovyScraper()
     
-    # series_response = scraper.get_series("48891", "5", "2")
-    # print(f"Series response: {series_response}")
+    series_response = scraper.get_series("321267", "1", "1")
+    print(f"Series response: {series_response}")
 
-    movie_response = scraper.get_movie("550") # Movie ID for "Fight Club"
-    print(f"Movie response: {movie_response}")
+    # movie_response = scraper.get_movie("550") # Movie ID for "Fight Club"
+    # print(f"Movie response: {movie_response}")
