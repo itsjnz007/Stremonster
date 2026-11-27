@@ -174,7 +174,7 @@ class Scraper:
                 return
 
             if self.log_requests: self.logger.info(f"<<< Response -> {response.url}")
-            if response.ok and (
+            if response.ok and not stream_url and (
                 response.headers.get("content-type") in STREAM_CONTENT_TYPES
                 and not re.search(self.stream_ignore_pattern, response.url, re.I)
             ):
