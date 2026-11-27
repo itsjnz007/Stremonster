@@ -19,6 +19,7 @@ from playwright.async_api import Page, Playwright
 STREAM_URL_PATTERN = r'https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/mp4)\S*'
 SUBTITLE_PATTERN   = r'https?://\S*[._/?&#=-](?:vtt|srt|ass)(?:\W|$)'
 IGNORED_REQUEST_PATTERNS = ["google-analytics", "doubleclick", "analytics.google.com"]
+STREAM_IGNORE_PATTERN = r'https?://(?=[^?\s]*www\.google-analytics\.com)\S*'
 STREAM_CONTENT_TYPES = [
     "application/vnd.apple.mpegurl",
     "application/x-mpegurl",
@@ -45,6 +46,7 @@ class Scraper:
                  idle_timeout: int = 5000,
                  stream_url_pattern: str = STREAM_URL_PATTERN, 
                  subtitle_url_pattern: str = SUBTITLE_PATTERN,
+                 stream_ignore_pattern: str = STREAM_IGNORE_PATTERN,
                  log_requests: bool = False,
                  page_hook: Optional[Callable[[Page, Optional[Event]], Awaitable[None]]] = None,
                  extra_http_headers: Optional[dict[str, str]] = None
@@ -57,6 +59,7 @@ class Scraper:
         self.headless = headless
         self.stream_url_pattern = stream_url_pattern
         self.subtitle_url_pattern = subtitle_url_pattern
+        self.stream_ignore_pattern = stream_ignore_pattern
         self.log_requests = log_requests
         self.page_hook = page_hook
         self.base_url = base_url
@@ -171,16 +174,10 @@ class Scraper:
                 return
 
             if self.log_requests: self.logger.info(f"<<< Response -> {response.url}")
-            is_stream_url = re.search(self.stream_url_pattern, response.url, re.I)
-            # is_stream_url = response.headers.get("content-type") in STREAM_CONTENT_TYPES
-            is_hls_playlist = False
-            if response.ok and not stream_url and not is_stream_url:
-                try:
-                    is_hls_playlist = re.search(r"^\s*#EXTM3U", await response.text(), re.I)
-                except Exception:
-                    pass
-
-            if response.ok and not stream_url and (is_hls_playlist or is_stream_url):
+            if response.ok and (
+                response.headers.get("content-type") in STREAM_CONTENT_TYPES
+                and not re.search(self.stream_ignore_pattern, response.url, re.I)
+            ):
                 stream_url = response.url
                 raw_headers = await response.request.all_headers()
                 clean_headers: dict[str, Any] = {}

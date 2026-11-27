@@ -10,8 +10,9 @@ from threading import Event
 class MovyScraper(Scraper):
     def __init__(self):
         super().__init__(source="movy", base_url="https://www.movy.sx",
-                        stream_url_pattern=r'^(?!.*intro\.mp4).*?(https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/mp4)\S*)'
-                        #  headless=False
+                        stream_url_pattern=r'^(?!.*intro\.mp4).*?(https?://\S*(?:\.m3u8|\.mp4|/hls/|/stream/|/mp4)\S*)',
+                        stream_ignore_pattern=r"^.*intro\.mp4.*$",
+                         headless=False
                          )
 
     def get_movie(self, tmdb_id: str, stop_event: Optional[Event] = None) -> Optional[WebResponse]:
