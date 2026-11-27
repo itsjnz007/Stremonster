@@ -10,6 +10,8 @@ from typing import Optional, Tuple
 
 logger = Logger("multithreading")
 
+DEFAULT_DELAY_BETWEEN = 5
+
 class MultiThreading:
     def __init__(self, max_workers: int = 4):
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
@@ -35,7 +37,7 @@ class MultiThreading:
         delayed_task = self._delayed_task(task, delay)
         return self.executor.submit(delayed_task)
 
-    def get_all(self, tasks: Iterable[Callable[[Any], Any]], delay_between: float = 3):
+    def get_all(self, tasks: Iterable[Callable[[Any], Any]], delay_between: float = DEFAULT_DELAY_BETWEEN):
         self.stop_event.clear()
         delayed_tasks = [
             self._delayed_task(task, i * delay_between)
@@ -54,7 +56,7 @@ class MultiThreading:
     def get_first(
         self, 
         tasks: Iterable[Tuple[Callable[[threading.Event], Any], str]], 
-        delay_between: float = 3
+        delay_between: float = DEFAULT_DELAY_BETWEEN
     ) -> Optional[Tuple[Any, str]]: # Returns (result, task_name)
         
         self.stop_event.clear()
