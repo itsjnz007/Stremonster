@@ -63,7 +63,7 @@ class StreamExtractor:
     tmdb_cache = TmdbCache()
     tmdb_client = Tmdb(tmdb_cache)
     logger = Logger(f"extractor.stream", level=logging.DEBUG)
-    threadpool = MultiThreading(max_workers=3)
+    threadpool = MultiThreading(max_workers=2)
 
     def __init__(self) -> None: pass
 
